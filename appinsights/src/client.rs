@@ -13,7 +13,7 @@ pub struct TelemetryClient<C> {
 impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
     pub fn new(ikey: String) -> Self {
-        Self::from_config(Config::with_ikey(ikey))
+        Self::from_config(Config::new(ikey))
     }
 
     /// Creates a new telemetry client configured with specified configuration.
@@ -21,7 +21,7 @@ impl TelemetryClient<InMemoryChannel> {
         Self {
             enabled: true,
             context: TelemetryContext::from(&config),
-            channel: InMemoryChannel {},
+            channel: InMemoryChannel::new(&config),
         }
     }
 }
@@ -104,7 +104,7 @@ mod tests {
     }
 
     fn create_client() -> TelemetryClient<TestChannel> {
-        let config = Config::with_ikey("instrumentation key".into());
+        let config = Config::new("instrumentation key".into());
 
         TelemetryClient {
             enabled: true,
@@ -125,7 +125,7 @@ mod tests {
 
     impl TelemetryChannel for TestChannel {
         fn send(&self, envelop: Envelope) {
-            self.events.borrow_mut().push(envelop)
+            self.events.borrow_mut().push(envelop);
         }
     }
 }
