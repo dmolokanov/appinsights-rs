@@ -1,1 +1,4 @@
-pub struct Envelope {}
+#[derive(Debug)]
+pub struct Envelope {
+    pub name: String,
+}

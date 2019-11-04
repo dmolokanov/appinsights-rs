@@ -91,6 +91,16 @@ impl Builder {
             interval: self.interval,
         }
     }
+
+    /// Returns endpoint URL where data will be sent.
+    pub fn endpoint(&self) -> &str {
+        &self.endpoint
+    }
+
+    // Returns maximum time to wait until send a batch of telemetry.
+    pub fn interval(&self) -> Duration {
+        self.interval
+    }
 }
 
 #[cfg(test)]

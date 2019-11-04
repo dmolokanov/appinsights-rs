@@ -14,7 +14,7 @@ impl TelemetryContext {
     where
         T: Telemetry,
     {
-        Envelope {}
+        Envelope { name: "asdas".into() }
     }
 }
 

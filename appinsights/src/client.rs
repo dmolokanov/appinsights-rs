@@ -62,10 +62,10 @@ where
 mod tests {
     use std::borrow::Borrow;
     use std::cell::RefCell;
-    use std::sync::Arc;
 
     use super::*;
     use crate::contracts::Envelope;
+    use crate::Result;
 
     #[test]
     fn it_enabled_by_default() {
@@ -124,8 +124,9 @@ mod tests {
     }
 
     impl TelemetryChannel for TestChannel {
-        fn send(&self, envelop: Envelope) {
+        fn send(&self, envelop: Envelope) -> Result<()> {
             self.events.borrow_mut().push(envelop);
+            Ok(())
         }
     }
 }
