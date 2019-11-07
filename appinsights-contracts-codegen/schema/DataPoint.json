@@ -1,0 +1,215 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "DataPointType.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": null,
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "ns",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Namespace of the metric."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "256"
+            }
+          ],
+          "fieldOrdinal": 5
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "name",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Name of the metric."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": {
+            "value": "Measurement",
+            "type": "enum"
+          },
+          "fieldType": {
+            "declaration": {
+              "tag": "Enum",
+              "enumConstants": [
+                {
+                  "constantValue": null,
+                  "constantName": "Measurement"
+                },
+                {
+                  "constantValue": null,
+                  "constantName": "Aggregation"
+                }
+              ],
+              "declNamespaces": [
+                {
+                  "name": [
+                    "AI"
+                  ]
+                }
+              ],
+              "declName": "DataPointType",
+              "declAttributes": [
+                {
+                  "attrName": [
+                    "Description"
+                  ],
+                  "attrValue": "Type of the metric data measurement."
+                }
+              ]
+            },
+            "type": "user"
+          },
+          "fieldName": "kind",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Metric type. Single measurement or the aggregated value."
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "double",
+          "fieldName": "value",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Single value for measurement. Sum of individual measurements for the aggregation."
+            }
+          ],
+          "fieldOrdinal": 30
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "type": "nullable",
+            "element": "int32"
+          },
+          "fieldName": "count",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Metric weight of the aggregated metric. Should not be set for a measurement."
+            }
+          ],
+          "fieldOrdinal": 40
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "type": "nullable",
+            "element": "double"
+          },
+          "fieldName": "min",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Minimum value of the aggregated metric. Should not be set for a measurement."
+            }
+          ],
+          "fieldOrdinal": 50
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "type": "nullable",
+            "element": "double"
+          },
+          "fieldName": "max",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Maximum value of the aggregated metric. Should not be set for a measurement."
+            }
+          ],
+          "fieldOrdinal": 60
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "type": "nullable",
+            "element": "double"
+          },
+          "fieldName": "stdDev",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Standard deviation of the aggregated metric. Should not be set for a measurement."
+            }
+          ],
+          "fieldOrdinal": 70
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "DataPoint",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Metric data single measurement."
+        }
+      ]
+    }
+  ]
+}

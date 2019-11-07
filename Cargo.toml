@@ -2,4 +2,5 @@
 
 members = [
   "appinsights",
+  "appinsights-contracts-codegen"
 ]

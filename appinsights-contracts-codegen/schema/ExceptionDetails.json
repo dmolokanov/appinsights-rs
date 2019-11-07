@@ -1,0 +1,284 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "StackFrame.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": null,
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "int32",
+          "fieldName": "id",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "In case exception is nested (outer exception contains inner one), the id and outerId properties are used to represent the nesting."
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "int32",
+          "fieldName": "outerId",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "The value of outerId is a reference to an element in ExceptionDetails that represents the outer exception"
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "typeName",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Exception type name."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            }
+          ],
+          "fieldOrdinal": 30
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "message",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Exception message."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "32768"
+            }
+          ],
+          "fieldOrdinal": 40
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": {
+            "value": true,
+            "type": "bool"
+          },
+          "fieldType": "bool",
+          "fieldName": "hasFullStack",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Indicates if full exception stack is provided in the exception. The stack may be trimmed, such as in the case of a StackOverflow exception."
+            }
+          ],
+          "fieldOrdinal": 50
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "stack",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Text describing the stack. Either stack or parsedStack should have a value."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "32768"
+            }
+          ],
+          "fieldOrdinal": 60
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "type": "vector",
+            "element": {
+              "declaration": {
+                "structBase": null,
+                "tag": "Struct",
+                "structFields": [
+                  {
+                    "fieldModifier": "Required",
+                    "fieldDefault": null,
+                    "fieldType": "int32",
+                    "fieldName": "level",
+                    "fieldAttributes": [
+                      {
+                        "attrName": [
+                          "Description"
+                        ],
+                        "attrValue": "Level in the call stack. For the long stacks SDK may not report every function in a call stack."
+                      }
+                    ],
+                    "fieldOrdinal": 10
+                  },
+                  {
+                    "fieldModifier": "Required",
+                    "fieldDefault": null,
+                    "fieldType": "string",
+                    "fieldName": "method",
+                    "fieldAttributes": [
+                      {
+                        "attrName": [
+                          "Description"
+                        ],
+                        "attrValue": "Method name."
+                      },
+                      {
+                        "attrName": [
+                          "MaxStringLength"
+                        ],
+                        "attrValue": "1024"
+                      }
+                    ],
+                    "fieldOrdinal": 20
+                  },
+                  {
+                    "fieldModifier": "Optional",
+                    "fieldDefault": null,
+                    "fieldType": "string",
+                    "fieldName": "assembly",
+                    "fieldAttributes": [
+                      {
+                        "attrName": [
+                          "Description"
+                        ],
+                        "attrValue": "Name of the assembly (dll, jar, etc.) containing this function."
+                      },
+                      {
+                        "attrName": [
+                          "MaxStringLength"
+                        ],
+                        "attrValue": "1024"
+                      }
+                    ],
+                    "fieldOrdinal": 30
+                  },
+                  {
+                    "fieldModifier": "Optional",
+                    "fieldDefault": null,
+                    "fieldType": "string",
+                    "fieldName": "fileName",
+                    "fieldAttributes": [
+                      {
+                        "attrName": [
+                          "Description"
+                        ],
+                        "attrValue": "File name or URL of the method implementation."
+                      },
+                      {
+                        "attrName": [
+                          "MaxStringLength"
+                        ],
+                        "attrValue": "1024"
+                      }
+                    ],
+                    "fieldOrdinal": 50
+                  },
+                  {
+                    "fieldModifier": "Optional",
+                    "fieldDefault": null,
+                    "fieldType": "int32",
+                    "fieldName": "line",
+                    "fieldAttributes": [
+                      {
+                        "attrName": [
+                          "Description"
+                        ],
+                        "attrValue": "Line number of the code implementation."
+                      }
+                    ],
+                    "fieldOrdinal": 60
+                  }
+                ],
+                "declParams": [],
+                "declNamespaces": [
+                  {
+                    "name": [
+                      "AI"
+                    ]
+                  }
+                ],
+                "declName": "StackFrame",
+                "declAttributes": [
+                  {
+                    "attrName": [
+                      "Description"
+                    ],
+                    "attrValue": "Stack frame information."
+                  }
+                ]
+              },
+              "type": "user"
+            }
+          },
+          "fieldName": "parsedStack",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "List of stack frames. Either stack or parsedStack should have a value."
+            }
+          ],
+          "fieldOrdinal": 70
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "ExceptionDetails",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Exception details of the exception in a chain."
+        }
+      ]
+    }
+  ]
+}

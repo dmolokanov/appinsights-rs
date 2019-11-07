@@ -1,0 +1,279 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "Domain.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": {
+        "declaration": {
+          "structBase": null,
+          "tag": "Struct",
+          "structFields": [],
+          "declParams": [],
+          "declNamespaces": [
+            {
+              "name": [
+                "AI"
+              ]
+            }
+          ],
+          "declName": "Domain",
+          "declAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "The abstract common base of all domains."
+            }
+          ]
+        },
+        "type": "user"
+      },
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": {
+            "value": 2,
+            "type": "integer"
+          },
+          "fieldType": "int32",
+          "fieldName": "ver",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Schema version"
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "id",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "512"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Identifier of a request call instance. Used for correlation between request and other telemetry items."
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "source",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Source of the request. Examples are the instrumentation key of the caller or the ip address of the caller."
+            }
+          ],
+          "fieldOrdinal": 29
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "name",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Name of the request. Represents code path taken to process request. Low cardinality value to allow better grouping of requests. For HTTP requests it represents the HTTP method and URL path template like 'GET /values/{id}'."
+            }
+          ],
+          "fieldOrdinal": 30
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "duration",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "CSType"
+              ],
+              "attrValue": "TimeSpan"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Request duration in format: DD.HH:MM:SS.MMMMMM. Must be less than 1000 days."
+            }
+          ],
+          "fieldOrdinal": 50
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "responseCode",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Result of a request execution. HTTP status code for HTTP requests."
+            }
+          ],
+          "fieldOrdinal": 60
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": {
+            "value": true,
+            "type": "bool"
+          },
+          "fieldType": "bool",
+          "fieldName": "success",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Indication of successfull or unsuccessfull call."
+            }
+          ],
+          "fieldOrdinal": 70
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "url",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "2048"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Request URL with all query string parameters."
+            }
+          ],
+          "fieldOrdinal": 90
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "string"
+          },
+          "fieldName": "properties",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom properties."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            },
+            {
+              "attrName": [
+                "MaxValueLength"
+              ],
+              "attrValue": "8192"
+            }
+          ],
+          "fieldOrdinal": 100
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "double"
+          },
+          "fieldName": "measurements",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom measurements."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            }
+          ],
+          "fieldOrdinal": 200
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "RequestData",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "An instance of Request represents completion of an external request to the application to do work and contains a summary of that request execution and the results."
+        }
+      ]
+    }
+  ]
+}

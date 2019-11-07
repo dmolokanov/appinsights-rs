@@ -1,0 +1,41 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [],
+  "declarations": [
+    {
+      "tag": "Enum",
+      "enumConstants": [
+        {
+          "constantValue": null,
+          "constantName": "Measurement"
+        },
+        {
+          "constantValue": null,
+          "constantName": "Aggregation"
+        }
+      ],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "DataPointType",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Type of the metric data measurement."
+        }
+      ]
+    }
+  ]
+}

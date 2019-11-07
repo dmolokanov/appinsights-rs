@@ -1,0 +1,56 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [],
+  "declarations": [
+    {
+      "structBase": null,
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "baseType",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Name"
+              ],
+              "attrValue": "ItemTypeName"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Name of item (B section) if any. If telemetry data is derived straight from this, this should be null."
+            }
+          ],
+          "fieldOrdinal": 10
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "Base",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Data struct to contain only C section with custom fields."
+        }
+      ]
+    }
+  ]
+}

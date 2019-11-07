@@ -1,0 +1,128 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [],
+  "declarations": [
+    {
+      "structBase": null,
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "int32",
+          "fieldName": "level",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Level in the call stack. For the long stacks SDK may not report every function in a call stack."
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "method",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Method name."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "assembly",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Name of the assembly (dll, jar, etc.) containing this function."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            }
+          ],
+          "fieldOrdinal": 30
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "fileName",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "File name or URL of the method implementation."
+            },
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            }
+          ],
+          "fieldOrdinal": 50
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "int32",
+          "fieldName": "line",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Line number of the code implementation."
+            }
+          ],
+          "fieldOrdinal": 60
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "StackFrame",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Stack frame information."
+        }
+      ]
+    }
+  ]
+}

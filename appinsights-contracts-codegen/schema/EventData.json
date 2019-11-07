@@ -1,0 +1,162 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "Domain.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": {
+        "declaration": {
+          "structBase": null,
+          "tag": "Struct",
+          "structFields": [],
+          "declParams": [],
+          "declNamespaces": [
+            {
+              "name": [
+                "AI"
+              ]
+            }
+          ],
+          "declName": "Domain",
+          "declAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "The abstract common base of all domains."
+            }
+          ]
+        },
+        "type": "user"
+      },
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": {
+            "value": 2,
+            "type": "integer"
+          },
+          "fieldType": "int32",
+          "fieldName": "ver",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Schema version"
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "name",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "512"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Event name. Keep it low cardinality to allow proper grouping and useful metrics."
+            },
+            {
+              "attrName": [
+                "Question"
+              ],
+              "attrValue": "Why Custom Event name is shorter than Request name or dependency name?"
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "string"
+          },
+          "fieldName": "properties",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom properties."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            },
+            {
+              "attrName": [
+                "MaxValueLength"
+              ],
+              "attrValue": "8192"
+            }
+          ],
+          "fieldOrdinal": 100
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "double"
+          },
+          "fieldName": "measurements",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom measurements."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            }
+          ],
+          "fieldOrdinal": 200
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "EventData",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Instances of Event represent structured event records that can be grouped and searched by their properties. Event data item also creates a metric of event count by name."
+        }
+      ]
+    }
+  ]
+}

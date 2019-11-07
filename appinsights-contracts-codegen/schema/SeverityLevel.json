@@ -1,0 +1,53 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [],
+  "declarations": [
+    {
+      "tag": "Enum",
+      "enumConstants": [
+        {
+          "constantValue": null,
+          "constantName": "Verbose"
+        },
+        {
+          "constantValue": null,
+          "constantName": "Information"
+        },
+        {
+          "constantValue": null,
+          "constantName": "Warning"
+        },
+        {
+          "constantValue": null,
+          "constantName": "Error"
+        },
+        {
+          "constantValue": null,
+          "constantName": "Critical"
+        }
+      ],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "SeverityLevel",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Defines the level of severity for the event."
+        }
+      ]
+    }
+  ]
+}

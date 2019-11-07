@@ -1,0 +1,115 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "Base.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": {
+        "declaration": {
+          "structBase": null,
+          "tag": "Struct",
+          "structFields": [
+            {
+              "fieldModifier": "Optional",
+              "fieldDefault": null,
+              "fieldType": "string",
+              "fieldName": "baseType",
+              "fieldAttributes": [
+                {
+                  "attrName": [
+                    "Name"
+                  ],
+                  "attrValue": "ItemTypeName"
+                },
+                {
+                  "attrName": [
+                    "Description"
+                  ],
+                  "attrValue": "Name of item (B section) if any. If telemetry data is derived straight from this, this should be null."
+                }
+              ],
+              "fieldOrdinal": 10
+            }
+          ],
+          "declParams": [],
+          "declNamespaces": [
+            {
+              "name": [
+                "AI"
+              ]
+            }
+          ],
+          "declName": "Base",
+          "declAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Data struct to contain only C section with custom fields."
+            }
+          ]
+        },
+        "type": "user"
+      },
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": {
+            "value": {
+              "paramConstraint": null,
+              "paramName": "TDomain"
+            },
+            "type": "parameter"
+          },
+          "fieldName": "baseData",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Name"
+              ],
+              "attrValue": "Item"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Container for data item (B section)."
+            }
+          ],
+          "fieldOrdinal": 20
+        }
+      ],
+      "declParams": [
+        {
+          "paramConstraint": null,
+          "paramName": "TDomain"
+        }
+      ],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "Data",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "Data struct to contain both B and C sections."
+        }
+      ]
+    }
+  ]
+}

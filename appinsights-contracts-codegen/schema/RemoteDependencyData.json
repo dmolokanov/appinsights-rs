@@ -1,0 +1,306 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [
+    "Domain.bond"
+  ],
+  "declarations": [
+    {
+      "structBase": {
+        "declaration": {
+          "structBase": null,
+          "tag": "Struct",
+          "structFields": [],
+          "declParams": [],
+          "declNamespaces": [
+            {
+              "name": [
+                "AI"
+              ]
+            }
+          ],
+          "declName": "Domain",
+          "declAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "The abstract common base of all domains."
+            }
+          ]
+        },
+        "type": "user"
+      },
+      "tag": "Struct",
+      "structFields": [
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": {
+            "value": 2,
+            "type": "integer"
+          },
+          "fieldType": "int32",
+          "fieldName": "ver",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Schema version"
+            }
+          ],
+          "fieldOrdinal": 10
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "name",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Name of the command initiated with this dependency call. Low cardinality value. Examples are stored procedure name and URL path template."
+            }
+          ],
+          "fieldOrdinal": 20
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "id",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "512"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Identifier of a dependency call instance. Used for correlation with the request telemetry item corresponding to this dependency call."
+            }
+          ],
+          "fieldOrdinal": 30
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "resultCode",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Result code of a dependency call. Examples are SQL error code and HTTP status code."
+            }
+          ],
+          "fieldOrdinal": 40
+        },
+        {
+          "fieldModifier": "Required",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "duration",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "CSType"
+              ],
+              "attrValue": "TimeSpan"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Request duration in format: DD.HH:MM:SS.MMMMMM. Must be less than 1000 days."
+            },
+            {
+              "attrName": [
+                "ActAsRequired"
+              ],
+              "attrValue": "Renaming value to duration."
+            }
+          ],
+          "fieldOrdinal": 61
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": {
+            "value": true,
+            "type": "bool"
+          },
+          "fieldType": "bool",
+          "fieldName": "success",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Indication of successfull or unsuccessfull call."
+            }
+          ],
+          "fieldOrdinal": 120
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "data",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "8192"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Command initiated by this dependency call. Examples are SQL statement and HTTP URL's with all query parameters."
+            }
+          ],
+          "fieldOrdinal": 151
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "target",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Target site of a dependency call. Examples are server name, host address."
+            }
+          ],
+          "fieldOrdinal": 161
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": "string",
+          "fieldName": "type",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "MaxStringLength"
+              ],
+              "attrValue": "1024"
+            },
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Dependency type name. Very low cardinality value for logical grouping of dependencies and interpretation of other fields like commandName and resultCode. Examples are SQL, Azure table, and HTTP."
+            }
+          ],
+          "fieldOrdinal": 162
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "string"
+          },
+          "fieldName": "properties",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom properties."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            },
+            {
+              "attrName": [
+                "MaxValueLength"
+              ],
+              "attrValue": "8192"
+            }
+          ],
+          "fieldOrdinal": 200
+        },
+        {
+          "fieldModifier": "Optional",
+          "fieldDefault": null,
+          "fieldType": {
+            "key": "string",
+            "type": "map",
+            "element": "double"
+          },
+          "fieldName": "measurements",
+          "fieldAttributes": [
+            {
+              "attrName": [
+                "Description"
+              ],
+              "attrValue": "Collection of custom measurements."
+            },
+            {
+              "attrName": [
+                "MaxKeyLength"
+              ],
+              "attrValue": "150"
+            }
+          ],
+          "fieldOrdinal": 300
+        }
+      ],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "RemoteDependencyData",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "An instance of Remote Dependency represents an interaction of the monitored component with a remote component/service like SQL or an HTTP endpoint."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "namespaces": [
+    {
+      "name": [
+        "AI"
+      ]
+    }
+  ],
+  "imports": [],
+  "declarations": [
+    {
+      "structBase": null,
+      "tag": "Struct",
+      "structFields": [],
+      "declParams": [],
+      "declNamespaces": [
+        {
+          "name": [
+            "AI"
+          ]
+        }
+      ],
+      "declName": "Domain",
+      "declAttributes": [
+        {
+          "attrName": [
+            "Description"
+          ],
+          "attrValue": "The abstract common base of all domains."
+        }
+      ]
+    }
+  ]
+}
