@@ -17,8 +17,13 @@ fn run() -> Result<()> {
     let opts = Opt::from_args();
 
     let files = fs::read_dir(&opts.input_dir)?.filter_map(|entry| entry.ok().map(|entry| entry.path()));
-    for file in files.filter(|file| file.ends_with("Envelope.json")).take(1) {
-        process_schema(&file, &opts.output_dir)?;
+    for file in files {
+        //.filter(|file| file.ends_with("Data.json")).take(1) {
+        if let Err(err) = process_schema(&file, &opts.output_dir) {
+            eprintln!("{:?}: {}", file.file_name().unwrap(), err);
+        } else {
+            //            println!("{:?}: ok", file.file_name().unwrap());
+        }
     }
 
     Ok(())
@@ -26,7 +31,7 @@ fn run() -> Result<()> {
 
 fn process_schema(path: &Path, _output_dir: &Path) -> Result<()> {
     let schema: Schema = serde_json::from_reader(File::open(&path)?)?;
-    dbg!(schema);
+    //    dbg!(schema);
     Ok(())
 }
 
@@ -53,7 +58,6 @@ enum Declaration {
 struct Struct {
     struct_base: Option<StructBase>,
     struct_fields: Vec<Field>,
-
     decl_params: Vec<DeclarationParam>,
     decl_name: String,
     decl_attributes: Vec<Attribute>,
@@ -95,8 +99,15 @@ enum FieldModifier {
 }
 
 #[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
-struct FieldDefault {}
+enum FieldDefault {
+    Integer(i32),
+    Bool(bool),
+    String(String),
+    Enum(String),
+}
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
@@ -116,6 +127,7 @@ enum FieldType {
     Double,
     String,
     WString,
+    //    Parameter(String, DeclarationParam),
     // todo container types blob, list<T>, vector<T>, set<T>, map<K, T>, nullable<T>.
     //    Map {
     //        #[serde(rename = "type")]
@@ -152,7 +164,20 @@ struct Namespace {
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
-struct Enum {}
+struct Enum {
+    enum_constants: Vec<EnumConstant>,
+    decl_name: String,
+    decl_attributes: Vec<Attribute>,
+    decl_namespaces: Vec<Namespace>,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+#[serde(deny_unknown_fields)]
+struct EnumConstant {
+    constant_value: Option<String>,
+    constant_name: String,
+}
 
 #[derive(StructOpt, Debug)]
 #[structopt(rename_all = "kebab-case")]
