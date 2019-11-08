@@ -1,11 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::fs;
-use std::fs::File;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
+
 use structopt::StructOpt;
 
-type Result<T> = std::result::Result<T, Box<dyn Error>>;
+use appinsights_contracts_codegen::bond::Compiler;
+use appinsights_contracts_codegen::Result;
 
 fn main() {
     if let Err(err) = run() {
@@ -16,168 +14,26 @@ fn main() {
 fn run() -> Result<()> {
     let opts = Opt::from_args();
 
-    let files = fs::read_dir(&opts.input_dir)?.filter_map(|entry| entry.ok().map(|entry| entry.path()));
-    for file in files {
-        //.filter(|file| file.ends_with("Data.json")).take(1) {
-        if let Err(err) = process_schema(&file, &opts.output_dir) {
-            eprintln!("{:?}: {}", file.file_name().unwrap(), err);
-        } else {
-            //            println!("{:?}: ok", file.file_name().unwrap());
-        }
-    }
+    let compiler = Compiler::new();
+    compiler.compile_all(&opts.input_dir, &opts.output_dir)?;
 
     Ok(())
 }
 
-fn process_schema(path: &Path, _output_dir: &Path) -> Result<()> {
-    let schema: Schema = serde_json::from_reader(File::open(&path)?)?;
-    //    dbg!(schema);
-    Ok(())
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Schema {
-    namespaces: Vec<Namespace>,
-    imports: Vec<String>,
-    declarations: Vec<Declaration>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(tag = "tag")]
-#[serde(deny_unknown_fields)]
-enum Declaration {
-    Struct(Struct),
-    Enum(Enum),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Struct {
-    struct_base: Option<StructBase>,
-    struct_fields: Vec<Field>,
-    decl_params: Vec<DeclarationParam>,
-    decl_name: String,
-    decl_attributes: Vec<Attribute>,
-    decl_namespaces: Vec<Namespace>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct StructBase {
-    declaration: Box<Declaration>,
-    type_: StructBaseType,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-enum StructBaseType {
-    User,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Field {
-    field_modifier: FieldModifier,
-    field_default: Option<FieldDefault>,
-    field_type: FieldType,
-    field_name: String,
-    field_attributes: Vec<Attribute>,
-    field_ordinal: i32,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(deny_unknown_fields)]
-enum FieldModifier {
-    Optional,
-    Required,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(tag = "type")]
-#[serde(deny_unknown_fields)]
-enum FieldDefault {
-    Integer(i32),
-    Bool(bool),
-    String(String),
-    Enum(String),
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
-#[serde(deny_unknown_fields)]
-enum FieldType {
-    // basic types
-    Bool,
-    UInt8,
-    UInt16,
-    UInt32,
-    UInt64,
-    Int8,
-    Int16,
-    Int32,
-    Int64,
-    Float,
-    Double,
-    String,
-    WString,
-    //    Parameter(String, DeclarationParam),
-    // todo container types blob, list<T>, vector<T>, set<T>, map<K, T>, nullable<T>.
-    //    Map {
-    //        #[serde(rename = "type")]
-    //        type_: String,
-    //        key: Box<FieldType>,
-    //        element: Box<FieldType>,
-    //    },
-    // todo user-defined types enum, struct or bonded<T> where T is a struct
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Attribute {
-    attr_name: Vec<String>,
-    attr_value: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct DeclarationParam {
-    param_constraint: Option<String>,
-    param_name: String,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Namespace {
-    name: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct Enum {
-    enum_constants: Vec<EnumConstant>,
-    decl_name: String,
-    decl_attributes: Vec<Attribute>,
-    decl_namespaces: Vec<Namespace>,
-}
-
-#[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "camelCase")]
-#[serde(deny_unknown_fields)]
-struct EnumConstant {
-    constant_value: Option<String>,
-    constant_name: String,
-}
+//fn process_schema(path: &Path, output_dir: &Path) -> Result<()> {
+//    let dest_path = path
+//        .file_stem()
+//        .and_then(|stem| stem.to_str())
+//        .map(|stem| format!("{}.rs", stem.to_lowercase()))
+//        .map(|filename| output_dir.join(filename))
+//        .ok_or("Unable to get a file name")?;
+//
+//    //    generate(&schema, &dest_path)?;
+//    let compiler = Compiler::new();
+//    compiler.compile(path, output_dir)?;
+//
+//    Ok(())
+//}
 
 #[derive(StructOpt, Debug)]
 #[structopt(rename_all = "kebab-case")]
