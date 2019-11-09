@@ -1,10 +1,7 @@
-use std::fmt::{Display, Formatter, Write};
+use std::fmt::Write;
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::str::FromStr;
-
-use codegen::Scope;
-use heck::SnakeCase;
 
 use crate::bond::*;
 use crate::Result;
@@ -108,20 +105,21 @@ impl Compiler {
 struct CodeGenerator;
 
 impl Visitor<Schema> for CodeGenerator {
-    type Result = Scope;
+    type Result = codegen::Scope;
 
     fn visit(&self, item: &Schema) -> Self::Result {
-        let mut module = Scope::new();
+        let mut module = codegen::Scope::new();
         module.raw("// NOTE: This file was automatically generated.");
+        module.import("serde", "Serialize");
 
         for declaration in item.declarations.iter() {
             match declaration {
-                UserTypeDeclaration::Struct(struct_) => {
+                UserType::Struct(struct_) => {
                     let (struct_, impl_) = self.visit(struct_);
                     module.push_struct(struct_);
                     module.push_impl(impl_);
                 }
-                UserTypeDeclaration::Enum(enum_) => {
+                UserType::Enum(enum_) => {
                     let enum_ = self.visit(enum_);
                     module.push_enum(enum_);
                 }
@@ -141,21 +139,20 @@ impl Visitor<Struct> for StructCodeGenerator {
         let mut struct_: codegen::Struct = codegen::Struct::new(&item.decl_name);
         struct_.vis("pub");
 
-        for field in item.struct_fields.to_vec() {
+        for field in &item.struct_fields {
             if let Some(generic) = field.field_type.generic() {
                 struct_.generic(generic);
             }
 
-            let field_name = FieldName::from(&field.field_name);
-            let field_type = codegen::Type::from(field);
-            struct_.field(field_name.as_ref(), &field_type);
+            let field_type = codegen::Type::from(field.clone());
+            struct_.field(&field.name(), &field_type);
         }
 
         if let Some(doc) = Doc.visit(&item.decl_attributes) {
             struct_.doc(&doc);
         }
 
-        struct_.derive("Debug");
+        struct_.derive("Debug, Serialize");
 
         struct_
     }
@@ -167,17 +164,37 @@ impl Visitor<Struct> for ConstructorCodeGenerator {
     type Result = codegen::Function;
 
     fn visit(&self, item: &Struct) -> Self::Result {
-        let mut block = codegen::Block::new("Self");
+        let doc = format!(
+            "Create a new [{name}](trait.{name}.html) instance with default values set by the schema.",
+            name = item.decl_name
+        );
         let mut constructor = codegen::Function::new("new");
-        constructor.vis("pub");
-        constructor.ret("Self");
+        constructor.vis("pub").ret("Self").doc(&doc);
 
-        for field in item.struct_fields.to_vec() {
-            let field_name = FieldName::from(&field.field_name);
-            let field_type = codegen::Type::from(field);
+        let mut block = codegen::Block::new("Self");
 
-            constructor.arg(field_name.as_ref(), &field_type);
-            block.line(format!("{},", field_name));
+        for field in &item.struct_fields {
+            let field_name = field.name();
+
+            // initialize struct field with given default value
+            if let Some(value) = field.default_value() {
+                let field_value = if field.is_option() {
+                    format!("Some({})", value)
+                } else {
+                    format!("{}", value)
+                };
+                block.line(format!("{}: {},", field_name, field_value));
+            } else if field.field_modifier == FieldModifier::Required {
+                // initialize struct field with value from constructor if field is required
+                block.line(format!("{},", field_name));
+
+                // add constructor argument if field is required
+                let field_type = codegen::Type::from(field.clone());
+                constructor.arg(field_name.as_ref(), &field_type);
+            } else {
+                // initialize optional field with None
+                block.line(format!("{}: None,", field_name));
+            }
         }
 
         constructor.push_block(block);
@@ -212,13 +229,51 @@ impl Visitor<Struct> for ImplCodeGenerator {
     }
 }
 
+struct SettersCodeGenerator;
+
+impl Visitor<Struct> for SettersCodeGenerator {
+    type Result = Vec<codegen::Function>;
+
+    fn visit(&self, item: &Struct) -> Self::Result {
+        let mut setters = Vec::new();
+
+        for field in &item.struct_fields {
+            let field_name = field.name();
+            let field_type = codegen::Type::from(field.clone());
+
+            let mut setter = codegen::Function::new(&format!("with_{}", field_name));
+            setter
+                .vis("pub")
+                .ret("&mut Self")
+                .arg_mut_self()
+                .arg(&field_name, field_type)
+                .line(format!("self.{name} = {name};", name = field_name))
+                .line("self");
+
+            if let Some(doc) = Doc.visit(&field.field_attributes) {
+                setter.doc(&doc);
+            }
+
+            setters.push(setter);
+        }
+
+        setters
+    }
+}
+
 impl Visitor<Struct> for CodeGenerator {
     type Result = (codegen::Struct, codegen::Impl);
 
     fn visit(&self, item: &Struct) -> Self::Result {
         let struct_ = StructCodeGenerator.visit(&item);
+
         let mut impl_ = ImplCodeGenerator.visit(&item);
-        impl_.push_fn(ConstructorCodeGenerator.visit(&item));
+        let constructor = ConstructorCodeGenerator.visit(&item);
+
+        SettersCodeGenerator
+            .visit(&item)
+            .into_iter()
+            .fold(impl_.push_fn(constructor), |impl_, setter| impl_.push_fn(setter));
 
         (struct_, impl_)
     }
@@ -229,7 +284,7 @@ impl Visitor<Enum> for CodeGenerator {
 
     fn visit(&self, item: &Enum) -> Self::Result {
         let mut enum_ = codegen::Enum::new(&item.decl_name);
-        enum_.vis("pub");
+        enum_.vis("pub").derive("Debug").derive("Serialize");
 
         for const_ in item.enum_constants.iter() {
             enum_.new_variant(&const_.constant_name);
@@ -242,8 +297,6 @@ impl Visitor<Enum> for CodeGenerator {
         if let Some(doc) = Doc.visit(&item.decl_attributes) {
             enum_.doc(&doc);
         }
-
-        enum_.derive("Debug");
 
         enum_
     }
@@ -268,36 +321,6 @@ impl Visitor<Attribute> for Doc {
         } else {
             None
         }
-    }
-}
-
-pub struct FieldName(String);
-
-impl<T> From<T> for FieldName
-where
-    T: Into<String>,
-{
-    fn from(name: T) -> Self {
-        let name = name.into().to_snake_case();
-        if RUST_KEYWORDS.contains(&name.as_str()) {
-            FieldName(format!("{}_", name))
-        } else {
-            FieldName(name)
-        }
-    }
-}
-
-const RUST_KEYWORDS: [&str; 1] = ["type"];
-
-impl AsRef<str> for FieldName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Display for FieldName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
     }
 }
 
@@ -375,8 +398,8 @@ impl From<ComplexType> for codegen::Type {
             }
             ComplexType::User { declaration } => {
                 let name = match *declaration {
-                    UserTypeDeclaration::Struct(struct_) => struct_.decl_name.to_string(),
-                    UserTypeDeclaration::Enum(enum_) => enum_.decl_name.to_string(),
+                    UserType::Struct(struct_) => struct_.decl_name.to_string(),
+                    UserType::Enum(enum_) => enum_.decl_name.to_string(),
                 };
                 codegen::Type::new(&format!("crate::contracts::{}", name))
             }
