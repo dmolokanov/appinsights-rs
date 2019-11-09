@@ -14,7 +14,9 @@ impl TelemetryContext {
     where
         T: Telemetry,
     {
-        unimplemented!()
+        let mut envelope = Envelope::new("test".into(), "time".into());
+        envelope.with_data(None).with_flags(None);
+        envelope
     }
 }
 
