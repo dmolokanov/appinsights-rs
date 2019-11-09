@@ -22,7 +22,6 @@ impl Compiler {
     pub fn compile_all(&self, input_dir: &Path, output_dir: &Path) -> Result<()> {
         let mut files: Vec<_> = fs::read_dir(&input_dir)?
             .filter_map(|entry| entry.ok().map(|entry| entry.path()))
-            .filter(|file| 1 == 1 || file.ends_with("Envelope.json"))
             .collect();
         files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
 
@@ -328,16 +327,12 @@ impl From<Field> for codegen::Type {
     fn from(field: Field) -> Self {
         let field_type = field.type_().clone();
 
-        if field_type.nullable().is_some() {
+        if field_type.nullable().is_some() || field.is_required() {
             codegen::Type::from(field_type)
         } else {
-            if field.is_required() {
-                codegen::Type::from(field_type)
-            } else {
-                let mut type_ = codegen::Type::new("Option");
-                type_.generic(codegen::Type::from(field_type));
-                type_
-            }
+            let mut type_ = codegen::Type::new("Option");
+            type_.generic(codegen::Type::from(field_type));
+            type_
         }
     }
 }

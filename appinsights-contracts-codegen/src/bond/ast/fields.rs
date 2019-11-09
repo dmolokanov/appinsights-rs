@@ -54,7 +54,7 @@ impl Field {
     }
 }
 
-const RUST_KEYWORDS: [&'static str; 1] = ["type"];
+const RUST_KEYWORDS: [&str; 1] = ["type"];
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 #[serde(deny_unknown_fields)]
