@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::path::Path;
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 
@@ -99,6 +100,18 @@ pub enum Type {
     Complex(ComplexType),
 }
 
+impl FromStr for Type {
+    type Err = String;
+
+    fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "double" => Ok(Self::Basic(BasicType::Double)),
+            "string" => Ok(Self::Basic(BasicType::String)),
+            _ => Err(format!("Unsupported type: {}", s)),
+        }
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 #[serde(deny_unknown_fields)]
@@ -142,8 +155,8 @@ pub struct Attribute {
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Parameter {
-    param_constraint: Option<String>,
-    param_name: String,
+    pub param_constraint: Option<String>,
+    pub param_name: String,
 }
 
 #[derive(Serialize, Deserialize, Debug)]

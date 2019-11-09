@@ -1,34 +1,42 @@
-use crate::bond::*;
-use crate::Result;
+use std::borrow::Borrow;
+use std::fmt::{Display, Formatter, Write};
+use std::fs;
+use std::path::{Path, PathBuf};
+use std::str::FromStr;
+
 use codegen::Scope;
 use heck::SnakeCase;
-use std::fs;
-use std::path::Path;
+
+use crate::bond::*;
+use crate::Result;
 
 trait Visitor<T> {
     type Result;
 
-    fn visit(&self, item: T) -> Self::Result;
+    fn visit(&self, item: &T) -> Self::Result;
 }
 
-pub struct Compiler {
-    //    generator: CodeGenerator,
-}
+pub struct Compiler;
 
 impl Compiler {
     pub fn new() -> Self {
-        Self {
-//            generator: CodeGenerator,
-        }
+        Self
     }
 
     pub fn compile_all(&self, input_dir: &Path, output_dir: &Path) -> Result<()> {
-        let files = fs::read_dir(&input_dir)?
+        let mut files: Vec<_> = fs::read_dir(&input_dir)?
             .filter_map(|entry| entry.ok().map(|entry| entry.path()))
-            .filter(|file| 1 == 0 || file.ends_with("Envelope.json"));
+            .filter(|file| 1 == 1 || file.ends_with("Envelope.json"))
+            .collect();
+        files.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
 
-        let mut package = codegen::Scope::new();
+        self.compile_files(output_dir, files.iter())?;
+        self.compile_package(output_dir, files.iter())?;
 
+        Ok(())
+    }
+
+    fn compile_files<'a>(&self, output_dir: &'a Path, files: impl Iterator<Item = &'a PathBuf>) -> Result<()> {
         for input in files {
             let stem = input
                 .file_stem()
@@ -38,14 +46,17 @@ impl Compiler {
 
             let output = output_dir.join(format!("{}.rs", stem));
 
-            self.compile(&input, &output)?;
+            let file_name = input
+                .file_name()
+                .and_then(|name| name.to_str())
+                .ok_or("Unable to get a file name")?;
 
-            package.raw(&format!("mod {};", stem));
-            package.raw(&format!("pub use {}::*;", stem));
+            if let Err(err) = self.compile(&input, &output) {
+                eprintln!("{}: {}", file_name, err);
+            } else {
+                println!("{}: ok", file_name);
+            }
         }
-
-        let package_path = output_dir.join("mod.rs");
-        fs::write(&package_path, package.to_string())?;
 
         Ok(())
     }
@@ -55,9 +66,41 @@ impl Compiler {
         let schema = parser.parse(input)?;
 
         let generator = CodeGenerator;
-        let module = generator.visit(schema);
+        let module = generator.visit(&schema);
 
         fs::write(output, module.to_string())?;
+        Ok(())
+    }
+
+    fn compile_package<'a>(&self, output_dir: &'a Path, files: impl Iterator<Item = &'a PathBuf>) -> Result<()> {
+        let module_names: Vec<_> = files
+            .into_iter()
+            .filter_map(|file| {
+                file.file_stem()
+                    .and_then(|stem| stem.to_str())
+                    .map(|stem| stem.to_lowercase())
+            })
+            .collect();
+
+        let modules_block = module_names.iter().fold(String::new(), |mut block, name| {
+            writeln!(block, "mod {};", name).unwrap();
+            block
+        });
+
+        let use_block = module_names.iter().fold(String::new(), |mut block, name| {
+            writeln!(block, "pub use {}::*;", name).unwrap();
+            block
+        });
+
+        let mut package = codegen::Scope::new();
+        package
+            .raw("#![allow(unused_variables, dead_code)]")
+            .raw(&modules_block)
+            .raw(&use_block);
+
+        let package_path = output_dir.join("mod.rs");
+        fs::write(&package_path, package.to_string())?;
+
         Ok(())
     }
 }
@@ -67,10 +110,10 @@ struct CodeGenerator;
 impl Visitor<Schema> for CodeGenerator {
     type Result = Scope;
 
-    fn visit(&self, item: Schema) -> Self::Result {
+    fn visit(&self, item: &Schema) -> Self::Result {
         let mut module = Scope::new();
 
-        for declaration in item.declarations {
+        for declaration in item.declarations.iter() {
             match declaration {
                 UserTypeDeclaration::Struct(struct_) => {
                     let (struct_, impl_) = self.visit(struct_);
@@ -88,62 +131,153 @@ impl Visitor<Schema> for CodeGenerator {
     }
 }
 
-impl Visitor<Struct> for CodeGenerator {
-    type Result = (codegen::Struct, codegen::Impl);
+struct StructCodeGenerator;
 
-    fn visit(&self, item: Struct) -> Self::Result {
+impl Visitor<Struct> for StructCodeGenerator {
+    type Result = codegen::Struct;
+
+    fn visit(&self, item: &Struct) -> Self::Result {
         let mut struct_: codegen::Struct = codegen::Struct::new(&item.decl_name);
         struct_.vis("pub");
 
-        let mut impl_ = codegen::Impl::new(&item.decl_name);
+        for field in item.struct_fields.iter() {
+            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
+                struct_.generic(&value.param_name);
+            }
 
-        let mut block = codegen::Block::new("Self");
-        let constructor = impl_.new_fn("new").vis("pub").ret("Self");
+            let field_name = FieldName::from(&field.field_name);
+            let field_type: codegen::Type = field.into();
+            struct_.field(field_name.as_ref(), &field_type);
+        }
 
-        for field in item.struct_fields {
-            let visitor = FieldTypeVisitor;
-            let field_type = visitor.visit(field.field_type);
+        if let Some(doc) = Doc.visit(&item.decl_attributes) {
+            struct_.doc(&doc);
+        }
 
-            let field_type = match field.field_modifier {
+        struct_.derive("Debug");
+
+        struct_
+    }
+}
+
+pub struct FieldName(String);
+
+impl<T: Into<String>> From<T> for FieldName {
+    fn from(name: T) -> Self {
+        let name = name.into().to_snake_case();
+        if RUST_KEYWORDS.contains(&name.as_str()) {
+            FieldName(format!("{}_", name))
+        } else {
+            FieldName(name)
+        }
+    }
+}
+
+const RUST_KEYWORDS: [&str; 1] = ["type"];
+
+impl AsRef<str> for FieldName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for FieldName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl Into<codegen::Type> for &Field {
+    fn into(self) -> codegen::Type {
+        let field_type = (&self.field_type).into();
+
+        if let Type::Complex(ComplexType::Nullable { .. }) = &self.field_type {
+            field_type
+        } else {
+            match self.field_modifier {
                 FieldModifier::Optional => {
                     let mut type_ = codegen::Type::new("Option");
                     type_.generic(field_type);
                     type_
                 }
                 FieldModifier::Required => field_type,
-            };
-
-            let field_name = field.field_name.to_snake_case();
-            struct_.field(&field_name, &field_type);
-            constructor.arg(&field_name, &field_type);
-            block.line(field_name);
+            }
         }
-
-        constructor.push_block(block);
-
-        if let Some(doc) = self.visit(item.decl_attributes) {
-            struct_.doc(&doc);
-        }
-
-        (struct_, impl_)
     }
 }
 
-struct FieldTypeVisitor;
-
-impl Visitor<Type> for FieldTypeVisitor {
-    type Result = codegen::Type;
-
-    fn visit(&self, item: Type) -> Self::Result {
-        match item {
+impl Into<codegen::Type> for &Type {
+    fn into(self) -> codegen::Type {
+        match &self {
             Type::Basic(type_) => type_.into(),
             Type::Complex(type_) => type_.into(),
         }
     }
 }
 
-//impl<T:AsRef<BasicType>> Into<codegen::Type> for T{
-impl Into<codegen::Type> for BasicType {
+struct ConstructorCodeGenerator;
+
+impl Visitor<Struct> for ConstructorCodeGenerator {
+    type Result = codegen::Function;
+
+    fn visit(&self, item: &Struct) -> Self::Result {
+        let mut block = codegen::Block::new("Self");
+        let mut constructor = codegen::Function::new("new");
+        constructor.vis("pub");
+        constructor.ret("Self");
+
+        for field in item.struct_fields.iter() {
+            let field_type: codegen::Type = field.into();
+
+            let field_name = FieldName::from(&field.field_name);
+            constructor.arg(field_name.as_ref(), &field_type);
+            block.line(format!("{},", field_name));
+        }
+
+        constructor.push_block(block);
+
+        constructor
+    }
+}
+
+struct ImplCodeGenerator;
+
+impl Visitor<Struct> for ImplCodeGenerator {
+    type Result = codegen::Impl;
+
+    fn visit(&self, item: &Struct) -> Self::Result {
+        let mut type_: codegen::Type = (&item.decl_name).into();
+        for field in &item.struct_fields {
+            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
+                type_.generic(&value.param_name);
+            }
+        }
+
+        let mut impl_: codegen::Impl = codegen::Impl::new(type_);
+
+        for field in &item.struct_fields {
+            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
+                impl_.generic(&value.param_name);
+            }
+        }
+
+        impl_
+    }
+}
+
+impl Visitor<Struct> for CodeGenerator {
+    type Result = (codegen::Struct, codegen::Impl);
+
+    fn visit(&self, item: &Struct) -> Self::Result {
+        let struct_ = StructCodeGenerator.visit(&item);
+        let mut impl_ = ImplCodeGenerator.visit(&item);
+        impl_.push_fn(ConstructorCodeGenerator.visit(&item));
+
+        (struct_, impl_)
+    }
+}
+
+impl Into<codegen::Type> for &BasicType {
     fn into(self) -> codegen::Type {
         let name = match self {
             BasicType::Bool => "bool",
@@ -165,24 +299,37 @@ impl Into<codegen::Type> for BasicType {
     }
 }
 
-impl Into<codegen::Type> for ComplexType {
+impl Into<codegen::Type> for &ComplexType {
     fn into(self) -> codegen::Type {
         match self {
             ComplexType::Map { key, element } => {
-                // TODO import HashMap
-                let mut type_ = codegen::Type::new("HashMap");
-                type_.generic(key).generic(element);
+                let mut type_ = codegen::Type::new("std::collections::HashMap");
+
+                let key = Type::from_str(&key).expect("unexpected type: key");
+                type_.generic(&key);
+
+                let element = Type::from_str(&element).expect("unexpected type: element");
+                type_.generic(&element);
                 type_
             }
-            //            ComplexType::Parameter { .. } => {}
-            //            ComplexType::Vector { .. } => {}
-            //            ComplexType::Nullable { element } => {
-            //                let mut type_ = codegen::Type::new("Options");
-            //                type_.generic(element);
-            //                type_
-            //            }
-            //            ComplexType::User { .. } => {}
-            _ => panic!("{:?}", self),
+            ComplexType::Parameter { value } => codegen::Type::new(&value.param_name),
+            ComplexType::Vector { element } => {
+                let type_: &Type = element.borrow();
+                type_.into()
+            }
+            ComplexType::Nullable { element } => {
+                let mut type_ = codegen::Type::new("Option");
+                let element: &Type = &*element;
+                type_.generic(element);
+                type_
+            }
+            ComplexType::User { declaration } => {
+                let name = match &**declaration {
+                    UserTypeDeclaration::Struct(struct_) => struct_.decl_name.to_string(),
+                    UserTypeDeclaration::Enum(enum_) => enum_.decl_name.to_string(),
+                };
+                codegen::Type::new(&format!("crate::contracts::{}", name))
+            }
         }
     }
 }
@@ -190,11 +337,11 @@ impl Into<codegen::Type> for ComplexType {
 impl Visitor<Enum> for CodeGenerator {
     type Result = codegen::Enum;
 
-    fn visit(&self, item: Enum) -> Self::Result {
+    fn visit(&self, item: &Enum) -> Self::Result {
         let mut enum_ = codegen::Enum::new(&item.decl_name);
         enum_.vis("pub");
 
-        for const_ in item.enum_constants {
+        for const_ in item.enum_constants.iter() {
             enum_.new_variant(&const_.constant_name);
 
             if let Some(_) = &const_.constant_value {
@@ -202,18 +349,42 @@ impl Visitor<Enum> for CodeGenerator {
             }
         }
 
-        if let Some(doc) = self.visit(item.decl_attributes) {
+        if let Some(doc) = self.visit(&item.decl_attributes) {
             enum_.doc(&doc);
         }
 
+        enum_.derive("Debug");
+
         enum_
+    }
+}
+
+struct Doc;
+
+impl Visitor<Vec<Attribute>> for Doc {
+    type Result = Option<String>;
+
+    fn visit(&self, items: &Vec<Attribute>) -> Self::Result {
+        items.into_iter().filter_map(|attr| self.visit(attr)).find(|_| true)
+    }
+}
+
+impl Visitor<Attribute> for Doc {
+    type Result = Option<String>;
+
+    fn visit(&self, item: &Attribute) -> Self::Result {
+        if item.attr_name.iter().any(|name| name == "Description") {
+            Some(item.attr_value.to_string())
+        } else {
+            None
+        }
     }
 }
 
 impl Visitor<Vec<Attribute>> for CodeGenerator {
     type Result = Option<String>;
 
-    fn visit(&self, items: Vec<Attribute>) -> Self::Result {
+    fn visit(&self, items: &Vec<Attribute>) -> Self::Result {
         items.into_iter().filter_map(|attr| self.visit(attr)).find(|_| true)
     }
 }
@@ -221,21 +392,11 @@ impl Visitor<Vec<Attribute>> for CodeGenerator {
 impl Visitor<Attribute> for CodeGenerator {
     type Result = Option<String>;
 
-    fn visit(&self, item: Attribute) -> Self::Result {
+    fn visit(&self, item: &Attribute) -> Self::Result {
         if item.attr_name.iter().any(|name| name == "Description") {
-            Some(item.attr_value)
+            Some(item.attr_value.to_string())
         } else {
             None
         }
     }
 }
-
-//struct UserTypeDeclarationVisitor;
-//
-//impl Visitor<UserTypeDeclaration> for UserTypeSeclarationVisitor {
-//    type Result = ();
-//
-//    fn visit(&self, item: &UserTypeDeclaration) -> Self::Result {
-//        unimplemented!()
-//    }
-//}
