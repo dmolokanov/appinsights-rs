@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::fmt::{Display, Formatter, Write};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -94,6 +93,7 @@ impl Compiler {
 
         let mut package = codegen::Scope::new();
         package
+            .raw("// NOTE: This file was automatically generated.")
             .raw("#![allow(unused_variables, dead_code)]")
             .raw(&modules_block)
             .raw(&use_block);
@@ -112,6 +112,7 @@ impl Visitor<Schema> for CodeGenerator {
 
     fn visit(&self, item: &Schema) -> Self::Result {
         let mut module = Scope::new();
+        module.raw("// NOTE: This file was automatically generated.");
 
         for declaration in item.declarations.iter() {
             match declaration {
@@ -140,13 +141,13 @@ impl Visitor<Struct> for StructCodeGenerator {
         let mut struct_: codegen::Struct = codegen::Struct::new(&item.decl_name);
         struct_.vis("pub");
 
-        for field in item.struct_fields.iter() {
+        for field in item.struct_fields.to_vec() {
             if let Some(generic) = field.field_type.generic() {
                 struct_.generic(generic);
             }
 
             let field_name = FieldName::from(&field.field_name);
-            let field_type: codegen::Type = field.into();
+            let field_type = codegen::Type::from(field);
             struct_.field(field_name.as_ref(), &field_type);
         }
 
@@ -157,61 +158,6 @@ impl Visitor<Struct> for StructCodeGenerator {
         struct_.derive("Debug");
 
         struct_
-    }
-}
-
-pub struct FieldName(String);
-
-impl<T: Into<String>> From<T> for FieldName {
-    fn from(name: T) -> Self {
-        let name = name.into().to_snake_case();
-        if RUST_KEYWORDS.contains(&name.as_str()) {
-            FieldName(format!("{}_", name))
-        } else {
-            FieldName(name)
-        }
-    }
-}
-
-const RUST_KEYWORDS: [&str; 1] = ["type"];
-
-impl AsRef<str> for FieldName {
-    fn as_ref(&self) -> &str {
-        &self.0
-    }
-}
-
-impl Display for FieldName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.0)
-    }
-}
-
-impl From<&Field> for codegen::Type {
-    fn from(type_: &Field) -> Self {
-        let field_type = (&type_.field_type).into();
-
-        if type_.field_type.nullable().is_some() {
-            field_type
-        } else {
-            match type_.field_modifier {
-                FieldModifier::Optional => {
-                    let mut type_ = codegen::Type::new("Option");
-                    type_.generic(field_type);
-                    type_
-                }
-                FieldModifier::Required => field_type,
-            }
-        }
-    }
-}
-
-impl Into<codegen::Type> for &Type {
-    fn into(self) -> codegen::Type {
-        match &self {
-            Type::Basic(type_) => type_.into(),
-            Type::Complex(type_) => type_.into(),
-        }
     }
 }
 
@@ -226,10 +172,10 @@ impl Visitor<Struct> for ConstructorCodeGenerator {
         constructor.vis("pub");
         constructor.ret("Self");
 
-        for field in item.struct_fields.iter() {
-            let field_type: codegen::Type = field.into();
-
+        for field in item.struct_fields.to_vec() {
             let field_name = FieldName::from(&field.field_name);
+            let field_type = codegen::Type::from(field);
+
             constructor.arg(field_name.as_ref(), &field_type);
             block.line(format!("{},", field_name));
         }
@@ -246,22 +192,23 @@ impl Visitor<Struct> for ImplCodeGenerator {
     type Result = codegen::Impl;
 
     fn visit(&self, item: &Struct) -> Self::Result {
-        let mut type_: codegen::Type = (&item.decl_name).into();
-        for field in &item.struct_fields {
-            if let Some(generic) = field.field_type.generic() {
-                type_.generic(generic);
-            }
-        }
+        let generics: Vec<_> = item
+            .struct_fields
+            .iter()
+            .filter_map(|field| field.field_type.generic())
+            .collect();
 
-        let mut impl_: codegen::Impl = codegen::Impl::new(type_);
+        let type_ = generics
+            .iter()
+            .fold(codegen::Type::from(&item.decl_name), |mut type_, generic| {
+                type_.generic(*generic);
+                type_
+            });
 
-        for field in &item.struct_fields {
-            if let Some(generic) = field.field_type.generic() {
-                impl_.generic(generic);
-            }
-        }
-
-        impl_
+        generics.iter().fold(codegen::Impl::new(&type_), |mut impl_, generic| {
+            impl_.generic(*generic);
+            impl_
+        })
     }
 }
 
@@ -274,63 +221,6 @@ impl Visitor<Struct> for CodeGenerator {
         impl_.push_fn(ConstructorCodeGenerator.visit(&item));
 
         (struct_, impl_)
-    }
-}
-
-impl Into<codegen::Type> for &BasicType {
-    fn into(self) -> codegen::Type {
-        let name = match self {
-            BasicType::Bool => "bool",
-            BasicType::UInt8 => "u8",
-            BasicType::UInt16 => "u16",
-            BasicType::UInt32 => "u32",
-            BasicType::UInt64 => "u64",
-            BasicType::Int8 => "i8",
-            BasicType::Int16 => "i16",
-            BasicType::Int32 => "i32",
-            BasicType::Int64 => "i64",
-            BasicType::Float => "f32",
-            BasicType::Double => "f64",
-            BasicType::String => "String",
-            BasicType::WString => "String",
-        };
-
-        codegen::Type::new(name)
-    }
-}
-
-impl Into<codegen::Type> for &ComplexType {
-    fn into(self) -> codegen::Type {
-        match self {
-            ComplexType::Map { key, element } => {
-                let mut type_ = codegen::Type::new("std::collections::HashMap");
-
-                let key = Type::from_str(&key).expect("unexpected type: key");
-                type_.generic(&key);
-
-                let element = Type::from_str(&element).expect("unexpected type: element");
-                type_.generic(&element);
-                type_
-            }
-            ComplexType::Parameter { value } => codegen::Type::new(&value.param_name),
-            ComplexType::Vector { element } => {
-                let type_: &Type = element.borrow();
-                type_.into()
-            }
-            ComplexType::Nullable { element } => {
-                let mut type_ = codegen::Type::new("Option");
-                let element: &Type = &*element;
-                type_.generic(element);
-                type_
-            }
-            ComplexType::User { declaration } => {
-                let name = match &**declaration {
-                    UserTypeDeclaration::Struct(struct_) => struct_.decl_name.to_string(),
-                    UserTypeDeclaration::Enum(enum_) => enum_.decl_name.to_string(),
-                };
-                codegen::Type::new(&format!("crate::contracts::{}", name))
-            }
-        }
     }
 }
 
@@ -349,7 +239,7 @@ impl Visitor<Enum> for CodeGenerator {
             }
         }
 
-        if let Some(doc) = self.visit(&item.decl_attributes) {
+        if let Some(doc) = Doc.visit(&item.decl_attributes) {
             enum_.doc(&doc);
         }
 
@@ -381,22 +271,115 @@ impl Visitor<Attribute> for Doc {
     }
 }
 
-impl Visitor<Vec<Attribute>> for CodeGenerator {
-    type Result = Option<String>;
+pub struct FieldName(String);
 
-    fn visit(&self, items: &Vec<Attribute>) -> Self::Result {
-        items.into_iter().filter_map(|attr| self.visit(attr)).find(|_| true)
+impl<T> From<T> for FieldName
+where
+    T: Into<String>,
+{
+    fn from(name: T) -> Self {
+        let name = name.into().to_snake_case();
+        if RUST_KEYWORDS.contains(&name.as_str()) {
+            FieldName(format!("{}_", name))
+        } else {
+            FieldName(name)
+        }
     }
 }
 
-impl Visitor<Attribute> for CodeGenerator {
-    type Result = Option<String>;
+const RUST_KEYWORDS: [&str; 1] = ["type"];
 
-    fn visit(&self, item: &Attribute) -> Self::Result {
-        if item.attr_name.iter().any(|name| name == "Description") {
-            Some(item.attr_value.to_string())
+impl AsRef<str> for FieldName {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+impl Display for FieldName {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl From<Field> for codegen::Type {
+    fn from(field: Field) -> Self {
+        if field.field_type.nullable().is_some() {
+            codegen::Type::from(field.field_type)
         } else {
-            None
+            match field.field_modifier {
+                FieldModifier::Optional => {
+                    let mut type_ = codegen::Type::new("Option");
+                    type_.generic(codegen::Type::from(field.field_type));
+                    type_
+                }
+                FieldModifier::Required => codegen::Type::from(field.field_type),
+            }
+        }
+    }
+}
+
+impl From<Type> for codegen::Type {
+    fn from(type_: Type) -> Self {
+        match type_ {
+            Type::Basic(type_) => type_.into(),
+            Type::Complex(type_) => type_.into(),
+        }
+    }
+}
+
+impl From<BasicType> for codegen::Type {
+    fn from(type_: BasicType) -> codegen::Type {
+        let name = match type_ {
+            BasicType::Bool => "bool",
+            BasicType::UInt8 => "u8",
+            BasicType::UInt16 => "u16",
+            BasicType::UInt32 => "u32",
+            BasicType::UInt64 => "u64",
+            BasicType::Int8 => "i8",
+            BasicType::Int16 => "i16",
+            BasicType::Int32 => "i32",
+            BasicType::Int64 => "i64",
+            BasicType::Float => "f32",
+            BasicType::Double => "f64",
+            BasicType::String => "String",
+            BasicType::WString => "String",
+        };
+
+        codegen::Type::new(name)
+    }
+}
+
+impl From<ComplexType> for codegen::Type {
+    fn from(type_: ComplexType) -> codegen::Type {
+        match type_ {
+            ComplexType::Map { key, element } => {
+                let mut type_ = codegen::Type::new("std::collections::HashMap");
+
+                let key = Type::from_str(&key).expect("unexpected type: key");
+                type_.generic(key);
+
+                let element = Type::from_str(&element).expect("unexpected type: element");
+                type_.generic(element);
+                type_
+            }
+            ComplexType::Parameter { value } => codegen::Type::new(&value.param_name),
+            ComplexType::Vector { element } => {
+                let type_: Type = *element;
+                type_.into()
+            }
+            ComplexType::Nullable { element } => {
+                let mut type_ = codegen::Type::new("Option");
+                let element = *element;
+                type_.generic(element);
+                type_
+            }
+            ComplexType::User { declaration } => {
+                let name = match *declaration {
+                    UserTypeDeclaration::Struct(struct_) => struct_.decl_name.to_string(),
+                    UserTypeDeclaration::Enum(enum_) => enum_.decl_name.to_string(),
+                };
+                codegen::Type::new(&format!("crate::contracts::{}", name))
+            }
         }
     }
 }

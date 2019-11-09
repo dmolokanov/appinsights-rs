@@ -24,7 +24,7 @@ pub fn parse(path: &Path) -> Result<Schema> {
     Ok(schema)
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Schema {
@@ -33,7 +33,7 @@ pub struct Schema {
     pub declarations: Vec<UserTypeDeclaration>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "tag")]
 #[serde(deny_unknown_fields)]
 pub enum UserTypeDeclaration {
@@ -41,7 +41,7 @@ pub enum UserTypeDeclaration {
     Enum(Enum),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Struct {
@@ -53,7 +53,7 @@ pub struct Struct {
     pub decl_attributes: Vec<Attribute>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Field {
@@ -65,14 +65,14 @@ pub struct Field {
     pub field_ordinal: i32,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(deny_unknown_fields)]
 pub enum FieldModifier {
     Optional,
     Required,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
@@ -84,14 +84,14 @@ pub enum FieldDefault {
     Enum(FieldDefaultValue<String>),
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct FieldDefaultValue<T> {
     value: T,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 #[serde(untagged)]
 #[serde(deny_unknown_fields)]
@@ -130,7 +130,7 @@ impl FromStr for Type {
     }
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 #[serde(deny_unknown_fields)]
 pub enum BasicType {
@@ -149,7 +149,7 @@ pub enum BasicType {
     WString,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "lowercase")]
 #[serde(tag = "type")]
 #[serde(deny_unknown_fields)]
@@ -161,7 +161,7 @@ pub enum ComplexType {
     User { declaration: Box<UserTypeDeclaration> },
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Attribute {
@@ -169,7 +169,7 @@ pub struct Attribute {
     pub attr_value: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Parameter {
@@ -177,14 +177,14 @@ pub struct Parameter {
     pub param_name: String,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Namespace {
     name: Vec<String>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct Enum {
@@ -194,7 +194,7 @@ pub struct Enum {
     pub decl_namespaces: Vec<Namespace>,
 }
 
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 #[serde(deny_unknown_fields)]
 pub struct EnumConstant {
