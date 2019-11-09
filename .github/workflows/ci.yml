@@ -1,0 +1,30 @@
+name: Rust
+
+on: 
+  push:
+    branches:
+    - master
+  pull_request:
+    branches: 
+    - master
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Environment check
+      run: |
+        rustc --version
+        cargo fmt --version
+        cargo clippy --version
+    - name: Format
+      run: cargo fmt
+    - name: Style check
+      run: cargo clippy
+    - name: Build
+      run: cargo build
+    - name: Run tests
+      run: cargo test
