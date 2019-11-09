@@ -100,6 +100,24 @@ pub enum Type {
     Complex(ComplexType),
 }
 
+impl Type {
+    pub fn nullable(&self) -> Option<&Type> {
+        if let Type::Complex(ComplexType::Nullable { element }) = &self {
+            Some(element)
+        } else {
+            None
+        }
+    }
+
+    pub fn generic(&self) -> Option<&str> {
+        if let Type::Complex(ComplexType::Parameter { value }) = &self {
+            Some(&value.param_name)
+        } else {
+            None
+        }
+    }
+}
+
 impl FromStr for Type {
     type Err = String;
 

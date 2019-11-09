@@ -141,8 +141,8 @@ impl Visitor<Struct> for StructCodeGenerator {
         struct_.vis("pub");
 
         for field in item.struct_fields.iter() {
-            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
-                struct_.generic(&value.param_name);
+            if let Some(generic) = field.field_type.generic() {
+                struct_.generic(generic);
             }
 
             let field_name = FieldName::from(&field.field_name);
@@ -187,14 +187,14 @@ impl Display for FieldName {
     }
 }
 
-impl Into<codegen::Type> for &Field {
-    fn into(self) -> codegen::Type {
-        let field_type = (&self.field_type).into();
+impl From<&Field> for codegen::Type {
+    fn from(type_: &Field) -> Self {
+        let field_type = (&type_.field_type).into();
 
-        if let Type::Complex(ComplexType::Nullable { .. }) = &self.field_type {
+        if type_.field_type.nullable().is_some() {
             field_type
         } else {
-            match self.field_modifier {
+            match type_.field_modifier {
                 FieldModifier::Optional => {
                     let mut type_ = codegen::Type::new("Option");
                     type_.generic(field_type);
@@ -248,16 +248,16 @@ impl Visitor<Struct> for ImplCodeGenerator {
     fn visit(&self, item: &Struct) -> Self::Result {
         let mut type_: codegen::Type = (&item.decl_name).into();
         for field in &item.struct_fields {
-            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
-                type_.generic(&value.param_name);
+            if let Some(generic) = field.field_type.generic() {
+                type_.generic(generic);
             }
         }
 
         let mut impl_: codegen::Impl = codegen::Impl::new(type_);
 
         for field in &item.struct_fields {
-            if let Type::Complex(ComplexType::Parameter { value }) = &field.field_type {
-                impl_.generic(&value.param_name);
+            if let Some(generic) = field.field_type.generic() {
+                impl_.generic(generic);
             }
         }
 
