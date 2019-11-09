@@ -5,23 +5,23 @@ use crate::Config;
 /// Encapsulates contextual data common to all telemetry submitted through a telemetry client.
 pub struct TelemetryContext {
     /// Instrumentation key.
-    ikey: String,
+    i_key: String,
 }
 
 impl TelemetryContext {
     /// Wraps a telemetry event in an envelope with the information found in this context.
-    pub fn envelop<T>(&self, event: T) -> Envelope
+    pub fn envelop<T>(&self, _event: T) -> Envelope
     where
         T: Telemetry,
     {
-        Envelope { name: "asdas".into() }
+        unimplemented!()
     }
 }
 
 impl From<&Config> for TelemetryContext {
     fn from(config: &Config) -> Self {
         Self {
-            ikey: config.ikey().into(),
+            i_key: config.i_key().into(),
         }
     }
 }

@@ -4,7 +4,7 @@ use std::time::Duration;
 #[derive(Debug, PartialEq)]
 pub struct Config {
     /// Instrumentation key for the client.
-    ikey: String,
+    i_key: String,
 
     /// Endpoint URL where data will be sent.
     endpoint: String,
@@ -15,8 +15,8 @@ pub struct Config {
 
 impl Config {
     /// Creates a new configuration object with specified instrumentation key and default values.
-    pub fn new(ikey: String) -> Self {
-        Config::builder().with_ikey(ikey).build()
+    pub fn new(i_key: String) -> Self {
+        Config::builder().with_i_key(i_key).build()
     }
 
     /// Creates a new configuration builder with default parameters.
@@ -25,8 +25,8 @@ impl Config {
     }
 
     /// Returns an instrumentation key for the client.
-    pub fn ikey(&self) -> &str {
-        &self.ikey
+    pub fn i_key(&self) -> &str {
+        &self.i_key
     }
 
     /// Returns endpoint URL where data will be sent.
@@ -44,12 +44,12 @@ impl Config {
 pub struct DefaultBuilder;
 
 impl DefaultBuilder {
-    pub fn with_ikey<I>(self, ikey: I) -> Builder
+    pub fn with_i_key<I>(self, i_key: I) -> Builder
     where
         I: Into<String>,
     {
         Builder {
-            ikey: ikey.into(),
+            i_key: i_key.into(),
             endpoint: "https://dc.services.visualstudio.com/v2/track".into(),
             interval: Duration::from_secs(2),
         }
@@ -57,17 +57,17 @@ impl DefaultBuilder {
 }
 
 pub struct Builder {
-    ikey: String,
+    i_key: String,
     endpoint: String,
     interval: Duration,
 }
 
 impl Builder {
-    pub fn with_ikey<I>(mut self, ikey: I) -> Self
+    pub fn with_i_key<I>(mut self, i_key: I) -> Self
     where
         I: Into<String>,
     {
-        self.ikey = ikey.into();
+        self.i_key = i_key.into();
         self
     }
 
@@ -86,7 +86,7 @@ impl Builder {
 
     pub fn build(self) -> Config {
         Config {
-            ikey: self.ikey,
+            i_key: self.i_key,
             endpoint: self.endpoint,
             interval: self.interval,
         }
@@ -113,7 +113,7 @@ mod tests {
 
         assert_eq!(
             Config {
-                ikey: "instrumentation key".into(),
+                i_key: "instrumentation key".into(),
                 endpoint: "https://dc.services.visualstudio.com/v2/track".into(),
                 interval: Duration::from_secs(2)
             },
@@ -124,14 +124,14 @@ mod tests {
     #[test]
     fn it_builds_config_with_custom_parameters() {
         let config = Config::builder()
-            .with_ikey("instrumentation key")
+            .with_i_key("instrumentation key")
             .with_endpoint("https://google.com")
             .with_interval(Duration::from_micros(100))
             .build();
 
         assert_eq!(
             Config {
-                ikey: "instrumentation key".into(),
+                i_key: "instrumentation key".into(),
                 endpoint: "https://google.com".into(),
                 interval: Duration::from_micros(100)
             },

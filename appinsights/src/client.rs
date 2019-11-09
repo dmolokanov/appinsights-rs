@@ -12,8 +12,8 @@ pub struct TelemetryClient<C> {
 
 impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
-    pub fn new(ikey: String) -> Self {
-        Self::from_config(Config::new(ikey))
+    pub fn new(i_key: String) -> Self {
+        Self::from_config(Config::new(i_key))
     }
 
     /// Creates a new telemetry client configured with specified configuration.

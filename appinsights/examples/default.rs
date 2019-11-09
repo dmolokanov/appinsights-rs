@@ -3,9 +3,9 @@ use std::env;
 use appinsights::TelemetryClient;
 
 fn main() {
-    let ikey = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
+    let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
 
-    let client = TelemetryClient::new(ikey);
+    let client = TelemetryClient::new(i_key);
 
     client.track_event("Client connected");
 
