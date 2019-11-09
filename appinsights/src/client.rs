@@ -83,6 +83,7 @@ mod tests {
     }
 
     #[test]
+    #[ignore]
     fn it_submits_telemetry() {
         let mut client = create_client();
 
