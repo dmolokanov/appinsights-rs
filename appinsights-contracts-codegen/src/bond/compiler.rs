@@ -46,7 +46,8 @@ impl Compiler {
                 .and_then(|name| name.to_str())
                 .ok_or("Unable to get a file name")?;
 
-            if let Err(err) = self.compile(&input, &output) {
+            //            if let Err(err) = Compiler::compile(&input, &output) {
+            if let Err(err) = crate::bond::v2::compiler::Compiler::compile(&input, &output) {
                 eprintln!("{}: {}", file_name, err);
             } else {
                 println!("{}: ok", file_name);
@@ -56,7 +57,7 @@ impl Compiler {
         Ok(())
     }
 
-    pub fn compile(&self, input: &Path, output: &Path) -> Result<()> {
+    pub fn compile(input: &Path, output: &Path) -> Result<()> {
         let parser = Parser::new();
         let schema = parser.parse(input)?;
 
