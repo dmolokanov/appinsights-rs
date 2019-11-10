@@ -2,10 +2,13 @@ use chrono::{DateTime, Utc};
 
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
-/// Represents structured event records.
-pub struct EventTelemetry {
-    /// Event name.
-    name: String,
+// Represents printf-like trace statements that can be text searched.
+pub struct TraceTelemetry {
+    /// A trace message.
+    message: String,
+
+    // Severity level.
+    severity: SeverityLevel,
 
     /// The time stamp when this telemetry was measured.
     timestamp: DateTime<Utc>,
@@ -15,25 +18,22 @@ pub struct EventTelemetry {
 
     /// Telemetry context containing extra, optional tags.
     tags: ContextTags,
-
-    /// Custom measurements.
-    measurements: Measurements,
 }
 
-impl EventTelemetry {
+impl TraceTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(name: &str) -> Self {
+    pub fn new(message: &str, severity: SeverityLevel) -> Self {
         Self {
-            name: name.into(),
+            message: message.into(),
+            severity,
             timestamp: Utc::now(),
             properties: Default::default(),
             tags: Default::default(),
-            measurements: Default::default(),
         }
     }
 }
 
-impl Telemetry for EventTelemetry {
+impl Telemetry for TraceTelemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> &DateTime<Utc> {
         &self.timestamp
@@ -44,13 +44,22 @@ impl Telemetry for EventTelemetry {
         &self.properties
     }
 
-    /// Returns custom measurements to submit with the telemetry item.
+    /// Returns None always. No measurements available for trace telemetry items.
     fn measurements(&self) -> Option<&Measurements> {
-        Some(&self.measurements)
+        None
     }
 
     /// Returns context data containing extra, optional tags. Overrides values found on client telemetry context.
     fn tags(&self) -> &ContextTags {
         &self.tags
     }
+}
+
+/// Defines the level of severity for the event.
+pub enum SeverityLevel {
+    Verbose,
+    Information,
+    Warning,
+    Error,
+    Critical,
 }

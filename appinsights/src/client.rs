@@ -1,6 +1,6 @@
 use crate::channel::{InMemoryChannel, TelemetryChannel};
 use crate::context::TelemetryContext;
-use crate::telemetry::{EventTelemetry, Telemetry};
+use crate::telemetry::{EventTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
 use crate::Config;
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
@@ -46,6 +46,12 @@ where
         self.track(event)
     }
 
+    /// Logs a trace message with a specified severity level.
+    pub fn track_trace(&self, message: &str, severity: SeverityLevel) {
+        let event = TraceTelemetry::new(message, severity);
+        self.track(event)
+    }
+
     /// Submits a specific telemetry event.
     pub fn track<T>(&self, event: T)
     where
@@ -66,6 +72,9 @@ mod tests {
     use super::*;
     use crate::contracts::Envelope;
     use crate::Result;
+    use chrono::{DateTime, Utc};
+    use std::collections::hash_map::RandomState;
+    use std::collections::HashMap;
 
     #[test]
     fn it_enabled_by_default() {
@@ -118,7 +127,23 @@ mod tests {
 
     struct TestTelemetry {}
 
-    impl Telemetry for TestTelemetry {}
+    impl Telemetry for TestTelemetry {
+        fn timestamp(&self) -> &DateTime<Utc> {
+            unimplemented!()
+        }
+
+        fn properties(&self) -> &HashMap<String, String, RandomState> {
+            unimplemented!()
+        }
+
+        fn measurements(&self) -> Option<&HashMap<String, f64, RandomState>> {
+            unimplemented!()
+        }
+
+        fn tags(&self) -> &HashMap<String, String, RandomState> {
+            unimplemented!()
+        }
+    }
 
     struct TestChannel {
         events: RefCell<Vec<Envelope>>,
