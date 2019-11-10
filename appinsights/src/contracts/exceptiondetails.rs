@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -11,7 +12,7 @@ pub struct ExceptionDetails {
     message: String,
     has_full_stack: Option<bool>,
     stack: Option<String>,
-    parsed_stack: Option<crate::contracts::StackFrame>,
+    parsed_stack: Option<StackFrame>,
 }
 
 impl ExceptionDetails {
@@ -65,7 +66,7 @@ impl ExceptionDetails {
     }
 
     /// List of stack frames. Either stack or parsedStack should have a value.
-    pub fn with_parsed_stack(&mut self, parsed_stack: Option<crate::contracts::StackFrame>) -> &mut Self {
+    pub fn with_parsed_stack(&mut self, parsed_stack: Option<StackFrame>) -> &mut Self {
         self.parsed_stack = parsed_stack;
         self
     }

@@ -18,6 +18,7 @@ impl Struct {
     pub fn base(&self) -> &Option<Type> {
         &self.struct_base
     }
+
     pub fn fields(&self) -> &Vec<Field> {
         &self.struct_fields
     }
@@ -36,5 +37,9 @@ impl Struct {
 
     pub fn attributes(&self) -> &Vec<Attribute> {
         &self.decl_attributes
+    }
+
+    pub fn is_telemetry_data(&self) -> bool {
+        self.name().ends_with("Data") && self.name().len() > 4
     }
 }

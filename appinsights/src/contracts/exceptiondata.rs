@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -6,8 +7,8 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct ExceptionData {
     ver: i32,
-    exceptions: crate::contracts::ExceptionDetails,
-    severity_level: Option<crate::contracts::SeverityLevel>,
+    exceptions: ExceptionDetails,
+    severity_level: Option<SeverityLevel>,
     problem_id: Option<String>,
     properties: Option<std::collections::HashMap<String, String>>,
     measurements: Option<std::collections::HashMap<String, f64>>,
@@ -15,7 +16,7 @@ pub struct ExceptionData {
 
 impl ExceptionData {
     /// Create a new [ExceptionData](trait.ExceptionData.html) instance with default values set by the schema.
-    pub fn new(exceptions: crate::contracts::ExceptionDetails) -> Self {
+    pub fn new(exceptions: ExceptionDetails) -> Self {
         Self {
             ver: 2,
             exceptions,
@@ -33,13 +34,13 @@ impl ExceptionData {
     }
 
     /// Exception chain - list of inner exceptions.
-    pub fn with_exceptions(&mut self, exceptions: crate::contracts::ExceptionDetails) -> &mut Self {
+    pub fn with_exceptions(&mut self, exceptions: ExceptionDetails) -> &mut Self {
         self.exceptions = exceptions;
         self
     }
 
     /// Severity level. Mostly used to indicate exception severity level when it is reported by logging library.
-    pub fn with_severity_level(&mut self, severity_level: Option<crate::contracts::SeverityLevel>) -> &mut Self {
+    pub fn with_severity_level(&mut self, severity_level: Option<SeverityLevel>) -> &mut Self {
         self.severity_level = severity_level;
         self
     }
@@ -60,5 +61,12 @@ impl ExceptionData {
     pub fn with_measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
         self.measurements = measurements;
         self
+    }
+}
+
+impl TelemetryData for ExceptionData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("ExceptionData")
     }
 }

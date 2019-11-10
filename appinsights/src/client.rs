@@ -67,7 +67,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::borrow::Borrow;
     use std::cell::RefCell;
 
     use super::*;
@@ -95,7 +94,7 @@ mod tests {
     #[test]
     #[ignore]
     fn it_submits_telemetry() {
-        let mut client = create_client();
+        let client = create_client();
 
         client.track(TestTelemetry {});
 
@@ -131,7 +130,7 @@ mod tests {
     impl Telemetry for TestTelemetry {
         type Data = TestData;
 
-        fn timestamp(&self) -> &DateTime<Utc> {
+        fn timestamp(&self) -> DateTime<Utc> {
             unimplemented!()
         }
 
@@ -150,7 +149,11 @@ mod tests {
 
     struct TestData;
 
-    impl TelemetryData for TestData {}
+    impl TelemetryData for TestData {
+        fn base_type(&self) -> String {
+            String::from("TestData")
+        }
+    }
 
     impl From<TestTelemetry> for TestData {
         fn from(_: TestTelemetry) -> Self {

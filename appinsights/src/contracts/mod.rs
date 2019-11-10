@@ -1,6 +1,6 @@
 // NOTE: This file was automatically generated.
 
-#![allow(unused_variables, dead_code)]
+#![allow(unused_variables, dead_code, unused_imports)]
 
 mod availabilitydata;
 mod base;
@@ -40,4 +40,20 @@ pub use requestdata::*;
 pub use severitylevel::*;
 pub use stackframe::*;
 
-pub trait TelemetryData {}
+/// Common interface implemented by telemetry data contacts.
+pub trait TelemetryData {
+    /// Returns the name used when this is embedded within an [Envelope](trait.Envelope.html) container.
+    fn envelope_name(&self, key: &str) -> String {
+        let mut name = self.base_type();
+        name.truncate(name.len() - 4);
+
+        if key.is_empty() {
+            format!("Microsoft.ApplicationInsights.{}.{}", key, name)
+        } else {
+            format!("Microsoft.ApplicationInsights.{}", name)
+        }
+    }
+
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String;
+}

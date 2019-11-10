@@ -16,7 +16,7 @@ pub trait Telemetry {
     type Data: TelemetryData;
 
     /// Returns the time when this telemetry was measured.
-    fn timestamp(&self) -> &DateTime<Utc>;
+    fn timestamp(&self) -> DateTime<Utc>;
 
     /// Returns custom properties to submit with the telemetry item.
     fn properties(&self) -> &Properties;

@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -100,5 +101,12 @@ impl RemoteDependencyData {
     pub fn with_measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
         self.measurements = measurements;
         self
+    }
+}
+
+impl TelemetryData for RemoteDependencyData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("RemoteDependencyData")
     }
 }

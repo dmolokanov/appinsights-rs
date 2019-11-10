@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -6,13 +7,13 @@ use serde::Serialize;
 #[derive(Debug, Serialize)]
 pub struct MetricData {
     ver: i32,
-    metrics: crate::contracts::DataPoint,
+    metrics: DataPoint,
     properties: Option<std::collections::HashMap<String, String>>,
 }
 
 impl MetricData {
     /// Create a new [MetricData](trait.MetricData.html) instance with default values set by the schema.
-    pub fn new(metrics: crate::contracts::DataPoint) -> Self {
+    pub fn new(metrics: DataPoint) -> Self {
         Self {
             ver: 2,
             metrics,
@@ -27,7 +28,7 @@ impl MetricData {
     }
 
     /// List of metrics. Only one metric in the list is currently supported by Application Insights storage. If multiple data points were sent only the first one will be used.
-    pub fn with_metrics(&mut self, metrics: crate::contracts::DataPoint) -> &mut Self {
+    pub fn with_metrics(&mut self, metrics: DataPoint) -> &mut Self {
         self.metrics = metrics;
         self
     }
@@ -36,5 +37,12 @@ impl MetricData {
     pub fn with_properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
         self.properties = properties;
         self
+    }
+}
+
+impl TelemetryData for MetricData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("MetricData")
     }
 }

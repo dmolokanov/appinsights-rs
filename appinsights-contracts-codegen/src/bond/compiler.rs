@@ -90,9 +90,46 @@ impl Compiler {
         let mut package = codegen::Scope::new();
         package
             .raw("// NOTE: This file was automatically generated.")
-            .raw("#![allow(unused_variables, dead_code)]")
+            .raw("#![allow(unused_variables, dead_code, unused_imports)]")
             .raw(&modules_block)
             .raw(&use_block);
+
+        let telemetry_data = package
+            .new_trait("TelemetryData")
+            .vis("pub")
+            .doc("Common interface implemented by telemetry data contacts.");
+
+        telemetry_data
+            .new_fn("envelope_name")
+            .doc(&format!(
+                "Returns the name used when this is embedded within an [{name}](trait.{name}.html) container.",
+                name = "Envelope"
+            ))
+            .arg_ref_self()
+            .arg("key", "&str")
+            .ret("String")
+            .line("let mut name = self.base_type();")
+            .line("name.truncate(name.len() - 4);")
+            .line("")
+            .push_block({
+                let mut block = codegen::Block::new("if key.is_empty()");
+                block.line(r#"format!("Microsoft.ApplicationInsights.{}.{}", key, name)"#);
+                block
+            })
+            .push_block({
+                let mut block = codegen::Block::new("else");
+                block.line(r#"format!("Microsoft.ApplicationInsights.{}", name)"#);
+                block
+            });
+
+        telemetry_data
+            .new_fn("base_type")
+            .doc(&format!(
+                "Returns the base type when placed within an [{name}](trait.{name}.html) container.",
+                name = "Data"
+            ))
+            .arg_ref_self()
+            .ret("String");
 
         let package_path = output_dir.join("mod.rs");
         fs::write(&package_path, package.to_string())?;
@@ -110,13 +147,16 @@ impl Visitor<Schema> for CodeGenerator {
         let mut module = codegen::Scope::new();
         module.raw("// NOTE: This file was automatically generated.");
         module.import("serde", "Serialize");
+        module.import("crate::contracts", "*");
 
         for declaration in item.declarations() {
             match declaration {
                 UserType::Struct(struct_) => {
-                    let (struct_, impl_) = self.visit(struct_);
+                    let (struct_, impls) = self.visit(struct_);
                     module.push_struct(struct_);
-                    module.push_impl(impl_);
+                    for impl_ in impls {
+                        module.push_impl(impl_);
+                    }
                 }
                 UserType::Enum(enum_) => {
                     let enum_ = self.visit(enum_);
@@ -261,7 +301,7 @@ impl Visitor<Struct> for SettersCodeGenerator {
 }
 
 impl Visitor<Struct> for CodeGenerator {
-    type Result = (codegen::Struct, codegen::Impl);
+    type Result = (codegen::Struct, Vec<codegen::Impl>);
 
     fn visit(&self, item: &Struct) -> Self::Result {
         let struct_ = StructCodeGenerator.visit(&item);
@@ -274,7 +314,28 @@ impl Visitor<Struct> for CodeGenerator {
             .into_iter()
             .fold(impl_.push_fn(constructor), |impl_, setter| impl_.push_fn(setter));
 
-        (struct_, impl_)
+        let mut impls = Vec::new();
+        impls.push(impl_);
+
+        // assume that if struct name ends with Data and it is not "Data"
+        // so it required TelemetryData trait implemented for this type
+        if item.is_telemetry_data() {
+            let mut impl_ = ImplCodeGenerator.visit(&item);
+            impl_
+                .impl_trait("TelemetryData")
+                .new_fn("base_type")
+                .doc(&format!(
+                    "Returns the base type when placed within an [{name}](trait.{name}.html) container.",
+                    name = "Data"
+                ))
+                .arg_ref_self()
+                .ret("String")
+                .line(&format!(r#"String::from("{}")"#, item.name()));
+
+            impls.push(impl_);
+        }
+
+        (struct_, impls)
     }
 }
 
@@ -397,7 +458,7 @@ impl From<ComplexType> for codegen::Type {
                     UserType::Struct(struct_) => struct_.name().to_string(),
                     UserType::Enum(enum_) => enum_.name().to_string(),
                 };
-                codegen::Type::new(&format!("crate::contracts::{}", name))
+                codegen::Type::new(&format!("{}", name))
             }
         }
     }

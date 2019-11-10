@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -84,5 +85,12 @@ impl AvailabilityData {
     pub fn with_measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
         self.measurements = measurements;
         self
+    }
+}
+
+impl TelemetryData for AvailabilityData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("AvailabilityData")
     }
 }

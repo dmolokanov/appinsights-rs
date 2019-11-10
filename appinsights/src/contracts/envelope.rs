@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -13,7 +14,7 @@ pub struct Envelope {
     i_key: Option<String>,
     flags: Option<i64>,
     tags: Option<std::collections::HashMap<String, String>>,
-    data: Option<crate::contracts::Base>,
+    data: Option<Base>,
 }
 
 impl Envelope {
@@ -81,7 +82,7 @@ impl Envelope {
     }
 
     /// Telemetry data item.
-    pub fn with_data(&mut self, data: Option<crate::contracts::Base>) -> &mut Self {
+    pub fn with_data(&mut self, data: Option<Base>) -> &mut Self {
         self.data = data;
         self
     }

@@ -1,4 +1,4 @@
-use crate::contracts::TelemetryData;
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -8,7 +8,7 @@ use serde::Serialize;
 pub struct MessageData {
     ver: i32,
     message: String,
-    severity_level: Option<crate::contracts::SeverityLevel>,
+    severity_level: Option<SeverityLevel>,
     properties: Option<std::collections::HashMap<String, String>>,
     measurements: Option<std::collections::HashMap<String, f64>>,
 }
@@ -38,7 +38,7 @@ impl MessageData {
     }
 
     /// Trace severity level.
-    pub fn with_severity_level(&mut self, severity_level: Option<crate::contracts::SeverityLevel>) -> &mut Self {
+    pub fn with_severity_level(&mut self, severity_level: Option<SeverityLevel>) -> &mut Self {
         self.severity_level = severity_level;
         self
     }
@@ -56,4 +56,9 @@ impl MessageData {
     }
 }
 
-impl TelemetryData for MessageData {}
+impl TelemetryData for MessageData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("MessageData")
+    }
+}

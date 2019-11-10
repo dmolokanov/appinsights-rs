@@ -1,4 +1,4 @@
-use crate::contracts::TelemetryData;
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -48,4 +48,9 @@ impl EventData {
     }
 }
 
-impl TelemetryData for EventData {}
+impl TelemetryData for EventData {
+    /// Returns the base type when placed within an [Data](trait.Data.html) container.
+    fn base_type(&self) -> String {
+        String::from("EventData")
+    }
+}

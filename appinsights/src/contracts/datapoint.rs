@@ -1,3 +1,4 @@
+use crate::contracts::*;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -7,7 +8,7 @@ use serde::Serialize;
 pub struct DataPoint {
     ns: Option<String>,
     name: String,
-    kind: Option<crate::contracts::DataPointType>,
+    kind: Option<DataPointType>,
     value: f64,
     count: Option<i32>,
     min: Option<f64>,
@@ -21,7 +22,7 @@ impl DataPoint {
         Self {
             ns: None,
             name,
-            kind: Some(crate::contracts::DataPointType::Measurement),
+            kind: Some(DataPointType::Measurement),
             value,
             count: None,
             min: None,
@@ -43,7 +44,7 @@ impl DataPoint {
     }
 
     /// Metric type. Single measurement or the aggregated value.
-    pub fn with_kind(&mut self, kind: Option<crate::contracts::DataPointType>) -> &mut Self {
+    pub fn with_kind(&mut self, kind: Option<DataPointType>) -> &mut Self {
         self.kind = kind;
         self
     }

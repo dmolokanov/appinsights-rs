@@ -1,4 +1,4 @@
-use crate::contracts::{Data, Envelope};
+use crate::contracts::{Envelope, TelemetryData};
 use crate::telemetry::Telemetry;
 use crate::Config;
 
@@ -6,6 +6,9 @@ use crate::Config;
 pub struct TelemetryContext {
     /// Instrumentation key.
     i_key: String,
+
+    // Stripped-down instrumentation key used in envelope name.
+    normalized_i_key: String,
 }
 
 impl TelemetryContext {
@@ -15,21 +18,28 @@ impl TelemetryContext {
         T: Telemetry,
         T::Data: From<T>,
     {
+        let timestamp = event.timestamp();
+
         // todo apply common properties
         let telemetry_data: T::Data = event.into();
-        let mut data = Data::new(telemetry_data);
+        // let data = Data::new(telemetry_data);
         // todo implement inheritance Base for Data
 
-        let mut envelope = Envelope::new("test".into(), "time".into());
-        envelope.with_data(None).with_flags(None);
+        let envelope = Envelope::new(
+            telemetry_data.envelope_name(&self.normalized_i_key),
+            timestamp.to_rfc3339(),
+        );
+
         envelope
     }
 }
 
+// todo by rust guidelines impl From should consume specified value
 impl From<&Config> for TelemetryContext {
     fn from(config: &Config) -> Self {
         Self {
             i_key: config.i_key().into(),
+            normalized_i_key: config.i_key().replace("-", ""),
         }
     }
 }

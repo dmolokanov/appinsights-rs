@@ -44,7 +44,7 @@ impl Field {
             (Some(FieldDefault::Float { value }), None) => Some(format!("{}.0", value)),
             (Some(FieldDefault::Bool { value }), None) => Some(format!("{}", value)),
             (Some(FieldDefault::String { value }), None) => Some(format!("String::from(\"{}\")", value)),
-            (Some(FieldDefault::Enum { value }), Some(name)) => Some(format!("crate::contracts::{}::{}", name, value)),
+            (Some(FieldDefault::Enum { value }), Some(name)) => Some(format!("{}::{}", name, value)),
             (_, Some(_)) => panic!("Unsupported operation"),
             _ => None,
         }
