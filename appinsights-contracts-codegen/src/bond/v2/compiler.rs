@@ -1,5 +1,5 @@
 use crate::bond::v2::Visitor;
-use crate::bond::{Parser, Schema};
+use crate::bond::{Attribute, Enum, EnumConstant, Parser, Schema, Struct};
 use crate::Result;
 use std::fs;
 use std::path::Path;
@@ -39,4 +39,56 @@ impl Visitor for SchemaGenerator {
 
         self.visit_declarations(schema.declarations());
     }
+
+    //    fn visit_struct(&mut self, declaration: &Struct) {
+    //        unimplemented!()
+    //    }
+
+    fn visit_enum(&mut self, declaration: &Enum) {
+        let mut code = codegen::Enum::new(declaration.name());
+
+        let mut generator = EnumGenerator::new(&mut code);
+        generator.visit_enum(declaration);
+
+        self.module.push_enum(code);
+    }
 }
+
+struct EnumGenerator<'a> {
+    code: &'a mut codegen::Enum,
+}
+
+impl<'a> EnumGenerator<'a> {
+    fn new(code: &'a mut codegen::Enum) -> Self {
+        Self { code }
+    }
+}
+
+impl Visitor for EnumGenerator<'_> {
+    fn visit_enum(&mut self, declaration: &Enum) {
+        self.code.derive("Debug").derive("Serialize").vis("pub");
+
+        self.visit_enum_constants(declaration.constants());
+        self.visit_enum_attributes(declaration.attributes());
+    }
+
+    fn visit_enum_constant(&mut self, constant: &EnumConstant) {
+        self.code.new_variant(constant.name());
+
+        if let Some(_) = constant.value() {
+            panic!("enum value is not supported: {:#?}", constant)
+        }
+    }
+
+    fn visit_enum_attribute(&mut self, attribute: &Attribute) {
+        if attribute.names().iter().any(|name| name == "Description") {
+            self.code.doc(attribute.value());
+        }
+    }
+}
+
+struct DocCollector {
+    doc: Option<String>,
+}
+
+impl Visitor for DocCollector {}
