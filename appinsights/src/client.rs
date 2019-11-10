@@ -56,6 +56,7 @@ where
     pub fn track<T>(&self, event: T)
     where
         T: Telemetry,
+        T::Data: From<T>,
     {
         if self.is_enabled() {
             let envelop = self.context.envelop(event);
@@ -70,7 +71,7 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
-    use crate::contracts::Envelope;
+    use crate::contracts::{Envelope, TelemetryData};
     use crate::Result;
     use chrono::{DateTime, Utc};
     use std::collections::hash_map::RandomState;
@@ -128,6 +129,8 @@ mod tests {
     struct TestTelemetry {}
 
     impl Telemetry for TestTelemetry {
+        type Data = TestData;
+
         fn timestamp(&self) -> &DateTime<Utc> {
             unimplemented!()
         }
@@ -141,6 +144,16 @@ mod tests {
         }
 
         fn tags(&self) -> &HashMap<String, String, RandomState> {
+            unimplemented!()
+        }
+    }
+
+    struct TestData;
+
+    impl TelemetryData for TestData {}
+
+    impl From<TestTelemetry> for TestData {
+        fn from(_: TestTelemetry) -> Self {
             unimplemented!()
         }
     }

@@ -1,3 +1,4 @@
+use crate::contracts::TelemetryData;
 use serde::Serialize;
 
 // NOTE: This file was automatically generated.
@@ -46,3 +47,5 @@ impl EventData {
         self
     }
 }
+
+impl TelemetryData for EventData {}

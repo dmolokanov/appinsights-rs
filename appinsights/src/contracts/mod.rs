@@ -39,3 +39,5 @@ pub use remotedependencydata::*;
 pub use requestdata::*;
 pub use severitylevel::*;
 pub use stackframe::*;
+
+pub trait TelemetryData {}

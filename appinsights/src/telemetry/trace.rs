@@ -35,6 +35,9 @@ impl TraceTelemetry {
 }
 
 impl Telemetry for TraceTelemetry {
+    /// The type of data contract corresponding to the telemetry item.
+    type Data = MessageData;
+
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> &DateTime<Utc> {
         &self.timestamp

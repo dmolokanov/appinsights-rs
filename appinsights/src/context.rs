@@ -1,4 +1,4 @@
-use crate::contracts::Envelope;
+use crate::contracts::{Data, Envelope};
 use crate::telemetry::Telemetry;
 use crate::Config;
 
@@ -10,10 +10,16 @@ pub struct TelemetryContext {
 
 impl TelemetryContext {
     /// Wraps a telemetry event in an envelope with the information found in this context.
-    pub fn envelop<T>(&self, _event: T) -> Envelope
+    pub fn envelop<T>(&self, event: T) -> Envelope
     where
         T: Telemetry,
+        T::Data: From<T>,
     {
+        // todo apply common properties
+        let telemetry_data: T::Data = event.into();
+        let mut data = Data::new(telemetry_data);
+        // todo implement inheritance Base for Data
+
         let mut envelope = Envelope::new("test".into(), "time".into());
         envelope.with_data(None).with_flags(None);
         envelope
