@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 
+use crate::contracts::{MessageData, SeverityLevel as ContractsSeverityLevel};
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
 // Represents printf-like trace statements that can be text searched.
@@ -55,6 +56,16 @@ impl Telemetry for TraceTelemetry {
     }
 }
 
+impl From<TraceTelemetry> for MessageData {
+    fn from(telemetry: TraceTelemetry) -> Self {
+        let mut data = MessageData::new(telemetry.message);
+        data.with_severity_level(Some(telemetry.severity.into()))
+            .with_properties(telemetry.properties.into());
+
+        data
+    }
+}
+
 /// Defines the level of severity for the event.
 pub enum SeverityLevel {
     Verbose,
@@ -62,4 +73,16 @@ pub enum SeverityLevel {
     Warning,
     Error,
     Critical,
+}
+
+impl From<SeverityLevel> for ContractsSeverityLevel {
+    fn from(severity: SeverityLevel) -> Self {
+        match severity {
+            SeverityLevel::Verbose => ContractsSeverityLevel::Verbose,
+            SeverityLevel::Information => ContractsSeverityLevel::Information,
+            SeverityLevel::Warning => ContractsSeverityLevel::Warning,
+            SeverityLevel::Error => ContractsSeverityLevel::Error,
+            SeverityLevel::Critical => ContractsSeverityLevel::Critical,
+        }
+    }
 }

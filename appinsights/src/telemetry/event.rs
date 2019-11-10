@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 
+use crate::contracts::EventData;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
 /// Represents structured event records.
@@ -52,5 +53,15 @@ impl Telemetry for EventTelemetry {
     /// Returns context data containing extra, optional tags. Overrides values found on client telemetry context.
     fn tags(&self) -> &ContextTags {
         &self.tags
+    }
+}
+
+impl From<EventTelemetry> for EventData {
+    fn from(telemetry: EventTelemetry) -> Self {
+        let mut data = EventData::new(telemetry.name);
+        data.with_properties(telemetry.properties.into())
+            .with_measurements(telemetry.measurements.into());
+
+        data
     }
 }
