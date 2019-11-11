@@ -1,9 +1,10 @@
-use crate::bond::v2::Visitor;
-use crate::bond::*;
-use crate::Result;
 use std::collections::HashSet;
 use std::fs;
 use std::path::Path;
+
+use crate::bond::v2::Visitor;
+use crate::bond::*;
+use crate::Result;
 
 pub struct Compiler;
 
@@ -12,9 +13,7 @@ impl Compiler {
         let parser = Parser::new();
         let schema = parser.parse(input)?;
 
-        let module = codegen::Scope::new();
-
-        let mut generator = SchemaGenerator { module };
+        let mut generator = SchemaGenerator::new();
         generator.visit_schema(&schema);
 
         fs::write(output, generator.to_string())?;
@@ -27,7 +26,12 @@ struct SchemaGenerator {
 }
 
 impl SchemaGenerator {
-    fn to_string(&self) -> String {
+    pub fn new() -> Self {
+        Self {
+            module: codegen::Scope::new(),
+        }
+    }
+    pub fn to_string(&self) -> String {
         self.module.to_string()
     }
 }
@@ -52,7 +56,13 @@ impl Visitor for SchemaGenerator {
         builder_generator.visit_struct(declaration);
         builder_generator.push_into(&mut self.module);
 
-        // todo generate implementation of TelemetryData trait
+        // assume that if struct name ends with Data and it is not "Data"
+        // so it required TelemetryData trait implemented for this type
+        if declaration.is_telemetry_data() {
+            let mut telemetry_data_generator = TelemetryDataTraitGenerator::new(declaration.name());
+            telemetry_data_generator.visit_struct(declaration);
+            telemetry_data_generator.push_into(&mut self.module);
+        }
     }
 
     fn visit_enum(&mut self, declaration: &Enum) {
@@ -116,6 +126,7 @@ struct BuilderGenerator {
     constructor_body: codegen::Block,
     build: codegen::Function,
     build_body: codegen::Block,
+    build_ret: codegen::Type,
     setters: Vec<codegen::Function>,
     generics: HashSet<String>,
     field_names: HashSet<String>,
@@ -143,9 +154,9 @@ impl BuilderGenerator {
             "Create a new [{name}](trait.{name}.html) instance with values from [{builder_name}](trait.{builder_name}.html).",
             name = name, builder_name = builder_name
         );
-
+        let build_ret = codegen::Type::new(name);
         let mut build = codegen::Function::new("build");
-        build.arg_self().ret(name).doc(&build_doc);
+        build.vis("pub").arg_self().doc(&build_doc);
 
         let build_body = codegen::Block::new(name);
 
@@ -156,6 +167,7 @@ impl BuilderGenerator {
             constructor_body,
             build,
             build_body,
+            build_ret,
             setters: Vec::default(),
             generics: HashSet::default(),
             field_names: HashSet::default(),
@@ -172,6 +184,7 @@ impl BuilderGenerator {
             self.implementation.push_fn(setter);
         }
 
+        self.build.ret(self.build_ret);
         self.build.push_block(self.build_body);
         self.implementation.push_fn(self.build);
 
@@ -207,6 +220,9 @@ impl Visitor for BuilderGenerator {
                     // add a new generic parameter to builder implementation
                     self.implementation.generic(generic);
                     self.implementation.target_generic(generic);
+
+                    // add a new generic parameter to build method return type
+                    self.build_ret.generic(generic);
                 }
             }
 
@@ -256,7 +272,7 @@ impl Visitor for BuilderGenerator {
             }
 
             // populate body block for build method
-            self.build_body.line(format!("{},", field_name));
+            self.build_body.line(format!("{name}: self.{name},", name = field_name));
         }
     }
 
@@ -265,6 +281,52 @@ impl Visitor for BuilderGenerator {
             let doc = format!("Sets: {}", attribute.value());
             let setter = self.setters.last_mut().expect("Setter must exist");
             setter.doc(&doc);
+        }
+    }
+}
+
+struct TelemetryDataTraitGenerator {
+    implementation: codegen::Impl,
+    generics: HashSet<String>,
+    field_names: HashSet<String>,
+}
+
+impl TelemetryDataTraitGenerator {
+    fn new(name: &str) -> Self {
+        let mut implementation = codegen::Impl::new(name);
+        implementation
+            .impl_trait("TelemetryData")
+            .new_fn("base_type")
+            .doc(&format!(
+                "Returns the base type when placed within an [{name}](trait.{name}.html) container.",
+                name = "Data"
+            ))
+            .arg_ref_self()
+            .ret("String")
+            .line(&format!(r#"String::from("{}")"#, name));
+
+        Self {
+            implementation,
+            generics: HashSet::default(),
+            field_names: HashSet::default(),
+        }
+    }
+
+    fn push_into(self, module: &mut codegen::Scope) {
+        module.push_impl(self.implementation);
+    }
+}
+
+impl Visitor for TelemetryDataTraitGenerator {
+    fn visit_field(&mut self, field: &Field) {
+        // skip duplicating fields
+        if self.field_names.insert(field.name()) {
+            // add a new generic parameter to struct declaration
+            if let Some(generic) = field.type_().generic() {
+                if !self.generics.contains(generic) {
+                    self.implementation.generic(generic);
+                }
+            }
         }
     }
 }
