@@ -57,6 +57,7 @@ pub trait Visitor {
     fn visit_field(&mut self, field: &Field) {
         self.visit_field_attributes(field.attributes());
     }
+
     fn visit_field_attributes(&mut self, attributes: &Vec<Attribute>) {
         for attribute in attributes {
             self.visit_field_attribute(attribute);

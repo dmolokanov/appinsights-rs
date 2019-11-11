@@ -114,6 +114,8 @@ struct BuilderGenerator {
     implementation: codegen::Impl,
     constructor: codegen::Function,
     constructor_body: codegen::Block,
+    build: codegen::Function,
+    build_body: codegen::Block,
     setters: Vec<codegen::Function>,
     generics: HashSet<String>,
     field_names: HashSet<String>,
@@ -121,27 +123,39 @@ struct BuilderGenerator {
 
 impl BuilderGenerator {
     fn new(name: &str) -> Self {
-        let name = format!("{}Builder", name);
+        let builder_name = format!("{}Builder", name);
 
-        let mut declaration = codegen::Struct::new(&name);
+        let mut declaration = codegen::Struct::new(&builder_name);
         declaration.vis("pub");
 
-        let implementation = codegen::Impl::new(&name);
+        let implementation = codegen::Impl::new(&builder_name);
 
         let constructor_doc = format!(
-            "Create a new [{name}](trait.{name}.html) instance with default values set by the schema.",
-            name = name
+            "Create a new [{builder_name}](trait.{builder_name}.html) instance with default values set by the schema.",
+            builder_name = builder_name
         );
         let mut constructor = codegen::Function::new("new");
         constructor.vis("pub").ret("Self").doc(&constructor_doc);
 
         let constructor_body = codegen::Block::new("Self");
 
+        let build_doc = format!(
+            "Create a new [{name}](trait.{name}.html) instance with values from [{builder_name}](trait.{builder_name}.html).",
+            name = name, builder_name = builder_name
+        );
+
+        let mut build = codegen::Function::new("build");
+        build.arg_self().ret(name).doc(&build_doc);
+
+        let build_body = codegen::Block::new(name);
+
         Self {
             declaration,
             implementation,
             constructor,
             constructor_body,
+            build,
+            build_body,
             setters: Vec::default(),
             generics: HashSet::default(),
             field_names: HashSet::default(),
@@ -151,24 +165,32 @@ impl BuilderGenerator {
     fn push_into(mut self, module: &mut codegen::Scope) {
         module.push_struct(self.declaration);
 
+        self.constructor.push_block(self.constructor_body);
+        self.implementation.push_fn(self.constructor);
+
         for setter in self.setters {
             self.implementation.push_fn(setter);
         }
-        self.constructor.push_block(self.constructor_body);
-        self.implementation.push_fn(self.constructor);
+
+        self.build.push_block(self.build_body);
+        self.implementation.push_fn(self.build);
 
         module.push_impl(self.implementation);
     }
 
-    fn is_constructor_arg(&self, field: &Field) -> bool {
-        field.is_required() && field.default_value().is_some()
+    fn should_generate_constructor_arg(&self, field: &Field) -> bool {
+        field.is_required() && field.default_value().is_none()
+    }
+
+    fn should_generate_setter(&self, field: &Field) -> bool {
+        !self.should_generate_constructor_arg(field)
     }
 }
 
 impl Visitor for BuilderGenerator {
     fn visit_struct_attribute(&mut self, attribute: &Attribute) {
         if attribute.names().iter().any(|name| name == "Description") {
-            let doc = format!("Creates an instance of: {}", attribute.value());
+            let doc = format!("Creates: {}", attribute.value());
             self.declaration.doc(&doc);
         }
     }
@@ -195,7 +217,7 @@ impl Visitor for BuilderGenerator {
             self.declaration.field(&field_name, &field_type);
 
             // add constructor arg for required field without default value
-            if self.is_constructor_arg(field) {
+            if self.should_generate_constructor_arg(field) {
                 self.constructor.arg(&field_name, &field_type);
             }
 
@@ -215,6 +237,34 @@ impl Visitor for BuilderGenerator {
                 format!("{}: None,", field_name)
             };
             self.constructor_body.line(line);
+
+            // add a setter for an optional field or
+            if self.should_generate_setter(field) {
+                let mut setter = codegen::Function::new(&field_name);
+                setter
+                    .vis("pub")
+                    .ret("&mut Self")
+                    .arg_mut_self()
+                    .arg(&field_name, field_type)
+                    .line(format!("self.{name} = {name};", name = field_name))
+                    .line("self");
+
+                self.setters.push(setter);
+
+                // collect field attributes only for added setters
+                self.visit_field_attributes(field.attributes());
+            }
+
+            // populate body block for build method
+            self.build_body.line(format!("{},", field_name));
+        }
+    }
+
+    fn visit_field_attribute(&mut self, attribute: &Attribute) {
+        if attribute.names().iter().any(|name| name == "Description") {
+            let doc = format!("Sets: {}", attribute.value());
+            let setter = self.setters.last_mut().expect("Setter must exist");
+            setter.doc(&doc);
         }
     }
 }
