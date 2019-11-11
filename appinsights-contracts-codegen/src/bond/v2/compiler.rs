@@ -69,7 +69,7 @@ impl Visitor for EnumGenerator<'_> {
         self.code.derive("Debug").derive("Serialize").vis("pub");
 
         self.visit_enum_constants(declaration.constants());
-        self.visit_enum_attributes(declaration.attributes());
+        self.visit_attributes(declaration.attributes());
     }
 
     fn visit_enum_constant(&mut self, constant: &EnumConstant) {
@@ -80,15 +80,9 @@ impl Visitor for EnumGenerator<'_> {
         }
     }
 
-    fn visit_enum_attribute(&mut self, attribute: &Attribute) {
+    fn visit_attribute(&mut self, attribute: &Attribute) {
         if attribute.names().iter().any(|name| name == "Description") {
             self.code.doc(attribute.value());
         }
     }
 }
-
-struct DocCollector {
-    doc: Option<String>,
-}
-
-impl Visitor for DocCollector {}
