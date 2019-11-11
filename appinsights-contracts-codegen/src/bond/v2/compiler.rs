@@ -43,52 +43,49 @@ impl Visitor for SchemaGenerator {
 
     fn visit_struct(&mut self, declaration: &Struct) {
         // generate struct declaration
-        let mut struct_declaration = codegen::Struct::new(declaration.name());
-
-        let mut struct_generator = StructGenerator::new(&mut struct_declaration);
+        let mut struct_generator = StructGenerator::new(declaration.name());
         struct_generator.visit_struct(declaration);
-
-        self.module.push_struct(struct_declaration);
+        struct_generator.push_into(&mut self.module);
 
         // generate struct builder declaration
-        let builder_name = format!("{}Builder", declaration.name());
-        let mut builder_declaration = codegen::Struct::new(&builder_name);
-        let mut builder_implementation = codegen::Impl::new(&builder_name);
-
-        let mut builder_generator = BuilderGenerator::new(&mut builder_declaration, &mut builder_implementation);
+        let mut builder_generator = BuilderGenerator::new(declaration.name());
         builder_generator.visit_struct(declaration);
-
-        self.module.push_struct(builder_declaration);
-        self.module.push_impl(builder_implementation);
+        builder_generator.push_into(&mut self.module);
 
         // todo generate implementation of TelemetryData trait
     }
 
     fn visit_enum(&mut self, declaration: &Enum) {
-        let enumeration = self.module.new_enum(declaration.name());
-
-        let mut generator = EnumGenerator::new(enumeration);
-        generator.visit_enum(declaration);
+        let mut enum_generator = EnumGenerator::new(declaration.name());
+        enum_generator.visit_enum(declaration);
+        enum_generator.push_into(&mut self.module);
     }
 }
 
-struct StructGenerator<'a> {
-    declaration: &'a mut codegen::Struct,
-    generics: HashSet<&'a str>,
+struct StructGenerator {
+    declaration: codegen::Struct,
+    generics: HashSet<String>,
     field_names: HashSet<String>,
 }
 
-impl<'a> StructGenerator<'a> {
-    fn new(declaration: &'a mut codegen::Struct) -> Self {
+impl StructGenerator {
+    fn new(name: &str) -> Self {
+        let mut declaration = codegen::Struct::new(&name);
+        declaration.derive("Debug").derive("Serialize").vis("pub");
+
         Self {
-            declaration: declaration.derive("Debug").derive("Serialize").vis("pub"),
+            declaration,
             generics: HashSet::default(),
             field_names: HashSet::default(),
         }
     }
+
+    fn push_into(self, module: &mut codegen::Scope) {
+        module.push_struct(self.declaration);
+    }
 }
 
-impl Visitor for StructGenerator<'_> {
+impl Visitor for StructGenerator {
     fn visit_struct_attribute(&mut self, attribute: &Attribute) {
         if attribute.names().iter().any(|name| name == "Description") {
             self.declaration.doc(attribute.value());
@@ -100,7 +97,7 @@ impl Visitor for StructGenerator<'_> {
         if self.field_names.insert(field.name()) {
             // add a new generic parameter to struct declaration
             if let Some(generic) = field.type_().generic() {
-                if !self.generics.contains(&generic) {
+                if !self.generics.contains(generic) {
                     self.declaration.generic(generic);
                 }
             }
@@ -112,31 +109,63 @@ impl Visitor for StructGenerator<'_> {
     }
 }
 
-struct BuilderGenerator<'a> {
-    declaration: &'a mut codegen::Struct,
-    implementation: &'a mut codegen::Impl,
-    constructor: &'a mut codegen::Function,
+struct BuilderGenerator {
+    declaration: codegen::Struct,
+    implementation: codegen::Impl,
+    constructor: codegen::Function,
+    constructor_body: codegen::Block,
     setters: Vec<codegen::Function>,
-    generics: HashSet<&'a str>,
+    generics: HashSet<String>,
     field_names: HashSet<String>,
 }
 
-impl<'a> BuilderGenerator<'a> {
-    fn new(declaration: &'a mut codegen::Struct, implementation: &'a mut codegen::Impl) -> Self {
+impl BuilderGenerator {
+    fn new(name: &str) -> Self {
+        let name = format!("{}Builder", name);
+
+        let mut declaration = codegen::Struct::new(&name);
+        declaration.vis("pub");
+
+        let implementation = codegen::Impl::new(&name);
+
+        let constructor_doc = format!(
+            "Create a new [{name}](trait.{name}.html) instance with default values set by the schema.",
+            name = name
+        );
         let mut constructor = codegen::Function::new("new");
-        implementation.push_fn(constructor);
+        constructor.vis("pub").ret("Self").doc(&constructor_doc);
+
+        let constructor_body = codegen::Block::new("Self");
+
         Self {
-            declaration: declaration.vis("pub"),
+            declaration,
             implementation,
-            constructor: &mut constructor,
+            constructor,
+            constructor_body,
             setters: Vec::default(),
             generics: HashSet::default(),
             field_names: HashSet::default(),
         }
     }
+
+    fn push_into(mut self, module: &mut codegen::Scope) {
+        module.push_struct(self.declaration);
+
+        for setter in self.setters {
+            self.implementation.push_fn(setter);
+        }
+        self.constructor.push_block(self.constructor_body);
+        self.implementation.push_fn(self.constructor);
+
+        module.push_impl(self.implementation);
+    }
+
+    fn is_constructor_arg(&self, field: &Field) -> bool {
+        field.is_required() && field.default_value().is_some()
+    }
 }
 
-impl Visitor for BuilderGenerator<'_> {
+impl Visitor for BuilderGenerator {
     fn visit_struct_attribute(&mut self, attribute: &Attribute) {
         if attribute.names().iter().any(|name| name == "Description") {
             let doc = format!("Creates an instance of: {}", attribute.value());
@@ -149,39 +178,67 @@ impl Visitor for BuilderGenerator<'_> {
         if self.field_names.insert(field.name()) {
             if let Some(generic) = field.type_().generic() {
                 // skip duplicating generic parameters
-                if !self.generics.contains(&generic) {
+                if !self.generics.contains(generic) {
                     // add a new generic parameter to builder declaration
                     self.declaration.generic(generic);
 
                     // add a new generic parameter to builder implementation
                     self.implementation.generic(generic);
+                    self.implementation.target_generic(generic);
                 }
             }
 
             // add a field declaration to builder declaration
+            let field_name = field.name();
             let field_type = codegen::Type::from(field.clone());
-            self.declaration.field(&field.name(), &field_type);
 
-            //
+            self.declaration.field(&field_name, &field_type);
+
+            // add constructor arg for required field without default value
+            if self.is_constructor_arg(field) {
+                self.constructor.arg(&field_name, &field_type);
+            }
+
+            // add an line in constructor body to init builder field
+            let line = if let Some(value) = field.default_value() {
+                let field_value = if field.is_option() {
+                    format!("Some({})", value)
+                } else {
+                    format!("{}", value)
+                };
+                format!("{}: {},", field_name, field_value)
+            } else if field.is_required() {
+                // initialize struct field with value from constructor if field is required
+                format!("{},", field_name)
+            } else {
+                // initialize optional field with None
+                format!("{}: None,", field_name)
+            };
+            self.constructor_body.line(line);
         }
     }
 }
 
-struct EnumGenerator<'a> {
-    code: &'a mut codegen::Enum,
+struct EnumGenerator {
+    declaration: codegen::Enum,
 }
 
-impl<'a> EnumGenerator<'a> {
-    fn new(code: &'a mut codegen::Enum) -> Self {
-        Self {
-            code: code.derive("Debug").derive("Serialize").vis("pub"),
-        }
+impl EnumGenerator {
+    fn new(name: &str) -> Self {
+        let mut declaration = codegen::Enum::new(&name);
+        declaration.derive("Debug").derive("Serialize").vis("pub");
+
+        Self { declaration }
+    }
+
+    fn push_into(self, module: &mut codegen::Scope) {
+        module.push_enum(self.declaration);
     }
 }
 
-impl Visitor for EnumGenerator<'_> {
+impl Visitor for EnumGenerator {
     fn visit_enum_constant(&mut self, constant: &EnumConstant) {
-        self.code.new_variant(constant.name());
+        self.declaration.new_variant(constant.name());
 
         if let Some(_) = constant.value() {
             panic!("enum value is not supported: {:#?}", constant)
@@ -190,7 +247,7 @@ impl Visitor for EnumGenerator<'_> {
 
     fn visit_enum_attribute(&mut self, attribute: &Attribute) {
         if attribute.names().iter().any(|name| name == "Description") {
-            self.code.doc(attribute.value());
+            self.declaration.doc(attribute.value());
         }
     }
 }

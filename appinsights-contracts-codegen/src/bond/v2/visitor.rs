@@ -1,5 +1,6 @@
 use crate::bond::*;
 
+#[allow(unused_variables)]
 pub trait Visitor {
     fn visit_schema(&mut self, schema: &Schema) {
         self.visit_declarations(schema.declarations())
