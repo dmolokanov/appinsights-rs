@@ -1,5 +1,6 @@
 use crate::channel::{InMemoryChannel, TelemetryChannel};
 use crate::context::TelemetryContext;
+use crate::contracts::Data;
 use crate::telemetry::{EventTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
 use crate::Config;
 
@@ -55,8 +56,7 @@ where
     /// Submits a specific telemetry event.
     pub fn track<T>(&self, event: T)
     where
-        T: Telemetry,
-        T::Data: From<T> + Clone,
+        T: Telemetry + Into<Data>,
     {
         if self.is_enabled() {
             let envelop = self.context.envelop(event);
@@ -70,7 +70,7 @@ mod tests {
     use std::cell::RefCell;
 
     use super::*;
-    use crate::contracts::{Envelope, TelemetryData};
+    use crate::contracts::Envelope;
     use crate::Result;
     use chrono::{DateTime, Utc};
     use std::collections::hash_map::RandomState;
@@ -128,8 +128,6 @@ mod tests {
     struct TestTelemetry {}
 
     impl Telemetry for TestTelemetry {
-        type Data = TestData;
-
         fn timestamp(&self) -> DateTime<Utc> {
             unimplemented!()
         }
@@ -150,13 +148,7 @@ mod tests {
     #[derive(Clone)]
     struct TestData;
 
-    impl TelemetryData for TestData {
-        fn base_type(&self) -> String {
-            String::from("TestData")
-        }
-    }
-
-    impl From<TestTelemetry> for TestData {
+    impl From<TestTelemetry> for Data {
         fn from(_: TestTelemetry) -> Self {
             unimplemented!()
         }

@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::contracts::{EventData, EventDataBuilder};
+use crate::contracts::{Data, EventDataBuilder};
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
 /// Represents structured event records.
@@ -35,9 +35,6 @@ impl EventTelemetry {
 }
 
 impl Telemetry for EventTelemetry {
-    /// The type of data contract corresponding to the telemetry item.
-    type Data = EventData;
-
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
@@ -59,11 +56,13 @@ impl Telemetry for EventTelemetry {
     }
 }
 
-impl From<EventTelemetry> for EventData {
+impl From<EventTelemetry> for Data {
     fn from(telemetry: EventTelemetry) -> Self {
-        EventDataBuilder::new(telemetry.name)
-            .properties(telemetry.properties)
-            .measurements(telemetry.measurements)
-            .build()
+        Data::EventData(
+            EventDataBuilder::new(telemetry.name)
+                .properties(telemetry.properties)
+                .measurements(telemetry.measurements)
+                .build(),
+        )
     }
 }

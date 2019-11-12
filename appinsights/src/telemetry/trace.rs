@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::contracts::{MessageData, MessageDataBuilder, SeverityLevel as ContractsSeverityLevel};
+use crate::contracts::{Data, MessageDataBuilder, SeverityLevel as ContractsSeverityLevel};
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
 // Represents printf-like trace statements that can be text searched.
@@ -35,9 +35,6 @@ impl TraceTelemetry {
 }
 
 impl Telemetry for TraceTelemetry {
-    /// The type of data contract corresponding to the telemetry item.
-    type Data = MessageData;
-
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
@@ -59,12 +56,14 @@ impl Telemetry for TraceTelemetry {
     }
 }
 
-impl From<TraceTelemetry> for MessageData {
+impl From<TraceTelemetry> for Data {
     fn from(telemetry: TraceTelemetry) -> Self {
-        MessageDataBuilder::new(telemetry.message)
-            .severity_level(telemetry.severity.into())
-            .properties(telemetry.properties)
-            .build()
+        Data::MessageData(
+            MessageDataBuilder::new(telemetry.message)
+                .severity_level(telemetry.severity.into())
+                .properties(telemetry.properties)
+                .build(),
+        )
     }
 }
 

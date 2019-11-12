@@ -8,13 +8,8 @@ use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 
-use crate::contracts::TelemetryData;
-
 /// A trait that provides Application Insights telemetry items.
 pub trait Telemetry {
-    /// The type of data contract corresponding to the telemetry item.
-    type Data: TelemetryData;
-
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc>;
 

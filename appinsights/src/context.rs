@@ -1,35 +1,43 @@
-use crate::contracts::{Envelope, EnvelopeBuilder, TelemetryData};
-use crate::telemetry::Telemetry;
+use crate::contracts::{Base, Data, Envelope, EnvelopeBuilder};
+use crate::telemetry::{ContextTags, Telemetry};
 use crate::Config;
 
 /// Encapsulates contextual data common to all telemetry submitted through a telemetry client.
 pub struct TelemetryContext {
-    /// Instrumentation key.
+    /// An instrumentation key.
     i_key: String,
 
-    // Stripped-down instrumentation key used in envelope name.
+    // A stripped-down instrumentation key used in envelope name.
     normalized_i_key: String,
+
+    // A collection of tags to attach to telemetry event.
+    tags: ContextTags,
 }
 
 impl TelemetryContext {
     /// Wraps a telemetry event in an envelope with the information found in this context.
     pub fn envelop<T>(&self, event: T) -> Envelope
     where
-        T: Telemetry,
-        T::Data: From<T> + Clone,
+        T: Telemetry + Into<Data>,
     {
-        let timestamp = event.timestamp();
-
         // todo apply common properties
-        let telemetry_data: T::Data = event.into();
-        //        let data = DataBuilder::new(telemetry_data).base_type(Some(telemetry_data.base_type()));
-        // todo implement inheritance Base for Data
 
-        EnvelopeBuilder::new(
-            telemetry_data.envelope_name(&self.normalized_i_key),
-            timestamp.to_rfc3339(),
-        )
-        .build()
+        // collect all tags from telemetry even; it can override some tags with default values found in context
+        let mut tags = event.tags().clone();
+        for (name, tag) in self.tags.clone() {
+            tags.insert(name, tag);
+        }
+
+        let timestamp = event.timestamp().to_rfc3339();
+
+        let data: Data = event.into();
+        let envelope_name = data.envelope_name(&self.normalized_i_key);
+
+        EnvelopeBuilder::new(envelope_name, timestamp)
+            .data(Base::Data(data))
+            .i_key(self.i_key.clone())
+            .tags(tags)
+            .build()
     }
 }
 
@@ -39,6 +47,7 @@ impl From<&Config> for TelemetryContext {
         Self {
             i_key: config.i_key().into(),
             normalized_i_key: config.i_key().replace("-", ""),
+            tags: ContextTags::default(),
         }
     }
 }

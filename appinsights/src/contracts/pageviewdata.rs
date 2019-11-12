@@ -94,10 +94,3 @@ impl PageViewDataBuilder {
         }
     }
 }
-
-impl TelemetryData for PageViewData {
-    /// Returns the base type when placed within an [Data](trait.Data.html) container.
-    fn base_type(&self) -> String {
-        String::from("PageViewData")
-    }
-}
