@@ -54,26 +54,26 @@ impl AvailabilityDataBuilder {
     }
 
     /// Sets: Name of the location where the test was run from.
-    pub fn run_location(&mut self, run_location: Option<String>) -> &mut Self {
-        self.run_location = run_location;
+    pub fn run_location(&mut self, run_location: String) -> &mut Self {
+        self.run_location = Some(run_location);
         self
     }
 
     /// Sets: Diagnostic message for the result.
-    pub fn message(&mut self, message: Option<String>) -> &mut Self {
-        self.message = message;
+    pub fn message(&mut self, message: String) -> &mut Self {
+        self.message = Some(message);
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

@@ -57,14 +57,14 @@ impl RequestDataBuilder {
     }
 
     /// Sets: Source of the request. Examples are the instrumentation key of the caller or the ip address of the caller.
-    pub fn source(&mut self, source: Option<String>) -> &mut Self {
-        self.source = source;
+    pub fn source(&mut self, source: String) -> &mut Self {
+        self.source = Some(source);
         self
     }
 
     /// Sets: Name of the request. Represents code path taken to process request. Low cardinality value to allow better grouping of requests. For HTTP requests it represents the HTTP method and URL path template like 'GET /values/{id}'.
-    pub fn name(&mut self, name: Option<String>) -> &mut Self {
-        self.name = name;
+    pub fn name(&mut self, name: String) -> &mut Self {
+        self.name = Some(name);
         self
     }
 
@@ -75,20 +75,20 @@ impl RequestDataBuilder {
     }
 
     /// Sets: Request URL with all query string parameters.
-    pub fn url(&mut self, url: Option<String>) -> &mut Self {
-        self.url = url;
+    pub fn url(&mut self, url: String) -> &mut Self {
+        self.url = Some(url);
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

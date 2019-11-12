@@ -45,38 +45,38 @@ impl DataPointBuilder {
     }
 
     /// Sets: Namespace of the metric.
-    pub fn ns(&mut self, ns: Option<String>) -> &mut Self {
-        self.ns = ns;
+    pub fn ns(&mut self, ns: String) -> &mut Self {
+        self.ns = Some(ns);
         self
     }
 
     /// Sets: Metric type. Single measurement or the aggregated value.
-    pub fn kind(&mut self, kind: Option<DataPointType>) -> &mut Self {
-        self.kind = kind;
+    pub fn kind(&mut self, kind: DataPointType) -> &mut Self {
+        self.kind = Some(kind);
         self
     }
 
     /// Sets: Metric weight of the aggregated metric. Should not be set for a measurement.
-    pub fn count(&mut self, count: Option<i32>) -> &mut Self {
-        self.count = count;
+    pub fn count(&mut self, count: i32) -> &mut Self {
+        self.count = Some(count);
         self
     }
 
     /// Sets: Minimum value of the aggregated metric. Should not be set for a measurement.
-    pub fn min(&mut self, min: Option<f64>) -> &mut Self {
-        self.min = min;
+    pub fn min(&mut self, min: f64) -> &mut Self {
+        self.min = Some(min);
         self
     }
 
     /// Sets: Maximum value of the aggregated metric. Should not be set for a measurement.
-    pub fn max(&mut self, max: Option<f64>) -> &mut Self {
-        self.max = max;
+    pub fn max(&mut self, max: f64) -> &mut Self {
+        self.max = Some(max);
         self
     }
 
     /// Sets: Standard deviation of the aggregated metric. Should not be set for a measurement.
-    pub fn std_dev(&mut self, std_dev: Option<f64>) -> &mut Self {
-        self.std_dev = std_dev;
+    pub fn std_dev(&mut self, std_dev: f64) -> &mut Self {
+        self.std_dev = Some(std_dev);
         self
     }
 

@@ -60,50 +60,50 @@ impl RemoteDependencyDataBuilder {
     }
 
     /// Sets: Identifier of a dependency call instance. Used for correlation with the request telemetry item corresponding to this dependency call.
-    pub fn id(&mut self, id: Option<String>) -> &mut Self {
-        self.id = id;
+    pub fn id(&mut self, id: String) -> &mut Self {
+        self.id = Some(id);
         self
     }
 
     /// Sets: Result code of a dependency call. Examples are SQL error code and HTTP status code.
-    pub fn result_code(&mut self, result_code: Option<String>) -> &mut Self {
-        self.result_code = result_code;
+    pub fn result_code(&mut self, result_code: String) -> &mut Self {
+        self.result_code = Some(result_code);
         self
     }
 
     /// Sets: Indication of successfull or unsuccessfull call.
-    pub fn success(&mut self, success: Option<bool>) -> &mut Self {
-        self.success = success;
+    pub fn success(&mut self, success: bool) -> &mut Self {
+        self.success = Some(success);
         self
     }
 
     /// Sets: Command initiated by this dependency call. Examples are SQL statement and HTTP URL's with all query parameters.
-    pub fn data(&mut self, data: Option<String>) -> &mut Self {
-        self.data = data;
+    pub fn data(&mut self, data: String) -> &mut Self {
+        self.data = Some(data);
         self
     }
 
     /// Sets: Target site of a dependency call. Examples are server name, host address.
-    pub fn target(&mut self, target: Option<String>) -> &mut Self {
-        self.target = target;
+    pub fn target(&mut self, target: String) -> &mut Self {
+        self.target = Some(target);
         self
     }
 
     /// Sets: Dependency type name. Very low cardinality value for logical grouping of dependencies and interpretation of other fields like commandName and resultCode. Examples are SQL, Azure table, and HTTP.
-    pub fn type_(&mut self, type_: Option<String>) -> &mut Self {
-        self.type_ = type_;
+    pub fn type_(&mut self, type_: String) -> &mut Self {
+        self.type_ = Some(type_);
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

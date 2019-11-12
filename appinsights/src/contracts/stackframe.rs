@@ -36,20 +36,20 @@ impl StackFrameBuilder {
     }
 
     /// Sets: Name of the assembly (dll, jar, etc.) containing this function.
-    pub fn assembly(&mut self, assembly: Option<String>) -> &mut Self {
-        self.assembly = assembly;
+    pub fn assembly(&mut self, assembly: String) -> &mut Self {
+        self.assembly = Some(assembly);
         self
     }
 
     /// Sets: File name or URL of the method implementation.
-    pub fn file_name(&mut self, file_name: Option<String>) -> &mut Self {
-        self.file_name = file_name;
+    pub fn file_name(&mut self, file_name: String) -> &mut Self {
+        self.file_name = Some(file_name);
         self
     }
 
     /// Sets: Line number of the code implementation.
-    pub fn line(&mut self, line: Option<i32>) -> &mut Self {
-        self.line = line;
+    pub fn line(&mut self, line: i32) -> &mut Self {
+        self.line = Some(line);
         self
     }
 

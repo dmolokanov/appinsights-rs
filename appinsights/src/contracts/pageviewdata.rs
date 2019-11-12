@@ -51,32 +51,32 @@ impl PageViewDataBuilder {
     }
 
     /// Sets: Request URL with all query string parameters
-    pub fn url(&mut self, url: Option<String>) -> &mut Self {
-        self.url = url;
+    pub fn url(&mut self, url: String) -> &mut Self {
+        self.url = Some(url);
         self
     }
 
     /// Sets: Request duration in format: DD.HH:MM:SS.MMMMMM. For a page view (PageViewData), this is the duration. For a page view with performance information (PageViewPerfData), this is the page load time. Must be less than 1000 days.
-    pub fn duration(&mut self, duration: Option<String>) -> &mut Self {
-        self.duration = duration;
+    pub fn duration(&mut self, duration: String) -> &mut Self {
+        self.duration = Some(duration);
         self
     }
 
     /// Sets: Fully qualified page URI or URL of the referring page; if unknown, leave blank
-    pub fn referrer_uri(&mut self, referrer_uri: Option<String>) -> &mut Self {
-        self.referrer_uri = referrer_uri;
+    pub fn referrer_uri(&mut self, referrer_uri: String) -> &mut Self {
+        self.referrer_uri = Some(referrer_uri);
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

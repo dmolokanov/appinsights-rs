@@ -30,8 +30,8 @@ where
     }
 
     /// Sets: Name of item (B section) if any. If telemetry data is derived straight from this, this should be null.
-    pub fn base_type(&mut self, base_type: Option<String>) -> &mut Self {
-        self.base_type = base_type;
+    pub fn base_type(&mut self, base_type: String) -> &mut Self {
+        self.base_type = Some(base_type);
         self
     }
 

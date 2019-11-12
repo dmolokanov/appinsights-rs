@@ -36,8 +36,8 @@ impl MetricDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 

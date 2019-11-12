@@ -161,10 +161,10 @@ impl Visitor for BuilderGenerator {
                 }
             }
 
-            // add a field declaration to builder declaration
             let field_name = field.name();
             let field_type = codegen::Type::from(field.clone());
 
+            // add a field declaration to builder declaration
             self.declaration.field(&field_name, &field_type);
 
             // add constructor arg for required field without default value
@@ -174,12 +174,11 @@ impl Visitor for BuilderGenerator {
 
             // add an line in constructor body to init builder field
             let line = if let Some(value) = field.default_value() {
-                let field_value = if field.is_option() {
-                    format!("Some({})", value)
+                if field.optional().is_some() {
+                    format!("{}: Some({}),", field_name, value)
                 } else {
-                    format!("{}", value)
-                };
-                format!("{}: {},", field_name, field_value)
+                    format!("{}: {},", field_name, value)
+                }
             } else if field.is_required() {
                 // initialize struct field with value from constructor if field is required
                 format!("{},", field_name)
@@ -189,17 +188,23 @@ impl Visitor for BuilderGenerator {
             };
             self.constructor_body.line(line);
 
-            // add a setter for an optional field or
+            // add a setter for an optional field or the field with default value
             if self.should_generate_setter(field) {
+                // in order to strip Option<> from arg type of setter try to get the most inner type
+                let field_type = codegen::Type::from(field.optional().unwrap_or(field.type_()).clone());
+
                 let mut setter = codegen::Function::new(&field_name);
                 setter
                     .vis("pub")
                     .ret("&mut Self")
                     .arg_mut_self()
                     .arg(&field_name, field_type)
-                    .line(format!("self.{name} = {name};", name = field_name))
+                    .line(if field.optional().is_some() {
+                        format!("self.{name} = Some({name});", name = field_name)
+                    } else {
+                        format!("self.{name} = {name};", name = field_name)
+                    })
                     .line("self");
-
                 self.setters.push(setter);
 
                 // collect field attributes only for added setters

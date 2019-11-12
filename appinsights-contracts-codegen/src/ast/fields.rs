@@ -49,8 +49,19 @@ impl Field {
             _ => None,
         }
     }
-    pub fn is_option(&self) -> bool {
-        self.field_type.nullable().is_some() || self.field_modifier == FieldModifier::Optional
+
+    pub fn optional(&self) -> Option<&Type> {
+        if let Some(type_) = self.field_type.nullable() {
+            Some(Field::unwrap_option(&type_))
+        } else if self.field_modifier == FieldModifier::Optional {
+            Some(Field::unwrap_option(&self.field_type))
+        } else {
+            None
+        }
+    }
+
+    fn unwrap_option(type_: &Type) -> &Type {
+        type_.nullable().map_or(type_, |type_| Field::unwrap_option(type_))
     }
 }
 

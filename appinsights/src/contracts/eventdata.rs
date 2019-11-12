@@ -39,14 +39,14 @@ impl EventDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

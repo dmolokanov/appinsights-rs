@@ -62,8 +62,8 @@ impl Telemetry for EventTelemetry {
 impl From<EventTelemetry> for EventData {
     fn from(telemetry: EventTelemetry) -> Self {
         EventDataBuilder::new(telemetry.name)
-            .properties(telemetry.properties.into())
-            .measurements(telemetry.measurements.into())
+            .properties(telemetry.properties)
+            .measurements(telemetry.measurements)
             .build()
     }
 }

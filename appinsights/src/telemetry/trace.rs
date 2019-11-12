@@ -62,8 +62,8 @@ impl Telemetry for TraceTelemetry {
 impl From<TraceTelemetry> for MessageData {
     fn from(telemetry: TraceTelemetry) -> Self {
         MessageDataBuilder::new(telemetry.message)
-            .severity_level(Some(telemetry.severity.into()))
-            .properties(telemetry.properties.into())
+            .severity_level(telemetry.severity.into())
+            .properties(telemetry.properties)
             .build()
     }
 }

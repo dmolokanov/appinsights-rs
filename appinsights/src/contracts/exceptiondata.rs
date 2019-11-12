@@ -45,26 +45,26 @@ impl ExceptionDataBuilder {
     }
 
     /// Sets: Severity level. Mostly used to indicate exception severity level when it is reported by logging library.
-    pub fn severity_level(&mut self, severity_level: Option<SeverityLevel>) -> &mut Self {
-        self.severity_level = severity_level;
+    pub fn severity_level(&mut self, severity_level: SeverityLevel) -> &mut Self {
+        self.severity_level = Some(severity_level);
         self
     }
 
     /// Sets: Identifier of where the exception was thrown in code. Used for exceptions grouping. Typically a combination of exception type and a function from the call stack.
-    pub fn problem_id(&mut self, problem_id: Option<String>) -> &mut Self {
-        self.problem_id = problem_id;
+    pub fn problem_id(&mut self, problem_id: String) -> &mut Self {
+        self.problem_id = Some(problem_id);
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
-        self.properties = properties;
+    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+        self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
-        self.measurements = measurements;
+    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+        self.measurements = Some(measurements);
         self
     }
 

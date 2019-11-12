@@ -16,13 +16,13 @@ impl TelemetryContext {
     pub fn envelop<T>(&self, event: T) -> Envelope
     where
         T: Telemetry,
-        T::Data: From<T>,
+        T::Data: From<T> + Clone,
     {
         let timestamp = event.timestamp();
 
         // todo apply common properties
         let telemetry_data: T::Data = event.into();
-        // let data = Data::new(telemetry_data);
+        //        let data = DataBuilder::new(telemetry_data).base_type(Some(telemetry_data.base_type()));
         // todo implement inheritance Base for Data
 
         EnvelopeBuilder::new(

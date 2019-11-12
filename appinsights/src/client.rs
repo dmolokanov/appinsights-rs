@@ -56,7 +56,7 @@ where
     pub fn track<T>(&self, event: T)
     where
         T: Telemetry,
-        T::Data: From<T>,
+        T::Data: From<T> + Clone,
     {
         if self.is_enabled() {
             let envelop = self.context.envelop(event);
@@ -147,6 +147,7 @@ mod tests {
         }
     }
 
+    #[derive(Clone)]
     struct TestData;
 
     impl TelemetryData for TestData {
