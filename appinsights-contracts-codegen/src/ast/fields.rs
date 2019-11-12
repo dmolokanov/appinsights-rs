@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use heck::SnakeCase;
 
-use crate::bond::{Attribute, Type};
+use crate::ast::{Attribute, Type};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

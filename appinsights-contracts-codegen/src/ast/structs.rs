@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::bond::{Attribute, Field, Namespace, Parameter, Type};
+use crate::ast::{Attribute, Field, Namespace, Parameter, Type};
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]

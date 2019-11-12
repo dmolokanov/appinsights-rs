@@ -4,7 +4,7 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// An instance of Request represents completion of an external request to the application to do work and contains a summary of that request execution and the results.
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct RequestData {
     ver: i32,
     id: String,
@@ -18,8 +18,23 @@ pub struct RequestData {
     measurements: Option<std::collections::HashMap<String, f64>>,
 }
 
-impl RequestData {
-    /// Create a new [RequestData](trait.RequestData.html) instance with default values set by the schema.
+/// Creates: An instance of Request represents completion of an external request to the application to do work and contains a summary of that request execution and the results.
+#[derive(Debug, Clone)]
+pub struct RequestDataBuilder {
+    ver: i32,
+    id: String,
+    source: Option<String>,
+    name: Option<String>,
+    duration: String,
+    response_code: String,
+    success: bool,
+    url: Option<String>,
+    properties: Option<std::collections::HashMap<String, String>>,
+    measurements: Option<std::collections::HashMap<String, f64>>,
+}
+
+impl RequestDataBuilder {
+    /// Creates a new [RequestDataBuilder](trait.RequestDataBuilder.html) instance with default values set by the schema.
     pub fn new(id: String, duration: String, response_code: String) -> Self {
         Self {
             ver: 2,
@@ -35,64 +50,62 @@ impl RequestData {
         }
     }
 
-    /// Schema version
-    pub fn with_ver(&mut self, ver: i32) -> &mut Self {
+    /// Sets: Schema version
+    pub fn ver(&mut self, ver: i32) -> &mut Self {
         self.ver = ver;
         self
     }
 
-    /// Identifier of a request call instance. Used for correlation between request and other telemetry items.
-    pub fn with_id(&mut self, id: String) -> &mut Self {
-        self.id = id;
-        self
-    }
-
-    /// Source of the request. Examples are the instrumentation key of the caller or the ip address of the caller.
-    pub fn with_source(&mut self, source: Option<String>) -> &mut Self {
+    /// Sets: Source of the request. Examples are the instrumentation key of the caller or the ip address of the caller.
+    pub fn source(&mut self, source: Option<String>) -> &mut Self {
         self.source = source;
         self
     }
 
-    /// Name of the request. Represents code path taken to process request. Low cardinality value to allow better grouping of requests. For HTTP requests it represents the HTTP method and URL path template like 'GET /values/{id}'.
-    pub fn with_name(&mut self, name: Option<String>) -> &mut Self {
+    /// Sets: Name of the request. Represents code path taken to process request. Low cardinality value to allow better grouping of requests. For HTTP requests it represents the HTTP method and URL path template like 'GET /values/{id}'.
+    pub fn name(&mut self, name: Option<String>) -> &mut Self {
         self.name = name;
         self
     }
 
-    /// Request duration in format: DD.HH:MM:SS.MMMMMM. Must be less than 1000 days.
-    pub fn with_duration(&mut self, duration: String) -> &mut Self {
-        self.duration = duration;
-        self
-    }
-
-    /// Result of a request execution. HTTP status code for HTTP requests.
-    pub fn with_response_code(&mut self, response_code: String) -> &mut Self {
-        self.response_code = response_code;
-        self
-    }
-
-    /// Indication of successfull or unsuccessfull call.
-    pub fn with_success(&mut self, success: bool) -> &mut Self {
+    /// Sets: Indication of successfull or unsuccessfull call.
+    pub fn success(&mut self, success: bool) -> &mut Self {
         self.success = success;
         self
     }
 
-    /// Request URL with all query string parameters.
-    pub fn with_url(&mut self, url: Option<String>) -> &mut Self {
+    /// Sets: Request URL with all query string parameters.
+    pub fn url(&mut self, url: Option<String>) -> &mut Self {
         self.url = url;
         self
     }
 
-    /// Collection of custom properties.
-    pub fn with_properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
+    /// Sets: Collection of custom properties.
+    pub fn properties(&mut self, properties: Option<std::collections::HashMap<String, String>>) -> &mut Self {
         self.properties = properties;
         self
     }
 
-    /// Collection of custom measurements.
-    pub fn with_measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
+    /// Sets: Collection of custom measurements.
+    pub fn measurements(&mut self, measurements: Option<std::collections::HashMap<String, f64>>) -> &mut Self {
         self.measurements = measurements;
         self
+    }
+
+    /// Creates a new [RequestData](trait.RequestData.html) instance with values from [RequestDataBuilder](trait.RequestDataBuilder.html).
+    pub fn build(&self) -> RequestData {
+        RequestData {
+            ver: self.ver.clone(),
+            id: self.id.clone(),
+            source: self.source.clone(),
+            name: self.name.clone(),
+            duration: self.duration.clone(),
+            response_code: self.response_code.clone(),
+            success: self.success.clone(),
+            url: self.url.clone(),
+            properties: self.properties.clone(),
+            measurements: self.measurements.clone(),
+        }
     }
 }
 

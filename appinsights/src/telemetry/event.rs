@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 
-use crate::contracts::EventData;
+use crate::contracts::{EventData, EventDataBuilder};
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 
 /// Represents structured event records.
@@ -61,10 +61,9 @@ impl Telemetry for EventTelemetry {
 
 impl From<EventTelemetry> for EventData {
     fn from(telemetry: EventTelemetry) -> Self {
-        let mut data = EventData::new(telemetry.name);
-        data.with_properties(telemetry.properties.into())
-            .with_measurements(telemetry.measurements.into());
-
-        data
+        EventDataBuilder::new(telemetry.name)
+            .properties(telemetry.properties.into())
+            .measurements(telemetry.measurements.into())
+            .build()
     }
 }

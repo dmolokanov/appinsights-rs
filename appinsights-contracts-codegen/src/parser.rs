@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
-use crate::bond::Schema;
+use crate::ast::Schema;
 use crate::Result;
 
 pub struct Parser;

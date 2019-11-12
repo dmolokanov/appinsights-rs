@@ -1,4 +1,4 @@
-use crate::contracts::{Envelope, TelemetryData};
+use crate::contracts::{Envelope, EnvelopeBuilder, TelemetryData};
 use crate::telemetry::Telemetry;
 use crate::Config;
 
@@ -25,12 +25,11 @@ impl TelemetryContext {
         // let data = Data::new(telemetry_data);
         // todo implement inheritance Base for Data
 
-        let envelope = Envelope::new(
+        EnvelopeBuilder::new(
             telemetry_data.envelope_name(&self.normalized_i_key),
             timestamp.to_rfc3339(),
-        );
-
-        envelope
+        )
+        .build()
     }
 }
 
