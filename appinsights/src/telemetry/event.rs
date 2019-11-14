@@ -1,4 +1,4 @@
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, SecondsFormat, Utc};
 
 use crate::context::TelemetryContext;
 use crate::contracts::{Base, Data, Envelope, EnvelopeBuilder, EventDataBuilder};
@@ -82,8 +82,9 @@ impl From<(TelemetryContext, EventTelemetry)> for Envelope {
         );
 
         let envelope_name = data.envelope_name(&context.normalized_i_key);
+        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
 
-        EnvelopeBuilder::new(envelope_name, telemetry.timestamp.to_rfc3339())
+        EnvelopeBuilder::new(envelope_name, timestamp)
             .data(Base::Data(data))
             .i_key(context.i_key)
             .tags(ContextTags::combine(context.tags, telemetry.tags))
@@ -105,14 +106,14 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms(3, 4, 5), "test".into());
+        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600), "test".into());
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
             "Microsoft.ApplicationInsights.instrumentation.Event".into(),
-            "2019-01-02T03:04:05+00:00".into(),
+            "2019-01-02T03:04:05.600Z".into(),
         )
         .data(Base::Data(Data::EventData(
             EventDataBuilder::new("test".into())
@@ -138,14 +139,14 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms(3, 4, 5), "test".into());
+        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600), "test".into());
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
             "Microsoft.ApplicationInsights.instrumentation.Event".into(),
-            "2019-01-02T03:04:05+00:00".into(),
+            "2019-01-02T03:04:05.600Z".into(),
         )
         .data(Base::Data(Data::EventData(
             EventDataBuilder::new("test".into())
