@@ -1,44 +1,37 @@
-use std::marker::PhantomData;
-
-use chrono::Utc;
-
 use crate::channel::{InMemoryChannel, TelemetryChannel};
 use crate::context::TelemetryContext;
 use crate::contracts::Envelope;
 use crate::telemetry::{EventTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
-use crate::{Config, SystemTime};
+use crate::Config;
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
-pub struct TelemetryClient<C, T> {
+pub struct TelemetryClient<C> {
     enabled: bool,
     context: TelemetryContext,
     channel: C,
-    phantom: PhantomData<T>,
 }
 
-impl TelemetryClient<InMemoryChannel, Utc> {
+impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
     pub fn new(i_key: String) -> Self {
         Self::from_config(Config::new(i_key))
     }
 }
 
-impl<T> TelemetryClient<InMemoryChannel, T> {
+impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client configured with specified configuration.
     pub fn from_config(config: Config) -> Self {
         Self {
             enabled: true,
             context: TelemetryContext::new(config.i_key().to_string()),
             channel: InMemoryChannel::new(&config),
-            phantom: PhantomData,
         }
     }
 }
 
-impl<C, T> TelemetryClient<C, T>
+impl<C> TelemetryClient<C>
 where
     C: TelemetryChannel,
-    T: SystemTime,
 {
     /// Determines whether this client is enabled and will accept telemetry.
     pub fn is_enabled(&self) -> bool {
@@ -52,13 +45,13 @@ where
 
     /// Logs a user action with the specified name.
     pub fn track_event(&self, name: &str) {
-        let event = EventTelemetry::new(T::now(), name);
+        let event = EventTelemetry::new(name);
         self.track(event)
     }
 
     /// Logs a trace message with a specified severity level.
     pub fn track_trace(&self, message: &str, severity: SeverityLevel) {
-        let event = TraceTelemetry::new(T::now(), message, severity);
+        let event = TraceTelemetry::new(message, severity);
         self.track(event)
     }
 

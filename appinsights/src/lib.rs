@@ -8,7 +8,7 @@ pub mod telemetry;
 
 pub use client::TelemetryClient;
 pub use config::Config;
-pub use systemtime::SystemTime;
+pub use systemtime::*;
 
 use std::error::Error;
 

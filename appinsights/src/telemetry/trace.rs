@@ -3,6 +3,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use crate::context::TelemetryContext;
 use crate::contracts::{SeverityLevel as ContractsSeverityLevel, *};
 use crate::telemetry::{ContextTags, Properties, Telemetry};
+use crate::SystemTime;
 
 // Represents printf-like trace statements that can be text searched.
 pub struct TraceTelemetry {
@@ -24,11 +25,11 @@ pub struct TraceTelemetry {
 
 impl TraceTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(timestamp: DateTime<Utc>, message: &str, severity: SeverityLevel) -> Self {
+    pub fn new(message: &str, severity: SeverityLevel) -> Self {
         Self {
             message: message.into(),
             severity,
-            timestamp,
+            timestamp: SystemTime::now(),
             properties: Default::default(),
             tags: Default::default(),
         }
@@ -124,22 +125,20 @@ mod tests {
 
     #[test]
     fn it_overrides_properties_from_context() {
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
+
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = TraceTelemetry::new(
-            Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600),
-            "message".into(),
-            SeverityLevel::Information,
-        );
+        let mut telemetry = TraceTelemetry::new("message".into(), SeverityLevel::Information);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
             "Microsoft.ApplicationInsights.instrumentation.Message".into(),
-            "2019-01-02T03:04:05.600Z".into(),
+            "2019-01-02T03:04:05.800Z".into(),
         )
         .data(Base::Data(Data::MessageData(
             MessageDataBuilder::new("message".into())
@@ -161,22 +160,20 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = TraceTelemetry::new(
-            Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600),
-            "message".into(),
-            SeverityLevel::Information,
-        );
+        let mut telemetry = TraceTelemetry::new("message".into(), SeverityLevel::Information);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
             "Microsoft.ApplicationInsights.instrumentation.Message".into(),
-            "2019-01-02T03:04:05.600Z".into(),
+            "2019-01-02T03:04:05.700Z".into(),
         )
         .data(Base::Data(Data::MessageData(
             MessageDataBuilder::new("message".into())

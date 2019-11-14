@@ -3,6 +3,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use crate::context::TelemetryContext;
 use crate::contracts::{Base, Data, Envelope, EnvelopeBuilder, EventDataBuilder};
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
+use crate::SystemTime;
 
 /// Represents structured event records.
 pub struct EventTelemetry {
@@ -24,10 +25,10 @@ pub struct EventTelemetry {
 
 impl EventTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(timestamp: DateTime<Utc>, name: &str) -> Self {
+    pub fn new(name: &str) -> Self {
         Self {
             name: name.into(),
-            timestamp,
+            timestamp: SystemTime::now(),
             properties: Default::default(),
             tags: Default::default(),
             measurements: Default::default(),
@@ -99,14 +100,17 @@ mod tests {
     use chrono::TimeZone;
 
     use super::*;
+    use crate::SystemTime;
 
     #[test]
     fn it_overrides_properties_from_context() {
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600));
+
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600), "test".into());
+        let mut telemetry = EventTelemetry::new("test".into());
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
@@ -135,18 +139,20 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600), "test".into());
+        let mut telemetry = EventTelemetry::new("test".into());
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
             "Microsoft.ApplicationInsights.instrumentation.Event".into(),
-            "2019-01-02T03:04:05.600Z".into(),
+            "2019-01-02T03:04:05.700Z".into(),
         )
         .data(Base::Data(Data::EventData(
             EventDataBuilder::new("test".into())
