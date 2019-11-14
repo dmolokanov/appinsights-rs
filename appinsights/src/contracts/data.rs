@@ -4,8 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// Data struct to contain both B and C sections.
-#[derive(Debug, Clone, Serialize)]
-#[serde(tag = "base_type", content = "base_data")]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(tag = "baseType", content = "baseData")]
 pub enum Data {
     AvailabilityData(AvailabilityData),
     EventData(EventData),
@@ -31,9 +31,9 @@ impl Data {
         };
 
         if key.is_empty() {
-            format!("Microsoft.ApplicationInsights.{}.{}", key, name)
-        } else {
             format!("Microsoft.ApplicationInsights.{}", name)
+        } else {
+            format!("Microsoft.ApplicationInsights.{}.{}", key, name)
         }
     }
 }

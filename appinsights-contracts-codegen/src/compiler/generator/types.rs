@@ -51,7 +51,7 @@ impl From<ComplexType> for codegen::Type {
     fn from(type_: ComplexType) -> codegen::Type {
         match type_ {
             ComplexType::Map { key, element } => {
-                let mut type_ = codegen::Type::new("std::collections::HashMap");
+                let mut type_ = codegen::Type::new("std::collections::BTreeMap");
 
                 let key = Type::from_str(&key).expect("unexpected type: key");
                 type_.generic(key);

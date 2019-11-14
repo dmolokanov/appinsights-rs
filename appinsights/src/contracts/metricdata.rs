@@ -4,11 +4,12 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// An instance of the Metric item is a list of measurements (single data points) and/or aggregations.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct MetricData {
     ver: i32,
     metrics: DataPoint,
-    properties: Option<std::collections::HashMap<String, String>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
 }
 
 /// Creates: An instance of the Metric item is a list of measurements (single data points) and/or aggregations.
@@ -16,7 +17,7 @@ pub struct MetricData {
 pub struct MetricDataBuilder {
     ver: i32,
     metrics: DataPoint,
-    properties: Option<std::collections::HashMap<String, String>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
 }
 
 impl MetricDataBuilder {
@@ -36,7 +37,7 @@ impl MetricDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
         self.properties = Some(properties);
         self
     }

@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// An instance of Request represents completion of an external request to the application to do work and contains a summary of that request execution and the results.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RequestData {
     ver: i32,
     id: String,
@@ -14,8 +15,8 @@ pub struct RequestData {
     response_code: String,
     success: bool,
     url: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 /// Creates: An instance of Request represents completion of an external request to the application to do work and contains a summary of that request execution and the results.
@@ -29,8 +30,8 @@ pub struct RequestDataBuilder {
     response_code: String,
     success: bool,
     url: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 impl RequestDataBuilder {
@@ -81,13 +82,13 @@ impl RequestDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
         self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
         self.measurements = Some(measurements);
         self
     }

@@ -1,7 +1,8 @@
 use chrono::{DateTime, Utc};
 
-use crate::contracts::{Data, MessageDataBuilder, SeverityLevel as ContractsSeverityLevel};
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
+use crate::context::TelemetryContext;
+use crate::contracts::{SeverityLevel as ContractsSeverityLevel, *};
+use crate::telemetry::{ContextTags, Properties, Telemetry};
 
 // Represents printf-like trace statements that can be text searched.
 pub struct TraceTelemetry {
@@ -23,11 +24,11 @@ pub struct TraceTelemetry {
 
 impl TraceTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(message: &str, severity: SeverityLevel) -> Self {
+    pub fn new(timestamp: DateTime<Utc>, message: &str, severity: SeverityLevel) -> Self {
         Self {
             message: message.into(),
             severity,
-            timestamp: Utc::now(),
+            timestamp,
             properties: Default::default(),
             tags: Default::default(),
         }
@@ -45,14 +46,19 @@ impl Telemetry for TraceTelemetry {
         &self.properties
     }
 
-    /// Returns None always. No measurements available for trace telemetry items.
-    fn measurements(&self) -> Option<&Measurements> {
-        None
+    /// Returns mutable reference to custom properties.
+    fn properties_mut(&mut self) -> &mut Properties {
+        &mut self.properties
     }
 
     /// Returns context data containing extra, optional tags. Overrides values found on client telemetry context.
     fn tags(&self) -> &ContextTags {
         &self.tags
+    }
+
+    /// Returns mutable reference to custom tags.
+    fn tags_mut(&mut self) -> &mut ContextTags {
+        &mut self.tags
     }
 }
 
@@ -64,6 +70,25 @@ impl From<TraceTelemetry> for Data {
                 .properties(telemetry.properties)
                 .build(),
         )
+    }
+}
+
+impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
+    fn from((context, telemetry): (TelemetryContext, TraceTelemetry)) -> Self {
+        let data = Data::MessageData(
+            MessageDataBuilder::new(telemetry.message)
+                .severity_level(telemetry.severity.into())
+                .properties(Properties::combine(context.properties, telemetry.properties))
+                .build(),
+        );
+
+        let envelope_name = data.envelope_name(&context.normalized_i_key);
+
+        EnvelopeBuilder::new(envelope_name, telemetry.timestamp.to_rfc3339())
+            .data(Base::Data(data))
+            .i_key(context.i_key)
+            .tags(ContextTags::combine(context.tags, telemetry.tags))
+            .build()
     }
 }
 
@@ -85,5 +110,88 @@ impl From<SeverityLevel> for ContractsSeverityLevel {
             SeverityLevel::Error => ContractsSeverityLevel::Error,
             SeverityLevel::Critical => ContractsSeverityLevel::Critical,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use std::collections::BTreeMap;
+
+    use chrono::TimeZone;
+
+    use super::*;
+
+    #[test]
+    fn it_overrides_properties_from_context() {
+        let mut context = TelemetryContext::new("instrumentation".into());
+        context.properties_mut().insert("test".into(), "ok".into());
+        context.properties_mut().insert("no-write".into(), "fail".into());
+
+        let mut telemetry = TraceTelemetry::new(
+            Utc.ymd(2019, 1, 2).and_hms(3, 4, 5),
+            "message".into(),
+            SeverityLevel::Information,
+        );
+        telemetry.properties_mut().insert("no-write".into(), "ok".into());
+
+        let envelop = Envelope::from((context, telemetry));
+
+        let expected = EnvelopeBuilder::new(
+            "Microsoft.ApplicationInsights.instrumentation.Message".into(),
+            "2019-01-02T03:04:05+00:00".into(),
+        )
+        .data(Base::Data(Data::MessageData(
+            MessageDataBuilder::new("message".into())
+                .severity_level(crate::contracts::SeverityLevel::Information)
+                .properties({
+                    let mut properties = BTreeMap::default();
+                    properties.insert("test".into(), "ok".into());
+                    properties.insert("no-write".into(), "ok".into());
+                    properties
+                })
+                .build(),
+        )))
+        .i_key("instrumentation".into())
+        .tags(BTreeMap::default())
+        .build();
+
+        assert_eq!(envelop, expected)
+    }
+
+    #[test]
+    fn it_overrides_tags_from_context() {
+        let mut context = TelemetryContext::new("instrumentation".into());
+        context.tags_mut().insert("test".into(), "ok".into());
+        context.tags_mut().insert("no-write".into(), "fail".into());
+
+        let mut telemetry = TraceTelemetry::new(
+            Utc.ymd(2019, 1, 2).and_hms(3, 4, 5),
+            "message".into(),
+            SeverityLevel::Information,
+        );
+        telemetry.tags_mut().insert("no-write".into(), "ok".into());
+
+        let envelop = Envelope::from((context, telemetry));
+
+        let expected = EnvelopeBuilder::new(
+            "Microsoft.ApplicationInsights.instrumentation.Message".into(),
+            "2019-01-02T03:04:05+00:00".into(),
+        )
+        .data(Base::Data(Data::MessageData(
+            MessageDataBuilder::new("message".into())
+                .severity_level(crate::contracts::SeverityLevel::Information)
+                .properties(BTreeMap::default())
+                .build(),
+        )))
+        .i_key("instrumentation".into())
+        .tags({
+            let mut tags = BTreeMap::default();
+            tags.insert("test".into(), "ok".into());
+            tags.insert("no-write".into(), "ok".into());
+            tags
+        })
+        .build();
+
+        assert_eq!(envelop, expected)
     }
 }

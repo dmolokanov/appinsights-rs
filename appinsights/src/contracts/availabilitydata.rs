@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// Instances of AvailabilityData represent the result of executing an availability test.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct AvailabilityData {
     ver: i32,
     id: String,
@@ -13,8 +14,8 @@ pub struct AvailabilityData {
     success: bool,
     run_location: Option<String>,
     message: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 /// Creates: Instances of AvailabilityData represent the result of executing an availability test.
@@ -27,8 +28,8 @@ pub struct AvailabilityDataBuilder {
     success: bool,
     run_location: Option<String>,
     message: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 impl AvailabilityDataBuilder {
@@ -66,13 +67,13 @@ impl AvailabilityDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
         self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
         self.measurements = Some(measurements);
         self
     }

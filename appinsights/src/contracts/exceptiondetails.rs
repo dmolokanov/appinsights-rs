@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// Exception details of the exception in a chain.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct ExceptionDetails {
     id: Option<i32>,
     outer_id: Option<i32>,

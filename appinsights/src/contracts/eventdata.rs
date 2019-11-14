@@ -4,12 +4,13 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// Instances of Event represent structured event records that can be grouped and searched by their properties. Event data item also creates a metric of event count by name.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct EventData {
     ver: i32,
     name: String,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 /// Creates: Instances of Event represent structured event records that can be grouped and searched by their properties. Event data item also creates a metric of event count by name.
@@ -17,8 +18,8 @@ pub struct EventData {
 pub struct EventDataBuilder {
     ver: i32,
     name: String,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 impl EventDataBuilder {
@@ -39,14 +40,14 @@ impl EventDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

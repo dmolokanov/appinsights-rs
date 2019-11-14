@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// System variables for a telemetry item.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Envelope {
     ver: Option<i32>,
     name: String,
@@ -13,7 +14,7 @@ pub struct Envelope {
     seq: Option<String>,
     i_key: Option<String>,
     flags: Option<i64>,
-    tags: Option<std::collections::HashMap<String, String>>,
+    tags: Option<std::collections::BTreeMap<String, String>>,
     data: Option<Base>,
 }
 
@@ -27,7 +28,7 @@ pub struct EnvelopeBuilder {
     seq: Option<String>,
     i_key: Option<String>,
     flags: Option<i64>,
-    tags: Option<std::collections::HashMap<String, String>>,
+    tags: Option<std::collections::BTreeMap<String, String>>,
     data: Option<Base>,
 }
 
@@ -78,8 +79,8 @@ impl EnvelopeBuilder {
     }
 
     /// Sets: Key/value collection of context properties. See ContextTagKeys for information on available properties.
-    pub fn tags(&mut self, tags: std::collections::HashMap<String, String>) -> &mut Self {
-        self.tags = Some(tags);
+    pub fn tags(&mut self, tags: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.tags = Some(tags.into());
         self
     }
 

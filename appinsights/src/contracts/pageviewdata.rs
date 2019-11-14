@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// An instance of PageView represents a generic action on a page like a button click. It is also the base type for PageView.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct PageViewData {
     ver: i32,
     name: String,
@@ -12,8 +13,8 @@ pub struct PageViewData {
     duration: Option<String>,
     referrer_uri: Option<String>,
     id: String,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 /// Creates: An instance of PageView represents a generic action on a page like a button click. It is also the base type for PageView.
@@ -25,8 +26,8 @@ pub struct PageViewDataBuilder {
     duration: Option<String>,
     referrer_uri: Option<String>,
     id: String,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 impl PageViewDataBuilder {
@@ -69,13 +70,13 @@ impl PageViewDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
         self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
         self.measurements = Some(measurements);
         self
     }

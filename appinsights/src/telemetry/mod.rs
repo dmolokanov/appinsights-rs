@@ -1,10 +1,14 @@
 mod event;
+mod measurements;
+mod properties;
+mod tags;
 mod trace;
 
 pub use event::*;
+pub use measurements::*;
+pub use properties::*;
+pub use tags::*;
 pub use trace::*;
-
-use std::collections::HashMap;
 
 use chrono::{DateTime, Utc};
 
@@ -16,15 +20,12 @@ pub trait Telemetry {
     /// Returns custom properties to submit with the telemetry item.
     fn properties(&self) -> &Properties;
 
-    /// Returns custom measurements to submit with the telemetry item.
-    fn measurements(&self) -> Option<&Measurements>;
+    /// Returns mutable reference to custom properties.
+    fn properties_mut(&mut self) -> &mut Properties;
 
     /// Returns context data containing extra, optional tags. Overrides values found on client telemetry context.
     fn tags(&self) -> &ContextTags;
+
+    /// Returns mutable reference to custom tags.
+    fn tags_mut(&mut self) -> &mut ContextTags;
 }
-
-pub type ContextTags = HashMap<String, String>;
-
-pub type Properties = HashMap<String, String>;
-
-pub type Measurements = HashMap<String, f64>;

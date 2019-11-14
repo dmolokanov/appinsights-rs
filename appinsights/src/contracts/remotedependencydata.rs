@@ -4,7 +4,8 @@ use serde::Serialize;
 // NOTE: This file was automatically generated.
 
 /// An instance of Remote Dependency represents an interaction of the monitored component with a remote component/service like SQL or an HTTP endpoint.
-#[derive(Debug, Clone, Serialize)]
+#[derive(Debug, Clone, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct RemoteDependencyData {
     ver: i32,
     name: String,
@@ -15,8 +16,8 @@ pub struct RemoteDependencyData {
     data: Option<String>,
     target: Option<String>,
     type_: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 /// Creates: An instance of Remote Dependency represents an interaction of the monitored component with a remote component/service like SQL or an HTTP endpoint.
@@ -31,8 +32,8 @@ pub struct RemoteDependencyDataBuilder {
     data: Option<String>,
     target: Option<String>,
     type_: Option<String>,
-    properties: Option<std::collections::HashMap<String, String>>,
-    measurements: Option<std::collections::HashMap<String, f64>>,
+    properties: Option<std::collections::BTreeMap<String, String>>,
+    measurements: Option<std::collections::BTreeMap<String, f64>>,
 }
 
 impl RemoteDependencyDataBuilder {
@@ -96,13 +97,13 @@ impl RemoteDependencyDataBuilder {
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::HashMap<String, String>) -> &mut Self {
+    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
         self.properties = Some(properties);
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::HashMap<String, f64>) -> &mut Self {
+    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
         self.measurements = Some(measurements);
         self
     }
