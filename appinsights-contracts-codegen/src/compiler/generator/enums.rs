@@ -26,7 +26,7 @@ impl Visitor for EnumGenerator {
     fn visit_enum_constant(&mut self, constant: &EnumConstant) {
         self.declaration.new_variant(constant.name());
 
-        if let Some(_) = constant.value() {
+        if constant.value().is_some() {
             panic!("enum value is not supported: {:#?}", constant)
         }
     }

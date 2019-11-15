@@ -191,7 +191,7 @@ impl Visitor for BuilderGenerator {
             // add a setter for an optional field or the field with default value
             if self.should_generate_setter(field) {
                 // in order to strip Option<> from arg type of setter try to get the most inner type
-                let field_type = codegen::Type::from(field.optional().unwrap_or(field.type_()).clone());
+                let field_type = codegen::Type::from(field.optional().unwrap_or_else(|| field.type_()).clone());
 
                 let mut setter = codegen::Function::new(&field_name);
                 setter

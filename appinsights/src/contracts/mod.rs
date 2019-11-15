@@ -1,6 +1,7 @@
 // NOTE: This file was automatically generated.
 
 #![allow(unused_variables, dead_code, unused_imports)]
+#![allow(clippy::clone_on_copy)] // TODO fix codegen
 
 mod availabilitydata;
 mod base;

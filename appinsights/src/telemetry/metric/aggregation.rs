@@ -195,4 +195,37 @@ mod tests {
 
         assert_eq!(envelop, expected)
     }
+
+    #[test]
+    fn it_updates_stats() {
+        let mut stats = Stats::default();
+        stats.add_data(&[0.0, 1.0, 2.0, 3.0, 4.0, 5.0]);
+
+        let mut telemetry = AggregateMetricTelemetry::new("stats".into());
+        *telemetry.stats_mut() = stats;
+
+        assert_eq!(telemetry.stats().value, 15.0);
+    }
+
+    #[test]
+    fn it_updates_properties() {
+        let mut properties = Properties::default();
+        properties.insert("name".into(), "value".into());
+
+        let mut telemetry = AggregateMetricTelemetry::new("props".into());
+        *telemetry.properties_mut() = properties;
+
+        assert_eq!(telemetry.properties().len(), 1);
+    }
+
+    #[test]
+    fn it_updates_tags() {
+        let mut tags = ContextTags::default();
+        tags.insert("name".into(), "value".into());
+
+        let mut telemetry = AggregateMetricTelemetry::new("props".into());
+        *telemetry.tags_mut() = tags;
+
+        assert_eq!(telemetry.tags().len(), 1);
+    }
 }

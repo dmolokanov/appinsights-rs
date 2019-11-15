@@ -55,7 +55,7 @@ impl Stats {
 
     fn add_values(&mut self, values: &[f64], variance_sum: f64) -> f64 {
         let mut variance_sum = variance_sum;
-        if values.len() > 0 {
+        if !values.is_empty() {
             // running tally of the mean is important for incremental variance computation
             let mut mean = 0.0;
             if self.count == 0 {
@@ -65,8 +65,8 @@ impl Stats {
                 mean = self.value / self.count as f64;
             }
 
-            self.min = values.iter().fold(0. / 0., |x, min| min.min(x));
-            self.max = values.iter().fold(0. / 0., |x, max| max.max(x));
+            self.min = values.iter().fold(std::f64::NAN, |x, min| min.min(x));
+            self.max = values.iter().fold(std::f64::NAN, |x, max| max.max(x));
 
             // Welford's algorithm to compute variance. The divide occurs in the caller.
             let mut value = self.value;

@@ -6,7 +6,7 @@ pub trait Visitor {
         self.visit_declarations(schema.declarations())
     }
 
-    fn visit_declarations(&mut self, declarations: &Vec<UserType>) {
+    fn visit_declarations(&mut self, declarations: &[UserType]) {
         for declaration in declarations {
             match &declaration {
                 UserType::Struct(declaration) => {
@@ -28,7 +28,7 @@ pub trait Visitor {
         self.visit_fields(declaration.fields());
     }
 
-    fn visit_struct_attributes(&mut self, attributes: &Vec<Attribute>) {
+    fn visit_struct_attributes(&mut self, attributes: &[Attribute]) {
         for attribute in attributes {
             self.visit_struct_attribute(attribute);
         }
@@ -48,7 +48,7 @@ pub trait Visitor {
         }
     }
 
-    fn visit_fields(&mut self, fields: &Vec<Field>) {
+    fn visit_fields(&mut self, fields: &[Field]) {
         for field in fields {
             self.visit_field(field);
         }
@@ -58,7 +58,7 @@ pub trait Visitor {
         self.visit_field_attributes(field.attributes());
     }
 
-    fn visit_field_attributes(&mut self, attributes: &Vec<Attribute>) {
+    fn visit_field_attributes(&mut self, attributes: &[Attribute]) {
         for attribute in attributes {
             self.visit_field_attribute(attribute);
         }
@@ -71,7 +71,7 @@ pub trait Visitor {
         self.visit_enum_attributes(declaration.attributes());
     }
 
-    fn visit_enum_constants(&mut self, constants: &Vec<EnumConstant>) {
+    fn visit_enum_constants(&mut self, constants: &[EnumConstant]) {
         for constant in constants {
             self.visit_enum_constant(constant);
         }
@@ -79,7 +79,7 @@ pub trait Visitor {
 
     fn visit_enum_constant(&mut self, constant: &EnumConstant) {}
 
-    fn visit_enum_attributes(&mut self, attributes: &Vec<Attribute>) {
+    fn visit_enum_attributes(&mut self, attributes: &[Attribute]) {
         for attribute in attributes {
             self.visit_enum_attribute(attribute);
         }

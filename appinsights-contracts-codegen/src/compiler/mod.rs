@@ -39,7 +39,7 @@ fn compile_files<'a>(modules: impl Iterator<Item = &'a Module>) -> Result<()> {
 }
 
 fn compile(module: &Module) -> Result<()> {
-    let parser = Parser::new();
+    let parser = Parser::default();
     let schema = parser.parse(&module.source_path())?;
 
     let mut generator = SchemaGenerator::new();

@@ -76,7 +76,7 @@ impl From<ComplexType> for codegen::Type {
                     UserType::Struct(struct_) => struct_.name().to_string(),
                     UserType::Enum(enum_) => enum_.name().to_string(),
                 };
-                codegen::Type::new(&format!("{}", name))
+                codegen::Type::new(&name)
             }
         }
     }
