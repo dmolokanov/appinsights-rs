@@ -63,17 +63,6 @@ impl Telemetry for TraceTelemetry {
     }
 }
 
-impl From<TraceTelemetry> for Data {
-    fn from(telemetry: TraceTelemetry) -> Self {
-        Data::MessageData(
-            MessageDataBuilder::new(telemetry.message)
-                .severity_level(telemetry.severity)
-                .properties(telemetry.properties)
-                .build(),
-        )
-    }
-}
-
 impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, TraceTelemetry)) -> Self {
         let data = Data::MessageData(

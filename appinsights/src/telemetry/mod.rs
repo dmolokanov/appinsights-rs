@@ -2,6 +2,7 @@ mod event;
 mod measurements;
 mod metric;
 mod properties;
+mod request;
 mod tags;
 mod trace;
 
@@ -9,6 +10,7 @@ pub use event::*;
 pub use measurements::*;
 pub use metric::*;
 pub use properties::*;
+pub use request::*;
 pub use tags::*;
 pub use trace::*;
 
