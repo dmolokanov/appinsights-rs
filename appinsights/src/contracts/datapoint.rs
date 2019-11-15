@@ -32,12 +32,12 @@ pub struct DataPointBuilder {
 
 impl DataPointBuilder {
     /// Creates a new [DataPointBuilder](trait.DataPointBuilder.html) instance with default values set by the schema.
-    pub fn new(name: String, value: f64) -> Self {
+    pub fn new(name: impl Into<String>, value: impl Into<f64>) -> Self {
         Self {
             ns: None,
-            name,
+            name: name.into(),
             kind: Some(DataPointType::Measurement),
-            value,
+            value: value.into(),
             count: None,
             min: None,
             max: None,
@@ -46,38 +46,38 @@ impl DataPointBuilder {
     }
 
     /// Sets: Namespace of the metric.
-    pub fn ns(&mut self, ns: String) -> &mut Self {
-        self.ns = Some(ns);
+    pub fn ns(&mut self, ns: impl Into<String>) -> &mut Self {
+        self.ns = Some(ns.into());
         self
     }
 
     /// Sets: Metric type. Single measurement or the aggregated value.
-    pub fn kind(&mut self, kind: DataPointType) -> &mut Self {
-        self.kind = Some(kind);
+    pub fn kind(&mut self, kind: impl Into<DataPointType>) -> &mut Self {
+        self.kind = Some(kind.into());
         self
     }
 
     /// Sets: Metric weight of the aggregated metric. Should not be set for a measurement.
-    pub fn count(&mut self, count: i32) -> &mut Self {
-        self.count = Some(count);
+    pub fn count(&mut self, count: impl Into<i32>) -> &mut Self {
+        self.count = Some(count.into());
         self
     }
 
     /// Sets: Minimum value of the aggregated metric. Should not be set for a measurement.
-    pub fn min(&mut self, min: f64) -> &mut Self {
-        self.min = Some(min);
+    pub fn min(&mut self, min: impl Into<f64>) -> &mut Self {
+        self.min = Some(min.into());
         self
     }
 
     /// Sets: Maximum value of the aggregated metric. Should not be set for a measurement.
-    pub fn max(&mut self, max: f64) -> &mut Self {
-        self.max = Some(max);
+    pub fn max(&mut self, max: impl Into<f64>) -> &mut Self {
+        self.max = Some(max.into());
         self
     }
 
     /// Sets: Standard deviation of the aggregated metric. Should not be set for a measurement.
-    pub fn std_dev(&mut self, std_dev: f64) -> &mut Self {
-        self.std_dev = Some(std_dev);
+    pub fn std_dev(&mut self, std_dev: impl Into<f64>) -> &mut Self {
+        self.std_dev = Some(std_dev.into());
         self
     }
 

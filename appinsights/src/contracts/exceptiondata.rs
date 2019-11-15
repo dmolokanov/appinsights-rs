@@ -28,10 +28,10 @@ pub struct ExceptionDataBuilder {
 
 impl ExceptionDataBuilder {
     /// Creates a new [ExceptionDataBuilder](trait.ExceptionDataBuilder.html) instance with default values set by the schema.
-    pub fn new(exceptions: ExceptionDetails) -> Self {
+    pub fn new(exceptions: impl Into<ExceptionDetails>) -> Self {
         Self {
             ver: 2,
-            exceptions,
+            exceptions: exceptions.into(),
             severity_level: None,
             problem_id: None,
             properties: None,
@@ -40,32 +40,32 @@ impl ExceptionDataBuilder {
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Severity level. Mostly used to indicate exception severity level when it is reported by logging library.
-    pub fn severity_level(&mut self, severity_level: SeverityLevel) -> &mut Self {
-        self.severity_level = Some(severity_level);
+    pub fn severity_level(&mut self, severity_level: impl Into<SeverityLevel>) -> &mut Self {
+        self.severity_level = Some(severity_level.into());
         self
     }
 
     /// Sets: Identifier of where the exception was thrown in code. Used for exceptions grouping. Typically a combination of exception type and a function from the call stack.
-    pub fn problem_id(&mut self, problem_id: String) -> &mut Self {
-        self.problem_id = Some(problem_id);
+    pub fn problem_id(&mut self, problem_id: impl Into<String>) -> &mut Self {
+        self.problem_id = Some(problem_id.into());
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

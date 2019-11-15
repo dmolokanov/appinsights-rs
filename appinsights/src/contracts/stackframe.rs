@@ -26,10 +26,10 @@ pub struct StackFrameBuilder {
 
 impl StackFrameBuilder {
     /// Creates a new [StackFrameBuilder](trait.StackFrameBuilder.html) instance with default values set by the schema.
-    pub fn new(level: i32, method: String) -> Self {
+    pub fn new(level: impl Into<i32>, method: impl Into<String>) -> Self {
         Self {
-            level,
-            method,
+            level: level.into(),
+            method: method.into(),
             assembly: None,
             file_name: None,
             line: None,
@@ -37,20 +37,20 @@ impl StackFrameBuilder {
     }
 
     /// Sets: Name of the assembly (dll, jar, etc.) containing this function.
-    pub fn assembly(&mut self, assembly: String) -> &mut Self {
-        self.assembly = Some(assembly);
+    pub fn assembly(&mut self, assembly: impl Into<String>) -> &mut Self {
+        self.assembly = Some(assembly.into());
         self
     }
 
     /// Sets: File name or URL of the method implementation.
-    pub fn file_name(&mut self, file_name: String) -> &mut Self {
-        self.file_name = Some(file_name);
+    pub fn file_name(&mut self, file_name: impl Into<String>) -> &mut Self {
+        self.file_name = Some(file_name.into());
         self
     }
 
     /// Sets: Line number of the code implementation.
-    pub fn line(&mut self, line: i32) -> &mut Self {
-        self.line = Some(line);
+    pub fn line(&mut self, line: impl Into<i32>) -> &mut Self {
+        self.line = Some(line.into());
         self
     }
 

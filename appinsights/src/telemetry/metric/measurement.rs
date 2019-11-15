@@ -2,13 +2,16 @@ use chrono::{DateTime, SecondsFormat, Utc};
 
 use crate::context::TelemetryContext;
 use crate::contracts::*;
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
+use crate::telemetry::{ContextTags, Properties, Telemetry};
 use crate::SystemTime;
 
-/// Represents structured event records.
-pub struct EventTelemetry {
-    /// Event name.
+/// Metric telemetry item that represents a single data point.
+pub struct MetricTelemetry {
+    /// Metric name.
     name: String,
+
+    /// Sampled value.
+    value: f64,
 
     /// The time stamp when this telemetry was measured.
     timestamp: DateTime<Utc>,
@@ -18,35 +21,22 @@ pub struct EventTelemetry {
 
     /// Telemetry context containing extra, optional tags.
     tags: ContextTags,
-
-    /// Custom measurements.
-    measurements: Measurements,
 }
 
-impl EventTelemetry {
-    /// Creates an event telemetry item with specified name.
-    pub fn new(name: &str) -> Self {
+impl MetricTelemetry {
+    /// Creates a metric telemetry item with specified name and value.
+    pub fn new(name: &str, value: f64) -> Self {
         Self {
             name: name.into(),
+            value,
             timestamp: SystemTime::now(),
             properties: Default::default(),
             tags: Default::default(),
-            measurements: Default::default(),
         }
-    }
-
-    /// Returns custom measurements to submit with the telemetry item.
-    pub fn measurements(&self) -> &Measurements {
-        &self.measurements
-    }
-
-    /// Returns mutable reference to custom measurements.
-    pub fn measurements_mut(&mut self) -> &mut Measurements {
-        &mut self.measurements
     }
 }
 
-impl Telemetry for EventTelemetry {
+impl Telemetry for MetricTelemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
@@ -73,12 +63,16 @@ impl Telemetry for EventTelemetry {
     }
 }
 
-impl From<(TelemetryContext, EventTelemetry)> for Envelope {
-    fn from((context, telemetry): (TelemetryContext, EventTelemetry)) -> Self {
-        let data = Data::EventData(
-            EventDataBuilder::new(telemetry.name)
+impl From<(TelemetryContext, MetricTelemetry)> for Envelope {
+    fn from((context, telemetry): (TelemetryContext, MetricTelemetry)) -> Self {
+        let data_point = DataPointBuilder::new(telemetry.name, telemetry.value)
+            .count(1)
+            .kind(DataPointType::Measurement)
+            .build();
+
+        let data = Data::MetricData(
+            MetricDataBuilder::new(data_point)
                 .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements)
                 .build(),
         );
 
@@ -104,36 +98,35 @@ mod tests {
 
     #[test]
     fn it_overrides_properties_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600));
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 100));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new("test".into());
+        let mut telemetry = MetricTelemetry::new("test".into(), 123.0);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
-        telemetry.measurements_mut().insert("value".into(), 5.0);
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Event",
-            "2019-01-02T03:04:05.600Z",
+            "Microsoft.ApplicationInsights.instrumentation.Metric",
+            "2019-01-02T03:04:05.100Z",
         )
-        .data(Base::Data(Data::EventData(
-            EventDataBuilder::new("test")
-                .properties({
-                    let mut properties = BTreeMap::default();
-                    properties.insert("test".into(), "ok".into());
-                    properties.insert("no-write".into(), "ok".into());
-                    properties
-                })
-                .measurements({
-                    let mut measurements = BTreeMap::default();
-                    measurements.insert("value".into(), 5.0);
-                    measurements
-                })
-                .build(),
+        .data(Base::Data(Data::MetricData(
+            MetricDataBuilder::new(
+                DataPointBuilder::new("test", 123.0)
+                    .count(1)
+                    .kind(DataPointType::Measurement)
+                    .build(),
+            )
+            .properties({
+                let mut properties = BTreeMap::default();
+                properties.insert("test".into(), "ok".into());
+                properties.insert("no-write".into(), "ok".into());
+                properties
+            })
+            .build(),
         )))
         .i_key("instrumentation")
         .tags(BTreeMap::default())
@@ -144,26 +137,30 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 101));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new("test".into());
+        let mut telemetry = MetricTelemetry::new("test".into(), 123.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Event",
-            "2019-01-02T03:04:05.700Z",
+            "Microsoft.ApplicationInsights.instrumentation.Metric",
+            "2019-01-02T03:04:05.101Z",
         )
-        .data(Base::Data(Data::EventData(
-            EventDataBuilder::new("test")
-                .properties(BTreeMap::default())
-                .measurements(BTreeMap::default())
-                .build(),
+        .data(Base::Data(Data::MetricData(
+            MetricDataBuilder::new(
+                DataPointBuilder::new("test", 123.0)
+                    .count(1)
+                    .kind(DataPointType::Measurement)
+                    .build(),
+            )
+            .properties(Properties::default())
+            .build(),
         )))
         .i_key("instrumentation")
         .tags({

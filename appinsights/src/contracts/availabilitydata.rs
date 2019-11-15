@@ -34,13 +34,18 @@ pub struct AvailabilityDataBuilder {
 
 impl AvailabilityDataBuilder {
     /// Creates a new [AvailabilityDataBuilder](trait.AvailabilityDataBuilder.html) instance with default values set by the schema.
-    pub fn new(id: String, name: String, duration: String, success: bool) -> Self {
+    pub fn new(
+        id: impl Into<String>,
+        name: impl Into<String>,
+        duration: impl Into<String>,
+        success: impl Into<bool>,
+    ) -> Self {
         Self {
             ver: 2,
-            id,
-            name,
-            duration,
-            success,
+            id: id.into(),
+            name: name.into(),
+            duration: duration.into(),
+            success: success.into(),
             run_location: None,
             message: None,
             properties: None,
@@ -49,32 +54,32 @@ impl AvailabilityDataBuilder {
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Name of the location where the test was run from.
-    pub fn run_location(&mut self, run_location: String) -> &mut Self {
-        self.run_location = Some(run_location);
+    pub fn run_location(&mut self, run_location: impl Into<String>) -> &mut Self {
+        self.run_location = Some(run_location.into());
         self
     }
 
     /// Sets: Diagnostic message for the result.
-    pub fn message(&mut self, message: String) -> &mut Self {
-        self.message = Some(message);
+    pub fn message(&mut self, message: impl Into<String>) -> &mut Self {
+        self.message = Some(message.into());
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

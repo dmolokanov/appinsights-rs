@@ -38,13 +38,13 @@ pub struct RemoteDependencyDataBuilder {
 
 impl RemoteDependencyDataBuilder {
     /// Creates a new [RemoteDependencyDataBuilder](trait.RemoteDependencyDataBuilder.html) instance with default values set by the schema.
-    pub fn new(name: String, duration: String) -> Self {
+    pub fn new(name: impl Into<String>, duration: impl Into<String>) -> Self {
         Self {
             ver: 2,
-            name,
+            name: name.into(),
             id: None,
             result_code: None,
-            duration,
+            duration: duration.into(),
             success: Some(true),
             data: None,
             target: None,
@@ -55,56 +55,56 @@ impl RemoteDependencyDataBuilder {
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Identifier of a dependency call instance. Used for correlation with the request telemetry item corresponding to this dependency call.
-    pub fn id(&mut self, id: String) -> &mut Self {
-        self.id = Some(id);
+    pub fn id(&mut self, id: impl Into<String>) -> &mut Self {
+        self.id = Some(id.into());
         self
     }
 
     /// Sets: Result code of a dependency call. Examples are SQL error code and HTTP status code.
-    pub fn result_code(&mut self, result_code: String) -> &mut Self {
-        self.result_code = Some(result_code);
+    pub fn result_code(&mut self, result_code: impl Into<String>) -> &mut Self {
+        self.result_code = Some(result_code.into());
         self
     }
 
     /// Sets: Indication of successfull or unsuccessfull call.
-    pub fn success(&mut self, success: bool) -> &mut Self {
-        self.success = Some(success);
+    pub fn success(&mut self, success: impl Into<bool>) -> &mut Self {
+        self.success = Some(success.into());
         self
     }
 
     /// Sets: Command initiated by this dependency call. Examples are SQL statement and HTTP URL's with all query parameters.
-    pub fn data(&mut self, data: String) -> &mut Self {
-        self.data = Some(data);
+    pub fn data(&mut self, data: impl Into<String>) -> &mut Self {
+        self.data = Some(data.into());
         self
     }
 
     /// Sets: Target site of a dependency call. Examples are server name, host address.
-    pub fn target(&mut self, target: String) -> &mut Self {
-        self.target = Some(target);
+    pub fn target(&mut self, target: impl Into<String>) -> &mut Self {
+        self.target = Some(target.into());
         self
     }
 
     /// Sets: Dependency type name. Very low cardinality value for logical grouping of dependencies and interpretation of other fields like commandName and resultCode. Examples are SQL, Azure table, and HTTP.
-    pub fn type_(&mut self, type_: String) -> &mut Self {
-        self.type_ = Some(type_);
+    pub fn type_(&mut self, type_: impl Into<String>) -> &mut Self {
+        self.type_ = Some(type_.into());
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

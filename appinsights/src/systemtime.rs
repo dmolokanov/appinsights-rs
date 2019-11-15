@@ -17,7 +17,6 @@ mod time {
 
 #[cfg(test)]
 mod time {
-    use std::borrow::{Borrow, BorrowMut};
     use std::cell::RefCell;
 
     use chrono::{DateTime, Utc};

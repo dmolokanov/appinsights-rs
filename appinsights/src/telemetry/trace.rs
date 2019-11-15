@@ -67,7 +67,7 @@ impl From<TraceTelemetry> for Data {
     fn from(telemetry: TraceTelemetry) -> Self {
         Data::MessageData(
             MessageDataBuilder::new(telemetry.message)
-                .severity_level(telemetry.severity.into())
+                .severity_level(telemetry.severity)
                 .properties(telemetry.properties)
                 .build(),
         )
@@ -78,7 +78,7 @@ impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, TraceTelemetry)) -> Self {
         let data = Data::MessageData(
             MessageDataBuilder::new(telemetry.message)
-                .severity_level(telemetry.severity.into())
+                .severity_level(telemetry.severity)
                 .properties(Properties::combine(context.properties, telemetry.properties))
                 .build(),
         );
@@ -137,11 +137,11 @@ mod tests {
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Message".into(),
-            "2019-01-02T03:04:05.800Z".into(),
+            "Microsoft.ApplicationInsights.instrumentation.Message",
+            "2019-01-02T03:04:05.800Z",
         )
         .data(Base::Data(Data::MessageData(
-            MessageDataBuilder::new("message".into())
+            MessageDataBuilder::new("message")
                 .severity_level(crate::contracts::SeverityLevel::Information)
                 .properties({
                     let mut properties = BTreeMap::default();
@@ -151,7 +151,7 @@ mod tests {
                 })
                 .build(),
         )))
-        .i_key("instrumentation".into())
+        .i_key("instrumentation")
         .tags(BTreeMap::default())
         .build();
 
@@ -172,16 +172,16 @@ mod tests {
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Message".into(),
-            "2019-01-02T03:04:05.700Z".into(),
+            "Microsoft.ApplicationInsights.instrumentation.Message",
+            "2019-01-02T03:04:05.700Z",
         )
         .data(Base::Data(Data::MessageData(
-            MessageDataBuilder::new("message".into())
+            MessageDataBuilder::new("message")
                 .severity_level(crate::contracts::SeverityLevel::Information)
                 .properties(BTreeMap::default())
                 .build(),
         )))
-        .i_key("instrumentation".into())
+        .i_key("instrumentation")
         .tags({
             let mut tags = BTreeMap::default();
             tags.insert("test".into(), "ok".into());

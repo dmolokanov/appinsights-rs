@@ -32,52 +32,52 @@ pub struct PageViewDataBuilder {
 
 impl PageViewDataBuilder {
     /// Creates a new [PageViewDataBuilder](trait.PageViewDataBuilder.html) instance with default values set by the schema.
-    pub fn new(name: String, id: String) -> Self {
+    pub fn new(name: impl Into<String>, id: impl Into<String>) -> Self {
         Self {
             ver: 2,
-            name,
+            name: name.into(),
             url: None,
             duration: None,
             referrer_uri: None,
-            id,
+            id: id.into(),
             properties: None,
             measurements: None,
         }
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Request URL with all query string parameters
-    pub fn url(&mut self, url: String) -> &mut Self {
-        self.url = Some(url);
+    pub fn url(&mut self, url: impl Into<String>) -> &mut Self {
+        self.url = Some(url.into());
         self
     }
 
     /// Sets: Request duration in format: DD.HH:MM:SS.MMMMMM. For a page view (PageViewData), this is the duration. For a page view with performance information (PageViewPerfData), this is the page load time. Must be less than 1000 days.
-    pub fn duration(&mut self, duration: String) -> &mut Self {
-        self.duration = Some(duration);
+    pub fn duration(&mut self, duration: impl Into<String>) -> &mut Self {
+        self.duration = Some(duration.into());
         self
     }
 
     /// Sets: Fully qualified page URI or URL of the referring page; if unknown, leave blank
-    pub fn referrer_uri(&mut self, referrer_uri: String) -> &mut Self {
-        self.referrer_uri = Some(referrer_uri);
+    pub fn referrer_uri(&mut self, referrer_uri: impl Into<String>) -> &mut Self {
+        self.referrer_uri = Some(referrer_uri.into());
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

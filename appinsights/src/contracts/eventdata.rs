@@ -24,18 +24,18 @@ pub struct EventDataBuilder {
 
 impl EventDataBuilder {
     /// Creates a new [EventDataBuilder](trait.EventDataBuilder.html) instance with default values set by the schema.
-    pub fn new(name: String) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
             ver: 2,
-            name,
+            name: name.into(),
             properties: None,
             measurements: None,
         }
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 

@@ -26,10 +26,10 @@ pub struct MessageDataBuilder {
 
 impl MessageDataBuilder {
     /// Creates a new [MessageDataBuilder](trait.MessageDataBuilder.html) instance with default values set by the schema.
-    pub fn new(message: String) -> Self {
+    pub fn new(message: impl Into<String>) -> Self {
         Self {
             ver: 2,
-            message,
+            message: message.into(),
             severity_level: None,
             properties: None,
             measurements: None,
@@ -37,14 +37,14 @@ impl MessageDataBuilder {
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Trace severity level.
-    pub fn severity_level(&mut self, severity_level: SeverityLevel) -> &mut Self {
-        self.severity_level = Some(severity_level);
+    pub fn severity_level(&mut self, severity_level: impl Into<SeverityLevel>) -> &mut Self {
+        self.severity_level = Some(severity_level.into());
         self
     }
 
@@ -55,8 +55,8 @@ impl MessageDataBuilder {
     }
 
     /// Sets: Collection of custom measurements.
-    pub fn measurements(&mut self, measurements: std::collections::BTreeMap<String, f64>) -> &mut Self {
-        self.measurements = Some(measurements);
+    pub fn measurements(&mut self, measurements: impl Into<std::collections::BTreeMap<String, f64>>) -> &mut Self {
+        self.measurements = Some(measurements.into());
         self
     }
 

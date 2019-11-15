@@ -22,23 +22,23 @@ pub struct MetricDataBuilder {
 
 impl MetricDataBuilder {
     /// Creates a new [MetricDataBuilder](trait.MetricDataBuilder.html) instance with default values set by the schema.
-    pub fn new(metrics: DataPoint) -> Self {
+    pub fn new(metrics: impl Into<DataPoint>) -> Self {
         Self {
             ver: 2,
-            metrics,
+            metrics: metrics.into(),
             properties: None,
         }
     }
 
     /// Sets: Schema version
-    pub fn ver(&mut self, ver: i32) -> &mut Self {
-        self.ver = ver;
+    pub fn ver(&mut self, ver: impl Into<i32>) -> &mut Self {
+        self.ver = ver.into();
         self
     }
 
     /// Sets: Collection of custom properties.
-    pub fn properties(&mut self, properties: std::collections::BTreeMap<String, String>) -> &mut Self {
-        self.properties = Some(properties);
+    pub fn properties(&mut self, properties: impl Into<std::collections::BTreeMap<String, String>>) -> &mut Self {
+        self.properties = Some(properties.into());
         self
     }
 
