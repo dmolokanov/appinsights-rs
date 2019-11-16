@@ -10,34 +10,34 @@ use crate::uuid::Uuid;
 
 /// Represents interactions of the monitored component with a remote component/service like SQL or an HTTP endpoint.
 pub struct RemoteDependencyTelemetry {
-    // Identifier of a request call instance.
-    // It is used for correlation between request and other telemetry items.
+    /// Identifier of a dependency call instance.
+    /// It is used for correlation with the request telemetry item corresponding to this dependency call.
     id: Option<Uuid>,
 
-    // Name of the command that initiated this dependency call. Low cardinality value.
-    // Examples are stored procedure name and URL path template.
+    /// Name of the command that initiated this dependency call. Low cardinality value.
+    /// Examples are stored procedure name and URL path template.
     name: String,
 
-    // Duration to serve the request.
+    /// Duration of the remote call.
     duration: Duration,
 
-    // Result code of a dependency call.
-    // Examples are SQL error code and HTTP status code.
+    /// Result code of a dependency call.
+    /// Examples are SQL error code and HTTP status code.
     result_code: Option<String>,
 
     /// Indication of successful or unsuccessful call.
     success: bool,
 
-    // Command initiated by this dependency call.
-    // Examples are SQL statement and HTTP URL's with all the query parameters.
+    /// Command initiated by this dependency call.
+    /// Examples are SQL statement and HTTP URL's with all the query parameters.
     data: Option<String>,
 
-    // Dependency type name. Very low cardinality.
-    // Examples are SQL, Azure table and HTTP.
+    /// Dependency type name. Very low cardinality.
+    /// Examples are SQL, Azure table and HTTP.
     dependency_type: String,
 
-    // Target site of a dependency call.
-    // Examples are server name, host address.
+    /// Target site of a dependency call.
+    /// Examples are server name, host address.
     target: String,
 
     /// The time stamp when this telemetry was measured.

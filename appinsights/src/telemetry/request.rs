@@ -12,20 +12,20 @@ use crate::uuid::{self, Uuid};
 // Represents completion of an external request to the application and contains a summary of that
 // request execution and results.
 pub struct RequestTelemetry {
-    // Identifier of a request call instance.
-    // It is used for correlation between request and other telemetry items.
+    /// Identifier of a request call instance.
+    /// It is used for correlation between request and other telemetry items.
     id: Uuid,
 
-    // Request name. For HTTP requests it represents the HTTP method and URL path template.
+    /// Request name. For HTTP requests it represents the HTTP method and URL path template.
     name: String,
 
-    // URL of the request with all query string parameters.
+    /// URL of the request with all query string parameters.
     uri: Uri,
 
-    // Duration to serve the request.
+    /// Duration to serve the request.
     duration: Duration,
 
-    // Results of a request execution. HTTP status code for HTTP requests.
+    /// Results of a request execution. HTTP status code for HTTP requests.
     response_code: StatusCode, // TODO make it String to enable usage for non HTTP requests
 
     /// The time stamp when this telemetry was measured.
