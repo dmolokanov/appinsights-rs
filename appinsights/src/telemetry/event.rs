@@ -25,9 +25,9 @@ pub struct EventTelemetry {
 
 impl EventTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
-            name: name.into(),
+            name,
             timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),

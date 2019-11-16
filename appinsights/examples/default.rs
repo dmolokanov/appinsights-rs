@@ -7,7 +7,7 @@ fn main() {
 
     let client = TelemetryClient::new(i_key);
 
-    client.track_event("Client connected");
+    client.track_event("Client connected".into());
 
     std::thread::sleep(std::time::Duration::from_secs(2));
 }

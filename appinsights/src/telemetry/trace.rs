@@ -25,9 +25,9 @@ pub struct TraceTelemetry {
 
 impl TraceTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(message: &str, severity: SeverityLevel) -> Self {
+    pub fn new(message: String, severity: SeverityLevel) -> Self {
         Self {
-            message: message.into(),
+            message,
             severity,
             timestamp: time::now(),
             properties: Default::default(),

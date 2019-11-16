@@ -1,5 +1,6 @@
 mod availability;
 mod event;
+mod exception;
 mod measurements;
 mod metric;
 mod page_view;
@@ -11,6 +12,7 @@ mod trace;
 
 pub use availability::*;
 pub use event::*;
+pub use exception::*;
 pub use measurements::*;
 pub use metric::*;
 pub use page_view::*;

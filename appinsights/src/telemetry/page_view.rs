@@ -122,12 +122,10 @@ impl From<(TelemetryContext, PageViewTelemetry)> for Envelope {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::str::FromStr;
 
     use chrono::TimeZone;
 
     use super::*;
-    use crate::uuid::Uuid;
 
     #[test]
     fn it_overrides_properties_from_context() {

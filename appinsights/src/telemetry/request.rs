@@ -8,6 +8,7 @@ use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time::{self, Duration};
 use crate::uuid::{self, Uuid};
+use std::str::FromStr;
 
 // Represents completion of an external request to the application and contains a summary of that
 // request execution and results.
@@ -26,7 +27,7 @@ pub struct RequestTelemetry {
     duration: Duration,
 
     /// Results of a request execution. HTTP status code for HTTP requests.
-    response_code: StatusCode, // TODO make it String to enable usage for non HTTP requests
+    response_code: String,
 
     /// The time stamp when this telemetry was measured.
     timestamp: DateTime<Utc>,
@@ -43,7 +44,7 @@ pub struct RequestTelemetry {
 
 impl RequestTelemetry {
     /// Creates a new telemetry item for HTTP request.
-    pub fn new(method: Method, uri: Uri, duration: StdDuration, response_code: impl Into<StatusCode>) -> Self {
+    pub fn new(method: Method, uri: Uri, duration: StdDuration, response_code: String) -> Self {
         let mut authority = String::new();
         if let Some(host) = &uri.host() {
             authority.push_str(host);
@@ -64,7 +65,7 @@ impl RequestTelemetry {
             name: format!("{} {}", method, uri),
             uri,
             duration: duration.into(),
-            response_code: response_code.into(),
+            response_code,
             timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
@@ -84,7 +85,11 @@ impl RequestTelemetry {
 
     // Returns an indication of successful or unsuccessful call.
     pub fn is_success(&self) -> bool {
-        self.response_code < StatusCode::BAD_REQUEST || self.response_code == StatusCode::UNAUTHORIZED
+        if let Ok(response_code) = StatusCode::from_str(&self.response_code) {
+            response_code < StatusCode::BAD_REQUEST || response_code == StatusCode::UNAUTHORIZED
+        } else {
+            true
+        }
     }
 }
 
@@ -166,7 +171,7 @@ mod tests {
             Method::GET,
             "https://example.com/main.html".parse().unwrap(),
             StdDuration::from_secs(2),
-            StatusCode::OK,
+            "200".into(),
         );
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("latency".into(), 200.0);
@@ -215,7 +220,7 @@ mod tests {
             Method::GET,
             "https://example.com/main.html".parse().unwrap(),
             StdDuration::from_secs(2),
-            StatusCode::OK,
+            "200".into(),
         );
         telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());

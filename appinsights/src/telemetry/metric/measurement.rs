@@ -25,9 +25,9 @@ pub struct MetricTelemetry {
 
 impl MetricTelemetry {
     /// Creates a metric telemetry item with specified name and value.
-    pub fn new(name: &str, value: f64) -> Self {
+    pub fn new(name: String, value: f64) -> Self {
         Self {
-            name: name.into(),
+            name,
             value,
             timestamp: time::now(),
             properties: Default::default(),

@@ -1,7 +1,11 @@
+use std::time::Duration;
+
+use http::{Method, Uri};
+
 use crate::channel::{InMemoryChannel, TelemetryChannel};
 use crate::context::TelemetryContext;
 use crate::contracts::Envelope;
-use crate::telemetry::{EventTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
+use crate::telemetry::*;
 use crate::Config;
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
@@ -44,14 +48,39 @@ where
     }
 
     /// Logs a user action with the specified name.
-    pub fn track_event(&self, name: &str) {
+    pub fn track_event(&self, name: String) {
         let event = EventTelemetry::new(name);
         self.track(event)
     }
 
     /// Logs a trace message with a specified severity level.
-    pub fn track_trace(&self, message: &str, severity: SeverityLevel) {
+    pub fn track_trace(&self, message: String, severity: SeverityLevel) {
         let event = TraceTelemetry::new(message, severity);
+        self.track(event)
+    }
+
+    /// Logs a numeric value that is not specified with a specific event.
+    /// Typically used to send regular reports of performance indicators.
+    pub fn track_metric(&self, name: String, value: f64) {
+        let event = MetricTelemetry::new(name, value);
+        self.track(event)
+    }
+
+    /// Logs an HTTP request with the specified method, URL, duration and response code.
+    pub fn track_request(&self, method: Method, uri: Uri, duration: Duration, response_code: String) {
+        let event = RequestTelemetry::new(method, uri, duration, response_code);
+        self.track(event)
+    }
+
+    /// Logs a dependency with the specified name, type, target, and success status.
+    pub fn track_remote_dependency(&self, name: String, dependency_type: String, target: String, success: bool) {
+        let event = RemoteDependencyTelemetry::new(name, dependency_type, Default::default(), target, success);
+        self.track(event)
+    }
+
+    /// Logs an availability test result with the specified test name, duration, and success status.
+    pub fn track_availability(&self, name: String, duration: Duration, success: bool) {
+        let event = AvailabilityTelemetry::new(name, duration, success);
         self.track(event)
     }
 
@@ -70,7 +99,12 @@ where
 
 #[cfg(test)]
 mod tests {
+    use std::cell::RefCell;
+
+    use chrono::{DateTime, Utc};
+
     use super::*;
+    use crate::Result;
 
     #[test]
     fn it_enabled_by_default() {
@@ -87,77 +121,79 @@ mod tests {
         assert_eq!(client.is_enabled(), false)
     }
 
-    //    #[test]
-    //    #[ignore]
-    //    fn it_submits_telemetry() {
-    //        let client = create_client();
-    //
-    //        client.track(TestTelemetry {});
-    //
-    //        let events = client.channel.events.borrow();
-    //        assert_eq!(events.len(), 1)
-    //    }
-    //
-    //    #[test]
-    //    fn it_swallows_telemetry_when_disabled() {
-    //        let mut client = create_client();
-    //        client.enabled(false);
-    //
-    //        client.track(TestTelemetry {});
-    //
-    //        let events = client.channel.events.borrow();
-    //        assert!(events.is_empty())
-    //    }
-    //
-    //    fn create_client() -> TelemetryClient<TestChannel> {
-    //        let config = Config::new("instrumentation key".into());
-    //
-    //        TelemetryClient {
-    //            enabled: true,
-    //            context: TelemetryContext::from(&config),
-    //            channel: TestChannel {
-    //                events: RefCell::new(Vec::new()),
-    //            },
-    //        }
-    //    }
-    //
-    //    struct TestTelemetry {}
-    //
-    //    impl Telemetry for TestTelemetry {
-    //        fn timestamp(&self) -> DateTime<Utc> {
-    //            unimplemented!()
-    //        }
-    //
-    //        fn properties(&self) -> &BTreeMap<String, String, RandomState> {
-    //            unimplemented!()
-    //        }
-    //
-    //        fn measurements(&self) -> Option<&BTreeMap<String, f64, RandomState>> {
-    //            unimplemented!()
-    //        }
-    //
-    //        fn tags(&self) -> &BTreeMap<String, String, RandomState> {
-    //            unimplemented!()
-    //        }
-    //    }
-    //
-    //    #[derive(Clone)]
-    //    struct TestData;
-    //
-    //    impl From<TestTelemetry> for Data {
-    //        fn from(_: TestTelemetry) -> Self {
-    //            unimplemented!()
-    //        }
-    //    }
-    //
-    //    struct TestChannel {
-    //        events: RefCell<Vec<Envelope>>,
-    //    }
-    //
-    //    impl TelemetryChannel for TestChannel {
-    //        fn send(&self, envelop: Envelope) -> Result<()> {
-    //            self.events.borrow_mut().push(envelop);
-    //            Ok(())
-    //        }
-    //    }
+    #[test]
+    #[ignore]
+    fn it_submits_telemetry() {
+        let client = create_client();
+
+        client.track(TestTelemetry {});
+
+        let events = client.channel.events.borrow();
+        assert_eq!(events.len(), 1)
+    }
+
+    #[test]
+    fn it_swallows_telemetry_when_disabled() {
+        let mut client = create_client();
+        client.enabled(false);
+
+        client.track(TestTelemetry {});
+
+        let events = client.channel.events.borrow();
+        assert!(events.is_empty())
+    }
+
+    fn create_client() -> TelemetryClient<TestChannel> {
+        TelemetryClient {
+            enabled: true,
+            context: TelemetryContext::new("instrumentation key".to_string()),
+            channel: TestChannel {
+                events: RefCell::new(Vec::new()),
+            },
+        }
+    }
+
+    struct TestTelemetry {}
+
+    impl Telemetry for TestTelemetry {
+        fn timestamp(&self) -> DateTime<Utc> {
+            unimplemented!()
+        }
+
+        fn properties(&self) -> &Properties {
+            unimplemented!()
+        }
+
+        fn properties_mut(&mut self) -> &mut Properties {
+            unimplemented!()
+        }
+
+        fn tags(&self) -> &ContextTags {
+            unimplemented!()
+        }
+
+        fn tags_mut(&mut self) -> &mut ContextTags {
+            unimplemented!()
+        }
+    }
+
+    #[derive(Clone)]
+    struct TestData;
+
+    impl From<(TelemetryContext, TestTelemetry)> for Envelope {
+        fn from((_, _): (TelemetryContext, TestTelemetry)) -> Self {
+            unimplemented!()
+        }
+    }
+
+    struct TestChannel {
+        events: RefCell<Vec<Envelope>>,
+    }
+
+    impl TelemetryChannel for TestChannel {
+        fn send(&self, envelop: Envelope) -> Result<()> {
+            self.events.borrow_mut().push(envelop);
+            Ok(())
+        }
+    }
 }
