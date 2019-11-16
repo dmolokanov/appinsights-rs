@@ -1,15 +1,21 @@
+mod availability;
 mod event;
 mod measurements;
 mod metric;
+mod page_view;
 mod properties;
+mod remote_dependency;
 mod request;
 mod tags;
 mod trace;
 
+pub use availability::*;
 pub use event::*;
 pub use measurements::*;
 pub use metric::*;
+pub use page_view::*;
 pub use properties::*;
+pub use remote_dependency::*;
 pub use request::*;
 pub use tags::*;
 pub use trace::*;

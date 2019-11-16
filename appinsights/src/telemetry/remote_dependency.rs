@@ -1,32 +1,44 @@
 use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, SecondsFormat, Utc};
-use http::{Method, StatusCode, Uri};
 
 use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time::{self, Duration};
-use crate::uuid::{self, Uuid};
+use crate::uuid::Uuid;
 
-// Represents completion of an external request to the application and contains a summary of that
-// request execution and results.
-pub struct RequestTelemetry {
+/// Represents interactions of the monitored component with a remote component/service like SQL or an HTTP endpoint.
+pub struct RemoteDependencyTelemetry {
     // Identifier of a request call instance.
     // It is used for correlation between request and other telemetry items.
-    id: Uuid,
+    id: Option<Uuid>,
 
-    // Request name. For HTTP requests it represents the HTTP method and URL path template.
+    // Name of the command that initiated this dependency call. Low cardinality value.
+    // Examples are stored procedure name and URL path template.
     name: String,
-
-    // URL of the request with all query string parameters.
-    uri: Uri,
 
     // Duration to serve the request.
     duration: Duration,
 
-    // Results of a request execution. HTTP status code for HTTP requests.
-    response_code: StatusCode, // TODO make it String to enable usage for non HTTP requests
+    // Result code of a dependency call.
+    // Examples are SQL error code and HTTP status code.
+    result_code: Option<String>,
+
+    /// Indication of successful or unsuccessful call.
+    success: bool,
+
+    // Command initiated by this dependency call.
+    // Examples are SQL statement and HTTP URL's with all the query parameters.
+    data: Option<String>,
+
+    // Dependency type name. Very low cardinality.
+    // Examples are SQL, Azure table and HTTP.
+    dependency_type: String,
+
+    // Target site of a dependency call.
+    // Examples are server name, host address.
+    target: String,
 
     /// The time stamp when this telemetry was measured.
     timestamp: DateTime<Utc>,
@@ -41,30 +53,18 @@ pub struct RequestTelemetry {
     measurements: Measurements,
 }
 
-impl RequestTelemetry {
-    /// Creates a new telemetry item for HTTP request.
-    pub fn new(method: Method, uri: Uri, duration: StdDuration, response_code: impl Into<StatusCode>) -> Self {
-        let mut authority = String::new();
-        if let Some(host) = &uri.host() {
-            authority.push_str(host);
-        }
-        if let Some(port) = &uri.port_u16() {
-            authority.push_str(&format!(":{}", port))
-        }
-
-        let uri = Uri::builder()
-            .scheme(uri.scheme_str().unwrap_or_default())
-            .authority(authority.as_str())
-            .path_and_query(uri.path())
-            .build()
-            .unwrap_or(uri);
-
+impl RemoteDependencyTelemetry {
+    /// Creates a new telemetry item with specified name, dependency type, target site and success status.
+    pub fn new(name: String, dependency_type: String, duration: StdDuration, target: String, success: bool) -> Self {
         Self {
-            id: uuid::new(),
-            name: format!("{} {}", method, uri),
-            uri,
+            id: Default::default(),
+            name,
             duration: duration.into(),
-            response_code: response_code.into(),
+            result_code: Default::default(),
+            success,
+            data: Default::default(),
+            dependency_type,
+            target,
             timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
@@ -81,14 +81,9 @@ impl RequestTelemetry {
     pub fn measurements_mut(&mut self) -> &mut Measurements {
         &mut self.measurements
     }
-
-    // Returns an indication of successful or unsuccessful call.
-    pub fn is_success(&self) -> bool {
-        self.response_code < StatusCode::BAD_REQUEST || self.response_code == StatusCode::UNAUTHORIZED
-    }
 }
 
-impl Telemetry for RequestTelemetry {
+impl Telemetry for RemoteDependencyTelemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
@@ -115,22 +110,31 @@ impl Telemetry for RequestTelemetry {
     }
 }
 
-impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
-    fn from((context, telemetry): (TelemetryContext, RequestTelemetry)) -> Self {
-        let success = telemetry.is_success();
-        let data = Data::RequestData(
-            RequestDataBuilder::new(
-                telemetry.id.to_hyphenated().to_string(),
-                telemetry.duration.to_string(),
-                telemetry.response_code.as_str(),
-            )
-            .name(telemetry.name)
-            .success(success)
-            .url(telemetry.uri.to_string())
-            .properties(Properties::combine(context.properties, telemetry.properties))
-            .measurements(telemetry.measurements)
-            .build(),
-        );
+impl From<(TelemetryContext, RemoteDependencyTelemetry)> for Envelope {
+    fn from((context, telemetry): (TelemetryContext, RemoteDependencyTelemetry)) -> Self {
+        let data = Data::RemoteDependencyData({
+            let mut builder = RemoteDependencyDataBuilder::new(telemetry.name, telemetry.duration.to_string());
+            builder
+                .type_(telemetry.dependency_type)
+                .target(telemetry.target)
+                .success(telemetry.success)
+                .properties(Properties::combine(context.properties, telemetry.properties))
+                .measurements(telemetry.measurements);
+
+            if let Some(id) = telemetry.id {
+                builder.id(id.to_hyphenated().to_string());
+            }
+
+            if let Some(result_code) = telemetry.result_code {
+                builder.result_code(result_code);
+            }
+
+            if let Some(data) = telemetry.data {
+                builder.data(data);
+            }
+
+            builder.build()
+        });
 
         let envelope_name = data.envelope_name(&context.normalized_i_key);
         let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
@@ -146,27 +150,25 @@ impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
 #[cfg(test)]
 mod tests {
     use std::collections::BTreeMap;
-    use std::str::FromStr;
 
     use chrono::TimeZone;
 
     use super::*;
-    use crate::uuid::{self, Uuid};
 
     #[test]
     fn it_overrides_properties_from_context() {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
-        uuid::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = RequestTelemetry::new(
-            Method::GET,
-            "https://example.com/main.html".parse().unwrap(),
+        let mut telemetry = RemoteDependencyTelemetry::new(
+            "GET https://example.com/main.html".into(),
+            "HTTP".into(),
             StdDuration::from_secs(2),
-            StatusCode::OK,
+            "example.com".into(),
+            true,
         );
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("latency".into(), 200.0);
@@ -174,14 +176,14 @@ mod tests {
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Request",
+            "Microsoft.ApplicationInsights.instrumentation.RemoteDependency",
             "2019-01-02T03:04:05.800Z",
         )
-        .data(Base::Data(Data::RequestData(
-            RequestDataBuilder::new("910b414a-f368-4b3a-aff6-326632aac566", "0.00:00:02.0000000", "200")
-                .name("GET https://example.com/main.html")
+        .data(Base::Data(Data::RemoteDependencyData(
+            RemoteDependencyDataBuilder::new("GET https://example.com/main.html", "0.00:00:02.0000000")
+                .type_("HTTP")
+                .target("example.com")
                 .success(true)
-                .url("https://example.com/main.html")
                 .properties({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
@@ -205,17 +207,17 @@ mod tests {
     #[test]
     fn it_overrides_tags_from_context() {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
-        uuid::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = RequestTelemetry::new(
-            Method::GET,
-            "https://example.com/main.html".parse().unwrap(),
+        let mut telemetry = RemoteDependencyTelemetry::new(
+            "GET https://example.com/main.html".into(),
+            "HTTP".into(),
             StdDuration::from_secs(2),
-            StatusCode::OK,
+            "example.com".into(),
+            true,
         );
         telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
@@ -223,14 +225,14 @@ mod tests {
         let envelop = Envelope::from((context, telemetry));
 
         let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Request",
+            "Microsoft.ApplicationInsights.instrumentation.RemoteDependency",
             "2019-01-02T03:04:05.700Z",
         )
-        .data(Base::Data(Data::RequestData(
-            RequestDataBuilder::new("910b414a-f368-4b3a-aff6-326632aac566", "0.00:00:02.0000000", "200")
-                .name("GET https://example.com/main.html")
+        .data(Base::Data(Data::RemoteDependencyData(
+            RemoteDependencyDataBuilder::new("GET https://example.com/main.html", "0.00:00:02.0000000")
+                .type_("HTTP")
+                .target("example.com")
                 .success(true)
-                .url("https://example.com/main.html")
                 .properties(Properties::default())
                 .measurements({
                     let mut measurement = Measurements::default();
