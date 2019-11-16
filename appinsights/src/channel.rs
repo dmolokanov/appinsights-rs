@@ -1,8 +1,7 @@
 use crate::contracts::Envelope;
 use crate::Config;
 use crate::Result;
-use std::sync::mpsc;
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, Sender, *};
 use std::thread;
 use std::time::Duration;
 
@@ -21,7 +20,7 @@ pub struct InMemoryChannel {
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &Config) -> Self {
-        let (sender, receiver) = mpsc::channel::<Envelope>();
+        let (sender, receiver) = channel::<Envelope>();
 
         let worker = Worker {
             receiver,

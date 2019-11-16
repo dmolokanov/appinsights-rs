@@ -3,7 +3,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use crate::context::TelemetryContext;
 use crate::contracts::{SeverityLevel as ContractsSeverityLevel, *};
 use crate::telemetry::{ContextTags, Properties, Telemetry};
-use crate::SystemTime;
+use crate::time;
 
 // Represents printf-like trace statements that can be text searched.
 pub struct TraceTelemetry {
@@ -29,7 +29,7 @@ impl TraceTelemetry {
         Self {
             message: message.into(),
             severity,
-            timestamp: SystemTime::now(),
+            timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
         }
@@ -114,7 +114,7 @@ mod tests {
 
     #[test]
     fn it_overrides_properties_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
@@ -149,7 +149,7 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());

@@ -3,7 +3,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::SystemTime;
+use crate::time;
 
 /// Represents structured event records.
 pub struct EventTelemetry {
@@ -28,7 +28,7 @@ impl EventTelemetry {
     pub fn new(name: &str) -> Self {
         Self {
             name: name.into(),
-            timestamp: SystemTime::now(),
+            timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
             measurements: Default::default(),
@@ -100,11 +100,11 @@ mod tests {
     use chrono::TimeZone;
 
     use super::*;
-    use crate::SystemTime;
+    use crate::time;
 
     #[test]
     fn it_overrides_properties_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 600));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
@@ -144,7 +144,7 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());

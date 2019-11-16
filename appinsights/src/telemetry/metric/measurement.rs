@@ -3,7 +3,7 @@ use chrono::{DateTime, SecondsFormat, Utc};
 use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Properties, Telemetry};
-use crate::SystemTime;
+use crate::time;
 
 /// Metric telemetry item that represents a single data point.
 pub struct MetricTelemetry {
@@ -29,7 +29,7 @@ impl MetricTelemetry {
         Self {
             name: name.into(),
             value,
-            timestamp: SystemTime::now(),
+            timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
         }
@@ -94,11 +94,11 @@ mod tests {
     use chrono::TimeZone;
 
     use super::*;
-    use crate::SystemTime;
+    use crate::time;
 
     #[test]
     fn it_overrides_properties_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 100));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 100));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
@@ -137,7 +137,7 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 101));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 101));
 
         let mut context = TelemetryContext::new("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());

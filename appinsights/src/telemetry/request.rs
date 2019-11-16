@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::SystemTime;
+use crate::time;
 
 // Represents completion of an external request to the application and contains a summary of that
 // request execution and results.
@@ -66,7 +66,7 @@ impl RequestTelemetry {
             uri,
             duration: FormattedDuration(duration),
             response_code: response_code.into(),
-            timestamp: SystemTime::now(),
+            timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
             measurements: Default::default(),
@@ -213,7 +213,7 @@ mod tests {
 
     #[test]
     fn it_overrides_properties_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
         id::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
         let mut context = TelemetryContext::new("instrumentation".into());
@@ -262,7 +262,7 @@ mod tests {
 
     #[test]
     fn it_overrides_tags_from_context() {
-        SystemTime::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
         id::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
         let mut context = TelemetryContext::new("instrumentation".into());
