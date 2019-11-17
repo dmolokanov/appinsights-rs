@@ -9,5 +9,5 @@ fn main() {
 
     client.track_event("Client connected".into());
 
-    std::thread::sleep(std::time::Duration::from_secs(2));
+    std::thread::sleep(std::time::Duration::from_secs(10));
 }

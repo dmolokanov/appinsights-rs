@@ -101,9 +101,11 @@ where
 mod tests {
     use std::cell::RefCell;
 
-    use chrono::{DateTime, Utc};
+    use chrono::{DateTime, SecondsFormat, Utc};
 
     use super::*;
+    use crate::contracts::EnvelopeBuilder;
+    use crate::time;
     use crate::Result;
 
     #[test]
@@ -122,7 +124,6 @@ mod tests {
     }
 
     #[test]
-    #[ignore]
     fn it_submits_telemetry() {
         let client = create_client();
 
@@ -182,7 +183,7 @@ mod tests {
 
     impl From<(TelemetryContext, TestTelemetry)> for Envelope {
         fn from((_, _): (TelemetryContext, TestTelemetry)) -> Self {
-            unimplemented!()
+            EnvelopeBuilder::new("test", time::now().to_rfc3339_opts(SecondsFormat::Millis, true)).build()
         }
     }
 

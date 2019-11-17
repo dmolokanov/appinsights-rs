@@ -1,4 +1,5 @@
 use crate::contracts::Envelope;
+use crate::transmitter::Transmitter;
 use crate::Config;
 use crate::Result;
 use std::sync::mpsc::{Receiver, Sender, *};
@@ -25,6 +26,7 @@ impl InMemoryChannel {
         let worker = Worker {
             receiver,
             interval: config.interval(),
+            transmitter: Transmitter::new(config.endpoint()),
         };
 
         thread::spawn(move || {
@@ -45,6 +47,7 @@ impl TelemetryChannel for InMemoryChannel {
 struct Worker {
     receiver: Receiver<Envelope>,
     interval: Duration,
+    transmitter: Transmitter,
 }
 
 impl Worker {
@@ -62,8 +65,7 @@ impl Worker {
     }
 
     fn transmit(&self, items: Vec<Envelope>) {
-        for item in items {
-            println!("Send item: {:?}", item);
-        }
+        let result = self.transmitter.transmit(&items);
+        dbg!(result);
     }
 }

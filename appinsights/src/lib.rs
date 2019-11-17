@@ -5,6 +5,7 @@ mod context;
 mod contracts;
 pub mod telemetry;
 mod time;
+mod transmitter;
 mod uuid;
 
 pub use client::TelemetryClient;
