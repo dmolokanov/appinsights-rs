@@ -2,8 +2,10 @@ use crate::contracts::Envelope;
 use crate::transmitter::Transmitter;
 use crate::Config;
 use crate::Result;
-use std::sync::mpsc::{Receiver, Sender, *};
+use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
+use log::{debug, error, info, trace};
 use std::thread;
+use std::thread::JoinHandle;
 use std::time::Duration;
 
 /// An implementation of [TelemetryChannel](trait.TelemetryChannel.html) is responsible for queueing
@@ -15,57 +17,114 @@ pub trait TelemetryChannel {
 
 /// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
-    sender: Sender<Envelope>,
+    event_sender: Sender<Envelope>,
+    command_sender: Sender<Command>,
+    thread: Option<JoinHandle<()>>,
 }
 
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &Config) -> Self {
-        let (sender, receiver) = channel::<Envelope>();
+        let (event_sender, event_receiver) = unbounded::<Envelope>();
+        let (command_sender, command_receiver) = unbounded::<Command>();
 
-        let worker = Worker {
-            receiver,
+        let mut worker = Worker {
+            event_receiver,
+            command_receiver,
             interval: config.interval(),
             transmitter: Transmitter::new(config.endpoint()),
+            stopping: false,
         };
 
-        thread::spawn(move || {
-            worker.run();
+        let thread = thread::spawn(move || {
+            while !worker.stopping {
+                worker.run();
+            }
         });
 
-        Self { sender }
+        Self {
+            event_sender,
+            command_sender,
+            thread: Some(thread),
+        }
     }
+}
+
+impl Drop for InMemoryChannel {
+    fn drop(&mut self) {
+        debug!("Sending terminate message to worker");
+        self.command_sender.send(Command::Stop);
+
+        debug!("Shutting down worker");
+        if let Some(thread) = self.thread.take() {
+            thread.join().unwrap();
+        }
+    }
+}
+
+#[derive(Debug, PartialEq)]
+enum Command {
+    Stop,
 }
 
 impl TelemetryChannel for InMemoryChannel {
     /// Queues a single telemetry item.
     fn send(&self, envelop: Envelope) -> Result<()> {
-        Ok(self.sender.send(envelop)?)
+        Ok(self.event_sender.send(envelop)?)
     }
 }
 
 struct Worker {
-    receiver: Receiver<Envelope>,
+    event_receiver: Receiver<Envelope>,
+    command_receiver: Receiver<Command>,
     interval: Duration,
     transmitter: Transmitter,
+    stopping: bool,
 }
 
 impl Worker {
-    fn run(&self) {
+    fn run(&mut self) {
+        let mut items = Vec::<Envelope>::new();
+
+        // delay until timeout passed
+        let interval = after(self.interval);
+
         loop {
-            // read all messages from a channel
-            let items = self.receiver.try_iter().collect();
-
-            // transmit all messages to the server
-            self.transmit(items);
-
-            // wait until sending interval will expire
-            thread::sleep(self.interval)
+            select! {
+                recv(self.event_receiver) -> envelope => {
+                    match envelope {
+                        Ok(envelope) => {
+                            trace!("Event received");
+                            items.push(envelope);
+                        },
+                        Err(err) => error!("Error occurred when reading events: {}", err),
+                    }
+                },
+                recv(self.command_receiver) -> command => {
+                    match command {
+                        Ok(Command::Stop) => {
+                            info!("Stop command received");
+                            self.stopping = true;
+                            break;
+                        },
+                        Ok(command) => panic!("Unsupported command received: {:?}", command),
+                        Err(err) => error!("Error occurred when reading commands: {}", err),
+                    }
+                },
+                recv(interval) -> _ => {
+                    info!("Timeout expired");
+                    break;
+                }
+            }
         }
+
+        // send all messages collected so far to the server
+        debug!("Sending {} events to the server", items.len());
+        self.transmit(items)
     }
 
     fn transmit(&self, items: Vec<Envelope>) {
         let result = self.transmitter.transmit(&items);
-        dbg!(result);
+        debug!("Transmission result: {:?}", result);
     }
 }
