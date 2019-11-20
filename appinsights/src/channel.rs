@@ -1,9 +1,11 @@
 use crate::contracts::Envelope;
-use crate::transmitter::Transmitter;
+use crate::transmitter::{Transmission, Transmitter};
 use crate::Config;
 use crate::Result;
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
+use std::error::Error;
+use std::rc::Rc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
@@ -90,6 +92,9 @@ impl Worker {
         let interval = after(self.interval);
 
         loop {
+            // TODO if there are too many events collected already, try send them
+
+            // receive either of the event to send, command or send timeout expired
             select! {
                 recv(self.event_receiver) -> envelope => {
                     match envelope {
@@ -102,29 +107,99 @@ impl Worker {
                 },
                 recv(self.command_receiver) -> command => {
                     match command {
-                        Ok(Command::Stop) => {
-                            info!("Stop command received");
-                            self.stopping = true;
-                            break;
+                        Ok(command) => {
+                            match command {
+                                Command::Stop => {
+                                    info!("Stop command received");
+
+                                    // mark worker as stopping one
+                                    self.stopping = true;
+
+                                    // try to send all events collected so far without retry
+                                    return self.send(items, false)
+                                },
+                                _ => panic!("Unsupported command received: {:?}", command),
+                            }
+
                         },
-                        Ok(command) => panic!("Unsupported command received: {:?}", command),
                         Err(err) => error!("Error occurred when reading commands: {}", err),
                     }
                 },
                 recv(interval) -> _ => {
                     info!("Timeout expired");
-                    break;
+                    return self.send(items, true);
+                }
+            }
+        }
+    }
+
+    fn send(&self, items: Vec<Envelope>, retry: bool) {
+        // send all messages collected so far to the server
+        debug!("Sending {} events to the server", items.len());
+        if items.len() > 0 {
+            self.transmit_retry(items, retry);
+        }
+    }
+
+    fn transmit_retry(&self, items: Vec<Envelope>, retry: bool) {
+        let mut items = items;
+        let timeouts = vec![
+            Duration::from_secs(10),
+            Duration::from_secs(30),
+            Duration::from_secs(60),
+        ];
+
+        for timeout in timeouts {
+            let result = self.transmitter.transmit(&items);
+            let result = match result {
+                Ok(transmission) => {
+                    if transmission.is_success() {
+                        return;
+                    } else {
+                        Some(transmission)
+                    }
+                }
+                Err(err) => {
+                    warn!("Unable to send telemetry: {}", err);
+                    None
+                }
+            };
+
+            if !retry {
+                // todo should return Option<Duration>?
+                warn!("Refusing to retry telemetry submission");
+                return;
+            }
+
+            if let Some(transmission) = result {
+                if transmission.can_retry() {
+                    items = transmission.retry_items(items);
+                    if items.is_empty() {
+                        return;
+                    }
+                } else {
+                    warn!("Cannot retry telemetry submission");
+                    return;
                 }
             }
         }
 
-        // send all messages collected so far to the server
-        debug!("Sending {} events to the server", items.len());
-        self.transmit(items)
-    }
-
-    fn transmit(&self, items: Vec<Envelope>) {
-        let result = self.transmitter.transmit(&items);
-        debug!("Transmission result: {:?}", result);
+        // one final try to execute submission
+        if let Err(err) = self.transmitter.transmit(&items) {
+            error!("Gave up transmitting payload; exhausted retries: {}", err);
+        }
     }
 }
+//
+//struct RetryPolicy {
+//    timeouts: Vec<Duration>,
+//}
+//
+//impl RetryPolicy {
+//    pub fn execute<F>(&self, f: F)
+//    where
+//        F: Fn() -> Result<Transmission>,
+//    {
+//
+//    }
+//}

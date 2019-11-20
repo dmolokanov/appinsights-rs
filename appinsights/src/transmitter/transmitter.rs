@@ -23,7 +23,7 @@ impl Transmitter {
     }
 
     pub fn transmit(&self, items: &Vec<Envelope>) -> Result<Transmission> {
-        //        let payload = serde_json::to_string(&items)?;
+        //        let payload = serde_json::to_string(items)?;
         //
         //        let response = self.client.post(&self.url).body(payload).send()?;
         //
@@ -36,16 +36,16 @@ impl Transmitter {
         //            None
         //        };
         //
-        //        Ok(Transmission::new(status_code, retry_after, response.json()?)
+        //        Ok(Transmission::new(status_code, retry_after, response.json()?))
         std::thread::sleep(Duration::from_secs(1));
+
+        let count = items.len();
 
         Ok(Transmission::new(
             StatusCode::OK,
             None,
-            serde_json::from_value(
-                serde_json::json!({"itemsReceived": items.len(), "itemsAccepted": items.len(), "errors":[] }),
-            )
-            .unwrap(),
+            serde_json::from_value(serde_json::json!({"itemsReceived": count, "itemsAccepted": count, "errors":[] }))
+                .unwrap(),
         ))
     }
 }
