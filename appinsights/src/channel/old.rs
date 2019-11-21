@@ -1,7 +1,3 @@
-use crate::contracts::Envelope;
-use crate::transmitter::{Transmission, Transmitter};
-use crate::Config;
-use crate::Result;
 use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
 use log::{debug, error, info, trace, warn};
 use std::error::Error;
@@ -10,12 +6,11 @@ use std::thread;
 use std::thread::JoinHandle;
 use std::time::Duration;
 
-/// An implementation of [TelemetryChannel](trait.TelemetryChannel.html) is responsible for queueing
-/// and periodically submitting telemetry events.
-pub trait TelemetryChannel {
-    /// Queues a single telemetry item.
-    fn send(&self, envelop: Envelope) -> Result<()>;
-}
+use crate::channel::{Command, TelemetryChannel};
+use crate::contracts::Envelope;
+use crate::transmitter::{Transmission, Transmitter};
+use crate::Config;
+use crate::Result;
 
 /// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
@@ -55,7 +50,9 @@ impl InMemoryChannel {
 impl Drop for InMemoryChannel {
     fn drop(&mut self) {
         debug!("Sending terminate message to worker");
-        self.command_sender.send(Command::Stop);
+        if let Err(err) = self.command_sender.send(Command::Stop) {
+            warn!("Unable to send stop command: {}", err);
+        }
 
         debug!("Shutting down worker");
         if let Some(thread) = self.thread.take() {
@@ -64,15 +61,17 @@ impl Drop for InMemoryChannel {
     }
 }
 
-#[derive(Debug, PartialEq)]
-enum Command {
-    Stop,
-}
-
 impl TelemetryChannel for InMemoryChannel {
-    /// Queues a single telemetry item.
     fn send(&self, envelop: Envelope) -> Result<()> {
         Ok(self.event_sender.send(envelop)?)
+    }
+
+    fn flush(&self) -> Result<()> {
+        Ok(self.command_sender.send(Command::Flush)?)
+    }
+
+    fn close(&self) -> Result<()> {
+        Ok(self.command_sender.send(Command::Close)?)
     }
 }
 
@@ -115,6 +114,7 @@ impl Worker {
                                     // mark worker as stopping one
                                     self.stopping = true;
 
+                                    //TODO do not send
                                     // try to send all events collected so far without retry
                                     return self.send(items, false)
                                 },
@@ -190,16 +190,3 @@ impl Worker {
         }
     }
 }
-//
-//struct RetryPolicy {
-//    timeouts: Vec<Duration>,
-//}
-//
-//impl RetryPolicy {
-//    pub fn execute<F>(&self, f: F)
-//    where
-//        F: Fn() -> Result<Transmission>,
-//    {
-//
-//    }
-//}

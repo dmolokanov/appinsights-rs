@@ -7,6 +7,7 @@ use crate::context::TelemetryContext;
 use crate::contracts::Envelope;
 use crate::telemetry::*;
 use crate::Config;
+use crate::Result;
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
 pub struct TelemetryClient<C> {
@@ -47,52 +48,65 @@ where
         self.enabled = enabled;
     }
 
+    /// Returns the telemetry channel used to submit data to the server.
+    pub fn channel(&self) -> &C {
+        &self.channel
+    }
+
     /// Logs a user action with the specified name.
-    pub fn track_event(&self, name: String) {
+    pub fn track_event(&self, name: String) -> Result<()> {
         let event = EventTelemetry::new(name);
         self.track(event)
     }
 
     /// Logs a trace message with a specified severity level.
-    pub fn track_trace(&self, message: String, severity: SeverityLevel) {
+    pub fn track_trace(&self, message: String, severity: SeverityLevel) -> Result<()> {
         let event = TraceTelemetry::new(message, severity);
         self.track(event)
     }
 
     /// Logs a numeric value that is not specified with a specific event.
     /// Typically used to send regular reports of performance indicators.
-    pub fn track_metric(&self, name: String, value: f64) {
+    pub fn track_metric(&self, name: String, value: f64) -> Result<()> {
         let event = MetricTelemetry::new(name, value);
         self.track(event)
     }
 
     /// Logs an HTTP request with the specified method, URL, duration and response code.
-    pub fn track_request(&self, method: Method, uri: Uri, duration: Duration, response_code: String) {
+    pub fn track_request(&self, method: Method, uri: Uri, duration: Duration, response_code: String) -> Result<()> {
         let event = RequestTelemetry::new(method, uri, duration, response_code);
         self.track(event)
     }
 
     /// Logs a dependency with the specified name, type, target, and success status.
-    pub fn track_remote_dependency(&self, name: String, dependency_type: String, target: String, success: bool) {
+    pub fn track_remote_dependency(
+        &self,
+        name: String,
+        dependency_type: String,
+        target: String,
+        success: bool,
+    ) -> Result<()> {
         let event = RemoteDependencyTelemetry::new(name, dependency_type, Default::default(), target, success);
         self.track(event)
     }
 
     /// Logs an availability test result with the specified test name, duration, and success status.
-    pub fn track_availability(&self, name: String, duration: Duration, success: bool) {
+    pub fn track_availability(&self, name: String, duration: Duration, success: bool) -> Result<()> {
         let event = AvailabilityTelemetry::new(name, duration, success);
         self.track(event)
     }
 
     /// Submits a specific telemetry event.
-    pub fn track<E>(&self, event: E)
+    pub fn track<E>(&self, event: E) -> Result<()>
     where
         E: Telemetry,
         (TelemetryContext, E): Into<Envelope>,
     {
         if self.is_enabled() {
             let envelop = (self.context.clone(), event).into();
-            self.channel.send(envelop);
+            self.channel.send(envelop)
+        } else {
+            Ok(())
         }
     }
 }
@@ -195,6 +209,14 @@ mod tests {
         fn send(&self, envelop: Envelope) -> Result<()> {
             self.events.borrow_mut().push(envelop);
             Ok(())
+        }
+
+        fn flush(&self) -> Result<()> {
+            unimplemented!()
+        }
+
+        fn close(&self) -> Result<()> {
+            unimplemented!()
         }
     }
 }

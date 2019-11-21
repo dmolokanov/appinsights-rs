@@ -18,6 +18,8 @@ pub struct Envelope {
     data: Option<Base>,
 }
 
+impl Eq for Envelope {}
+
 /// Creates: System variables for a telemetry item.
 #[derive(Debug, Clone)]
 pub struct EnvelopeBuilder {

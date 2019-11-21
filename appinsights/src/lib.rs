@@ -8,6 +8,7 @@ mod time;
 mod transmitter;
 mod uuid;
 
+pub use channel::TelemetryChannel;
 pub use client::TelemetryClient;
 pub use config::Config;
 
