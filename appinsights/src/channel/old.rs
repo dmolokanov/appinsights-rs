@@ -70,7 +70,7 @@ impl TelemetryChannel for InMemoryChannel {
         Ok(self.command_sender.send(Command::Flush)?)
     }
 
-    fn close(&self) -> Result<()> {
+    fn close(&mut self) -> Result<()> {
         Ok(self.command_sender.send(Command::Close)?)
     }
 }

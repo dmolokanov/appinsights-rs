@@ -19,7 +19,7 @@ pub trait TelemetryChannel {
     /// Flushes and tears down the submission flow and closes internal channels.
     /// It block current thread until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
-    fn close(&self) -> Result<()>;
+    fn close(&mut self) -> Result<()>;
 }
 
 #[derive(Debug, PartialEq)]

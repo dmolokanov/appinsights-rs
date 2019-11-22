@@ -109,6 +109,14 @@ where
             Ok(())
         }
     }
+
+    /// Flushes and tears down the submission flow and closes internal channels.
+    /// It block current thread until all pending telemetry items have been submitted and it is safe to
+    /// shutdown without losing telemetry.
+    pub fn close_channel(self) -> Result<()> {
+        let mut channel = self.channel;
+        Ok(channel.close()?)
+    }
 }
 
 #[cfg(test)]

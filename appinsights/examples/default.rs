@@ -21,6 +21,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    client.channel().close()?;
+    client.close_channel()?;
     Ok(())
 }

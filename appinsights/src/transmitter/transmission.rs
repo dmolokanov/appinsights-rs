@@ -42,9 +42,16 @@ impl Transmission {
         }
     }
 
+    /// Filters out those telemetry items that can be re-send back to the server.
     pub fn retry_items(&self, mut items: Vec<Envelope>) -> Vec<Envelope> {
         if self.status_code == StatusCode::PARTIAL_CONTENT {
-            let indices: BTreeSet<_> = self.response.errors.iter().map(|error| error.index).collect();
+            let indices: BTreeSet<_> = self
+                .response
+                .errors
+                .iter()
+                .filter_map(|error| if error.can_retry() { Some(error.index) } else { None })
+                .collect();
+
             items
                 .drain(..)
                 .into_iter()
