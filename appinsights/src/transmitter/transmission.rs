@@ -8,25 +8,39 @@ use std::collections::BTreeSet;
 pub struct Transmission {
     status_code: StatusCode,
     retry_after: Option<DateTime<Utc>>,
-    response: TransmissionResponse,
+    can_retry_item_indices: Option<BTreeSet<usize>>,
+    success: bool,
 }
 
 /// Describes the result of sending telemetry events to the server.
 impl Transmission {
     /// Creates a new instance of object that describes the result of sending telemetry events to the server.
     pub fn new(status_code: StatusCode, retry_after: Option<DateTime<Utc>>, response: TransmissionResponse) -> Self {
+        let can_retry_item_indices = if status_code == StatusCode::PARTIAL_CONTENT {
+            let indices = response
+                .errors
+                .iter()
+                .filter_map(|error| if error.can_retry() { Some(error.index) } else { None })
+                .collect();
+            Some(indices)
+        } else {
+            None
+        };
+
+        let success = status_code == StatusCode::OK
+            || status_code == StatusCode::PARTIAL_CONTENT && response.items_received == response.items_accepted;
+
         Self {
             status_code,
             retry_after,
-            response,
+            can_retry_item_indices,
+            success,
         }
     }
 
     /// Returns true when all telemetry events were accepted; false otherwise.
     pub fn is_success(&self) -> bool {
-        self.status_code == StatusCode::OK
-            || self.status_code == StatusCode::PARTIAL_CONTENT
-                && self.response.items_received == self.response.items_accepted
+        self.success
     }
 
     /// Returns true when client should retry an attempt to re-send some telemetry events back to the server.
@@ -42,26 +56,34 @@ impl Transmission {
         }
     }
 
-    /// Filters out those telemetry items that can be re-send back to the server.
-    pub fn retry_items(&self, mut items: Vec<Envelope>) -> Vec<Envelope> {
-        if self.status_code == StatusCode::PARTIAL_CONTENT {
-            let indices: BTreeSet<_> = self
-                .response
-                .errors
-                .iter()
-                .filter_map(|error| if error.can_retry() { Some(error.index) } else { None })
-                .collect();
-
-            items
-                .drain(..)
-                .into_iter()
-                .enumerate()
-                .filter_map(|(i, envelope)| if indices.contains(&i) { Some(envelope) } else { None })
-                .collect()
+    pub fn can_retry_item(&self, index: usize) -> bool {
+        if let Some(indices) = &self.can_retry_item_indices {
+            indices.contains(&index)
         } else {
-            items
+            true
         }
     }
+
+    //    /// Filters out those telemetry items that can be re-send back to the server.
+    //    pub fn retry_items(&self, mut items: Vec<Envelope>) -> Vec<Envelope> {
+    //        if self.status_code == StatusCode::PARTIAL_CONTENT {
+    //            let indices: BTreeSet<_> = self
+    //                .response
+    //                .errors
+    //                .iter()
+    //                .filter_map(|error| if error.can_retry() { Some(error.index) } else { None })
+    //                .collect();
+    //
+    //            items
+    //                .drain(..)
+    //                .into_iter()
+    //                .enumerate()
+    //                .filter_map(|(i, envelope)| if indices.contains(&i) { Some(envelope) } else { None })
+    //                .collect()
+    //        } else {
+    //            items
+    //        }
+    //    }
 }
 
 #[derive(Debug, Deserialize)]

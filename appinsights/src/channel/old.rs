@@ -142,51 +142,52 @@ impl Worker {
     }
 
     fn transmit_retry(&self, items: Vec<Envelope>, retry: bool) {
-        let mut items = items;
-        let timeouts = vec![
-            Duration::from_secs(10),
-            Duration::from_secs(30),
-            Duration::from_secs(60),
-        ];
-
-        for timeout in timeouts {
-            let result = self.transmitter.transmit(&items);
-            let result = match result {
-                Ok(transmission) => {
-                    if transmission.is_success() {
-                        return;
-                    } else {
-                        Some(transmission)
-                    }
-                }
-                Err(err) => {
-                    warn!("Unable to send telemetry: {}", err);
-                    None
-                }
-            };
-
-            if !retry {
-                // todo should return Option<Duration>?
-                warn!("Refusing to retry telemetry submission");
-                return;
-            }
-
-            if let Some(transmission) = result {
-                if transmission.can_retry() {
-                    items = transmission.retry_items(items);
-                    if items.is_empty() {
-                        return;
-                    }
-                } else {
-                    warn!("Cannot retry telemetry submission");
-                    return;
-                }
-            }
-        }
-
-        // one final try to execute submission
-        if let Err(err) = self.transmitter.transmit(&items) {
-            error!("Gave up transmitting payload; exhausted retries: {}", err);
-        }
+        //        let mut items = items;
+        //        let timeouts = vec![
+        //            Duration::from_secs(10),
+        //            Duration::from_secs(30),
+        //            Duration::from_secs(60),
+        //        ];
+        //
+        //        for timeout in timeouts {
+        //            let result = self.transmitter.transmit(&items);
+        //            let result = match result {
+        //                Ok(transmission) => {
+        //                    if transmission.is_success() {
+        //                        return;
+        //                    } else {
+        //                        Some(transmission)
+        //                    }
+        //                }
+        //                Err(err) => {
+        //                    warn!("Unable to send telemetry: {}", err);
+        //                    None
+        //                }
+        //            };
+        //
+        //            if !retry {
+        //                // todo should return Option<Duration>?
+        //                warn!("Refusing to retry telemetry submission");
+        //                return;
+        //            }
+        //
+        //            if let Some(transmission) = result {
+        //                if transmission.can_retry() {
+        //                    items = transmission.retry_items(items);
+        //                    if items.is_empty() {
+        //                        return;
+        //                    }
+        //                } else {
+        //                    warn!("Cannot retry telemetry submission");
+        //                    return;
+        //                }
+        //            }
+        //        }
+        //
+        //        // one final try to execute submission
+        //        if let Err(err) = self.transmitter.transmit(&items) {
+        //            error!("Gave up transmitting payload; exhausted retries: {}", err);
+        //        }
+        unimplemented!()
     }
 }
