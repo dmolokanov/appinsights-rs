@@ -1,18 +1,20 @@
-use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
-use log::{debug, error, info, trace, warn};
 use std::error::Error;
 use std::rc::Rc;
 use std::thread;
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
+use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
+use log::{debug, error, info, trace, warn};
+use sm::{sm, Event, State};
+
 use crate::channel::TelemetryChannel;
 use crate::contracts::Envelope;
 use crate::transmitter::{Transmission, Transmitter};
 use crate::Config;
 use crate::Result;
-use std::fmt::Display;
-use std::net::Shutdown;
+
+use worker::{Variant::*, *};
 
 // A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
@@ -28,7 +30,7 @@ enum Command {
     Close,
 }
 
-impl Display for Command {
+impl std::fmt::Display for Command {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let label = match self {
             Command::Flush => "flush",
@@ -101,10 +103,8 @@ impl TelemetryChannel for InMemoryChannel {
     }
 }
 
-use crate::channel::state::WorkerMachine::{Variant::*, *};
-use sm::{sm, Event, State};
 sm! {
-    WorkerMachine {
+    worker {
         InitialStates { Receiving }
 
         TimeoutExpired {
@@ -157,22 +157,27 @@ impl Worker {
         let mut state = Machine::new(Receiving).as_enum();
 
         let mut items: Vec<Envelope> = Default::default();
+        let mut retry = Retry::default();
 
         loop {
             state = match state {
                 InitialReceiving(m) => self.handle_receiving(m, &mut items),
                 ReceivingByItemsSentAndContinue(m) => self.handle_receiving(m, &mut items),
                 ReceivingByRetryExhausted(m) => self.handle_receiving(m, &mut items),
-                SendingByTimeoutExpired(m) => self.handle_sending(m, &mut items, &mut Retry::exponential()),
-                SendingByFlushRequested(m) => self.handle_sending(m, &mut items, &mut Retry::exponential()),
-                SendingByCloseRequested(m) => self.handle_sending(m, &mut items, &mut Retry::once().and_stop()),
+                SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
+                SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
+                SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry),
+                WaitingByRetryRequested(m) => self.handle_waiting(m, &mut items, &mut retry),
+                StoppedByItemsSentAndStop(_) => break,
+                StoppedByCloseRequested(_) => break,
                 StoppedByTerminateRequested(_) => break,
-                _ => unimplemented!(),
             }
         }
     }
 
     fn handle_receiving<E: Event>(&self, m: Machine<Receiving, E>, items: &mut Vec<Envelope>) -> Variant {
+        debug!("Receiving messages triggered by {:?}", m.trigger());
+
         let timeout = after(self.interval);
         items.clear();
 
@@ -211,6 +216,28 @@ impl Worker {
         }
     }
 
+    fn handle_sending_with_retry<E: Event>(
+        &self,
+        m: Machine<Sending, E>,
+        items: &mut Vec<Envelope>,
+        retry: &mut Retry,
+    ) -> Variant {
+        *retry = Retry::exponential();
+        self.handle_sending(m, items, retry)
+    }
+
+    fn handle_sending_once_and_terminate<E: Event>(
+        &self,
+        m: Machine<Sending, E>,
+        items: &mut Vec<Envelope>,
+        retry: &mut Retry,
+    ) -> Variant {
+        *retry = Retry::once();
+        let cloned = m.clone(); // clone here
+        self.handle_sending(m, items, retry);
+        cloned.transition(TerminateRequested).as_enum()
+    }
+
     fn handle_sending<E: Event>(
         &self,
         m: Machine<Sending, E>,
@@ -225,10 +252,6 @@ impl Worker {
 
         // attempt to send items
         if let Ok(transmission) = self.transmitter.transmit(&items) {
-            if retry.should_stop() {
-                return m.transition(TerminateRequested).as_enum();
-            }
-
             if transmission.is_success() {
                 return m.transition(ItemsSentAndContinue).as_enum();
             }
@@ -253,49 +276,70 @@ impl Worker {
             }
         }
 
-        if retry.should_stop() {
-            return m.transition(TerminateRequested).as_enum();
-        }
-
-        retry.next();
-
         return m.transition(RetryRequested).as_enum();
+    }
+
+    fn handle_waiting<E: Event>(
+        &self,
+        m: Machine<Waiting, E>,
+        items: &mut Vec<Envelope>,
+        retry: &mut Retry,
+    ) -> Variant {
+        debug!(
+            "Waiting for timeout {:?} or stop command triggered by {:?}",
+            retry,
+            m.state()
+        );
+        if let Some(timeout) = retry.next() {
+            // sleep until next sending attempt
+            let timeout = after(timeout);
+
+            // wait for either timeout expired or stop command received
+            loop {
+                select! {
+                    recv(self.command_receiver) -> command => {
+                        match command {
+                            Ok(command) => match command {
+                                Command::Flush => continue,
+                                Command::Terminate => return m.transition(TerminateRequested).as_enum(),
+                                Command::Close => return m.transition(CloseRequested).as_enum(),
+                            },
+                            Err(err) => {
+                                error!("commands channel closed: {}", err);
+                                return m.transition(TerminateRequested).as_enum()
+                            }
+                        }
+                    },
+                    recv(timeout) -> _ => {
+                        info!("Timeout expired");
+                        return m.transition(TimeoutExpired).as_enum() // todo
+                    },
+                }
+            }
+        } else {
+            return m.transition(RetryExhausted).as_enum();
+        }
     }
 }
 
-struct Retry(Vec<Duration>, bool);
+#[derive(Default, Debug)]
+struct Retry(Vec<Duration>);
 
 impl Retry {
     pub fn exponential() -> Self {
         let timeouts = vec![Duration::from_secs(16), Duration::from_secs(4)];
-        Self(timeouts, false)
+        Self(timeouts)
     }
 
     pub fn once() -> Self {
-        let timeouts = vec![];
-        Self(timeouts, false)
+        Self::default()
     }
 
     pub fn and_stop(self) -> Self {
-        Self(self.0, true)
+        Self(self.0)
     }
 
-    pub fn timeout(&self) -> Option<Duration> {
-        self.0.last().copied()
+    pub fn next(&mut self) -> Option<Duration> {
+        self.0.pop()
     }
-
-    pub fn should_stop(&self) -> bool {
-        self.1
-    }
-
-    pub fn next(&mut self) {
-        self.0.pop();
-    }
-
-    //    pub fn next(self) -> Self {
-    //        let mut timeouts = self.0;
-    //        timeouts.pop();
-    //
-    //        Retry(timeouts, self.1)
-    //    }
 }
