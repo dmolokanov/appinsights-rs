@@ -1,8 +1,9 @@
-mod old;
+mod command;
+mod memory;
+mod retry;
 mod state;
 
-//pub use old::InMemoryChannel;
-pub use state::InMemoryChannel;
+pub use memory::InMemoryChannel;
 
 use crate::contracts::Envelope;
 use crate::Result;
@@ -20,16 +21,4 @@ pub trait TelemetryChannel {
     /// It block current thread until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
     fn close(&mut self) -> Result<()>;
-}
-
-#[derive(Debug, PartialEq)]
-pub enum Command {
-    /// A command to tear down the submission, close internal channels. All pending telemetry items to be discarded.
-    Stop,
-
-    /// A command to force all pending telemetry items to be submitted.
-    Flush,
-
-    /// A command to tear down the submission, close internal channels and wait until all pending telemetry items to be sent.
-    Close,
 }

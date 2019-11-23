@@ -1,107 +1,15 @@
-use std::error::Error;
-use std::rc::Rc;
-use std::thread;
-use std::thread::JoinHandle;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use crossbeam_channel::{after, select, unbounded, Receiver, Sender};
-use log::{debug, error, info, trace, warn};
-use sm::{sm, Event, State};
+use crossbeam_channel::{after, select, Receiver};
+use log::{debug, error, info};
+use sm::{sm, Event};
 
-use crate::channel::TelemetryChannel;
 use crate::contracts::Envelope;
-use crate::transmitter::{Transmission, Transmitter};
-use crate::Config;
-use crate::Result;
+use crate::transmitter::Transmitter;
 
-use worker::{Variant::*, *};
-
-// A telemetry channel that stores events exclusively in memory.
-pub struct InMemoryChannel {
-    event_sender: Sender<Envelope>,
-    command_sender: Sender<Command>,
-    thread: Option<JoinHandle<()>>,
-}
-
-#[derive(Debug, Clone)]
-enum Command {
-    Flush,
-    Terminate,
-    Close,
-}
-
-impl std::fmt::Display for Command {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let label = match self {
-            Command::Flush => "flush",
-            Command::Terminate => "terminate",
-            Command::Close => "close",
-        };
-        write!(f, "{}", label)
-    }
-}
-
-impl InMemoryChannel {
-    /// Creates a new instance of in-memory channel and starts a submission routine.
-    pub fn new(config: &Config) -> Self {
-        let (event_sender, event_receiver) = unbounded::<Envelope>();
-        let (command_sender, command_receiver) = unbounded::<Command>();
-        let transmitter = Transmitter::new(config.endpoint());
-        let interval = config.interval();
-
-        let thread = thread::spawn(move || {
-            let worker = Worker {
-                transmitter,
-                event_receiver,
-                command_receiver,
-                interval,
-            };
-
-            worker.run();
-        });
-
-        Self {
-            event_sender,
-            command_sender,
-            thread: Some(thread),
-        }
-    }
-
-    fn shutdown(&mut self, command: Command) {
-        if let Some(thread) = self.thread.take() {
-            debug!("Sending {} message to worker", command);
-            if let Err(err) = self.command_sender.send(command.clone()) {
-                warn!("Unable to send {} command: {}", command, err);
-            }
-
-            debug!("Shutting down worker");
-            thread.join().unwrap();
-        }
-    }
-}
-
-impl Drop for InMemoryChannel {
-    fn drop(&mut self) {
-        self.shutdown(Command::Terminate);
-    }
-}
-
-impl TelemetryChannel for InMemoryChannel {
-    fn send(&self, envelop: Envelope) -> Result<()> {
-        trace!("Sending item to channel");
-        Ok(self.event_sender.send(envelop)?)
-    }
-
-    fn flush(&self) -> Result<()> {
-        trace!("Sending flush command to channel");
-        Ok(self.command_sender.send(Command::Flush)?)
-    }
-
-    fn close(&mut self) -> Result<()> {
-        self.shutdown(Command::Close);
-        Ok(())
-    }
-}
+use crate::channel::command::Command;
+use crate::channel::retry::Retry;
+use crate::channel::state::worker::{Variant::*, *};
 
 sm! {
     worker {
@@ -145,7 +53,7 @@ sm! {
     }
 }
 
-struct Worker {
+pub struct Worker {
     transmitter: Transmitter,
     event_receiver: Receiver<Envelope>,
     command_receiver: Receiver<Command>,
@@ -153,6 +61,20 @@ struct Worker {
 }
 
 impl Worker {
+    pub fn new(
+        transmitter: Transmitter,
+        event_receiver: Receiver<Envelope>,
+        command_receiver: Receiver<Command>,
+        interval: Duration,
+    ) -> Self {
+        Self {
+            transmitter,
+            event_receiver,
+            command_receiver,
+            interval,
+        }
+    }
+
     pub fn run(&self) {
         let mut state = Machine::new(Receiving).as_enum();
 
@@ -167,7 +89,7 @@ impl Worker {
                 SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
                 SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
                 SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry),
-                WaitingByRetryRequested(m) => self.handle_waiting(m, &mut items, &mut retry),
+                WaitingByRetryRequested(m) => self.handle_waiting(m, &mut retry),
                 StoppedByItemsSentAndStop(_) => break,
                 StoppedByCloseRequested(_) => break,
                 StoppedByTerminateRequested(_) => break,
@@ -209,7 +131,7 @@ impl Worker {
                     }
                 },
                 recv(timeout) -> _ => {
-                    info!("Timeout expired");
+                    debug!("Timeout expired");
                     return m.transition(TimeoutExpired).as_enum()
                 },
             }
@@ -223,7 +145,7 @@ impl Worker {
         retry: &mut Retry,
     ) -> Variant {
         *retry = Retry::exponential();
-        self.handle_sending(m, items, retry)
+        self.handle_sending(m, items)
     }
 
     fn handle_sending_once_and_terminate<E: Event>(
@@ -234,16 +156,11 @@ impl Worker {
     ) -> Variant {
         *retry = Retry::once();
         let cloned = m.clone(); // clone here
-        self.handle_sending(m, items, retry);
+        self.handle_sending(m, items);
         cloned.transition(TerminateRequested).as_enum()
     }
 
-    fn handle_sending<E: Event>(
-        &self,
-        m: Machine<Sending, E>,
-        items: &mut Vec<Envelope>,
-        retry: &mut Retry,
-    ) -> Variant {
+    fn handle_sending<E: Event>(&self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
         debug!(
             "Sending {} telemetry items triggered by {:?}",
             items.len(),
@@ -251,40 +168,44 @@ impl Worker {
         );
 
         // attempt to send items
-        if let Ok(transmission) = self.transmitter.transmit(&items) {
-            if transmission.is_success() {
-                return m.transition(ItemsSentAndContinue).as_enum();
-            }
+        match self.transmitter.transmit(&items) {
+            Ok(transmission) => {
+                info!(
+                    "Successfully sent {}/{} telemetry items",
+                    transmission.accepted(),
+                    transmission.received()
+                );
 
-            // make an attempt to re-send only if there are any items in the list that can be re-sent
-            if transmission.can_retry() {
-                *items = items
-                    .drain(..)
-                    .into_iter()
-                    .enumerate()
-                    .filter_map(|(i, envelope)| {
-                        if transmission.can_retry_item(i) {
-                            Some(envelope)
-                        } else {
-                            None
-                        }
-                    })
-                    .collect();
-                if items.is_empty() {
+                if transmission.is_success() {
                     return m.transition(ItemsSentAndContinue).as_enum();
                 }
+
+                // make an attempt to re-send only if there are any items in the list that can be re-sent
+                if transmission.can_retry() {
+                    *items = items
+                        .drain(..)
+                        .into_iter()
+                        .enumerate()
+                        .filter_map(|(i, envelope)| {
+                            if transmission.can_retry_item(i) {
+                                Some(envelope)
+                            } else {
+                                None
+                            }
+                        })
+                        .collect();
+                    if items.is_empty() {
+                        return m.transition(ItemsSentAndContinue).as_enum();
+                    }
+                }
             }
+            Err(err) => info!("Error occurred during sending telemetry items: {}", err),
         }
 
         return m.transition(RetryRequested).as_enum();
     }
 
-    fn handle_waiting<E: Event>(
-        &self,
-        m: Machine<Waiting, E>,
-        items: &mut Vec<Envelope>,
-        retry: &mut Retry,
-    ) -> Variant {
+    fn handle_waiting<E: Event>(&self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {
         debug!(
             "Waiting for timeout {:?} or stop command triggered by {:?}",
             retry,
@@ -311,7 +232,7 @@ impl Worker {
                         }
                     },
                     recv(timeout) -> _ => {
-                        info!("Timeout expired");
+                        debug!("Timeout expired");
                         return m.transition(TimeoutExpired).as_enum() // todo
                     },
                 }
@@ -319,27 +240,5 @@ impl Worker {
         } else {
             return m.transition(RetryExhausted).as_enum();
         }
-    }
-}
-
-#[derive(Default, Debug)]
-struct Retry(Vec<Duration>);
-
-impl Retry {
-    pub fn exponential() -> Self {
-        let timeouts = vec![Duration::from_secs(16), Duration::from_secs(4)];
-        Self(timeouts)
-    }
-
-    pub fn once() -> Self {
-        Self::default()
-    }
-
-    pub fn and_stop(self) -> Self {
-        Self(self.0)
-    }
-
-    pub fn next(&mut self) -> Option<Duration> {
-        self.0.pop()
     }
 }

@@ -1,8 +1,8 @@
-use crate::contracts::Envelope;
+use std::collections::BTreeSet;
+
 use chrono::{DateTime, Utc};
 use http::StatusCode;
 use serde::Deserialize;
-use std::collections::BTreeSet;
 
 #[derive(Debug)]
 pub struct Transmission {
@@ -10,6 +10,8 @@ pub struct Transmission {
     retry_after: Option<DateTime<Utc>>,
     can_retry_item_indices: Option<BTreeSet<usize>>,
     success: bool,
+    received: usize,
+    accepted: usize,
 }
 
 /// Describes the result of sending telemetry events to the server.
@@ -35,6 +37,8 @@ impl Transmission {
             retry_after,
             can_retry_item_indices,
             success,
+            received: response.items_received,
+            accepted: response.items_accepted,
         }
     }
 
@@ -64,33 +68,20 @@ impl Transmission {
         }
     }
 
-    //    /// Filters out those telemetry items that can be re-send back to the server.
-    //    pub fn retry_items(&self, mut items: Vec<Envelope>) -> Vec<Envelope> {
-    //        if self.status_code == StatusCode::PARTIAL_CONTENT {
-    //            let indices: BTreeSet<_> = self
-    //                .response
-    //                .errors
-    //                .iter()
-    //                .filter_map(|error| if error.can_retry() { Some(error.index) } else { None })
-    //                .collect();
-    //
-    //            items
-    //                .drain(..)
-    //                .into_iter()
-    //                .enumerate()
-    //                .filter_map(|(i, envelope)| if indices.contains(&i) { Some(envelope) } else { None })
-    //                .collect()
-    //        } else {
-    //            items
-    //        }
-    //    }
+    pub fn received(&self) -> usize {
+        self.received
+    }
+
+    pub fn accepted(&self) -> usize {
+        self.accepted
+    }
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransmissionResponse {
-    items_received: u32,
-    items_accepted: u32,
+    items_received: usize,
+    items_accepted: usize,
     errors: Vec<TransmissionItem>,
 }
 

@@ -6,7 +6,7 @@ use log::LevelFilter;
 use std::time::Duration;
 
 fn main() -> Result<(), Box<dyn Error>> {
-    env_logger::builder().filter_level(LevelFilter::Trace).init();
+    env_logger::builder().filter_level(LevelFilter::Info).init();
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
 
