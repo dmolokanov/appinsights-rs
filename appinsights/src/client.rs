@@ -6,7 +6,7 @@ use crate::channel::{InMemoryChannel, TelemetryChannel};
 use crate::context::TelemetryContext;
 use crate::contracts::Envelope;
 use crate::telemetry::*;
-use crate::Config;
+use crate::TelemetryConfig;
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
 pub struct TelemetryClient<C> {
@@ -18,13 +18,13 @@ pub struct TelemetryClient<C> {
 impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
     pub fn new(i_key: String) -> Self {
-        Self::from_config(Config::new(i_key))
+        Self::from_config(TelemetryConfig::new(i_key))
     }
 }
 
 impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client configured with specified configuration.
-    pub fn from_config(config: Config) -> Self {
+    pub fn from_config(config: TelemetryConfig) -> Self {
         Self {
             enabled: true,
             context: TelemetryContext::new(config.i_key().to_string()),

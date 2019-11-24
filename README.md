@@ -1,7 +1,7 @@
 # Application Insights for Rust
 [![build](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
 
-This project provides a Rust SDK for [Application Insights](http://azure.microsoft.com/en-us/services/application-insights/). Application Insights is an APM service that helps to monitor live applications. This Rust crate allows to send various kinds of telemetry information to the server to be visualized later on Azure Portal. 
+This project provides a Rust SDK for [Application Insights](http://azure.microsoft.com/en-us/services/application-insights/). Application Insights is an APM service that helps to monitor running applications. This Rust crate allows to send various kinds of telemetry information to the server to be visualized later on Azure Portal. 
 
 > :triangular_flag_on_post: **Disclaimer**  
 > This project is not an officially recognized Microsoft product and is not an endorsement of any future product offering from Microsoft.

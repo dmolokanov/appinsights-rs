@@ -1,8 +1,26 @@
 use std::time::Duration;
 
-/// Configuration data used to initialize a new [TelemetryClient](struct.TelemetryClient.html).
+/// Configuration data used to initialize a new [TelemetryClient](struct.TelemetryClient.html) with.
+///
+/// # Examples
+///
+/// Creating a telemetry client configuration with default settings
+/// ```rust
+/// # use appinsights::TelemetryConfig;
+/// let config = TelemetryConfig::new("<instrumentation key>".into());
+/// ```
+///
+/// Creating a telemetry client configuration with customg settings
+/// ```rust
+/// # use std::time::Duration;
+/// # use appinsights::TelemetryConfig;
+/// let config = TelemetryConfig::builder()
+///     .i_key("<instrumentation key>")
+///     .interval(Duration::from_secs(5))
+///     .build();
+/// ```
 #[derive(Debug, PartialEq)]
-pub struct Config {
+pub struct TelemetryConfig {
     /// Instrumentation key for the client.
     i_key: String,
 
@@ -13,42 +31,99 @@ pub struct Config {
     interval: Duration,
 }
 
-impl Config {
-    /// Creates a new configuration object with specified instrumentation key and default values.
+impl TelemetryConfig {
+    /// Creates a new telemetry configuration with specified instrumentation key and default values.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use std::time::Duration;
+    /// # use appinsights::TelemetryConfig;
+    /// let config = TelemetryConfig::new("<instrumentation key>".into());
+    ///
+    /// assert_eq!(config.i_key(), "<instrumentation key>");
+    /// assert_eq!(config.interval(), Duration::from_secs(2));
+    /// assert_eq!(config.endpoint(), "https://dc.services.visualstudio.com/v2/track");
+    /// ```
     pub fn new(i_key: String) -> Self {
-        Config::builder().with_i_key(i_key).build()
+        TelemetryConfig::builder().i_key(i_key).build()
     }
 
-    /// Creates a new configuration builder with default parameters.
-    pub fn builder() -> DefaultBuilder {
-        DefaultBuilder::default()
+    /// Creates a new telemetry configuration builder with default parameters.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use std::time::Duration;
+    /// # use appinsights::TelemetryConfig;
+    /// let config = TelemetryConfig::builder()
+    ///     .i_key("<another instrumentation key>")
+    ///     .interval(Duration::from_secs(5))
+    ///     .build();
+    ///
+    /// assert_eq!(config.i_key(), "<another instrumentation key>");
+    /// assert_eq!(config.interval(), Duration::from_secs(5));
+    /// ```
+    pub fn builder() -> DefaultTelemetryConfigBuilder {
+        DefaultTelemetryConfigBuilder::default()
     }
 
     /// Returns an instrumentation key for the client.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use appinsights::TelemetryConfig;
+    /// let config = TelemetryConfig::new("<instrumentation key>".into());
+    ///
+    /// assert_eq!(config.i_key(), "<instrumentation key>");
+    /// ```
     pub fn i_key(&self) -> &str {
         &self.i_key
     }
 
     /// Returns endpoint URL where data will be sent.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use appinsights::TelemetryConfig;
+    /// let config = TelemetryConfig::new("<instrumentation key>".into());
+    ///
+    /// assert_eq!(config.endpoint(), "https://dc.services.visualstudio.com/v2/track");
+    /// ```
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
 
     // Returns maximum time to wait until send a batch of telemetry.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use std::time::Duration;
+    /// # use appinsights::TelemetryConfig;
+    /// let config = TelemetryConfig::new("<instrumentation key>".into());
+    ///
+    /// assert_eq!(config.interval(), Duration::from_secs(2));
+    /// ```
     pub fn interval(&self) -> Duration {
         self.interval
     }
 }
 
+/// Constructs a new instance of a [TelemetryConfig](struct.TelemetryConfig.html) with required
+/// instrumentation key and custom settings.
 #[derive(Default)]
-pub struct DefaultBuilder;
+pub struct DefaultTelemetryConfigBuilder;
 
-impl DefaultBuilder {
-    pub fn with_i_key<I>(self, i_key: I) -> Builder
+impl DefaultTelemetryConfigBuilder {
+    /// Initializes a builder with an instrumentation key for the client.
+    pub fn i_key<I>(self, i_key: I) -> TelemetryConfigBuilder
     where
         I: Into<String>,
     {
-        Builder {
+        TelemetryConfigBuilder {
             i_key: i_key.into(),
             endpoint: "https://dc.services.visualstudio.com/v2/track".into(),
             interval: Duration::from_secs(2),
@@ -56,14 +131,16 @@ impl DefaultBuilder {
     }
 }
 
-pub struct Builder {
+/// Constructs a new instance of a [TelemetryConfig](struct.TelemetryConfig.html) with custom settings.
+pub struct TelemetryConfigBuilder {
     i_key: String,
     endpoint: String,
     interval: Duration,
 }
 
-impl Builder {
-    pub fn with_i_key<I>(mut self, i_key: I) -> Self
+impl TelemetryConfigBuilder {
+    /// Initializes a builder with an instrumentation key for the client.
+    pub fn i_key<I>(mut self, i_key: I) -> Self
     where
         I: Into<String>,
     {
@@ -71,7 +148,8 @@ impl Builder {
         self
     }
 
-    pub fn with_endpoint<E>(mut self, endpoint: E) -> Self
+    /// Initializes a builder with an endpoint URL where data will be sent.
+    pub fn endpoint<E>(mut self, endpoint: E) -> Self
     where
         E: Into<String>,
     {
@@ -79,27 +157,18 @@ impl Builder {
         self
     }
 
-    pub fn with_interval(mut self, interval: Duration) -> Self {
+    /// Initializes a builder with a maximum time to wait until send a batch of telemetry.
+    pub fn interval(mut self, interval: Duration) -> Self {
         self.interval = interval;
         self
     }
 
-    pub fn build(self) -> Config {
-        Config {
+    pub fn build(self) -> TelemetryConfig {
+        TelemetryConfig {
             i_key: self.i_key,
             endpoint: self.endpoint,
             interval: self.interval,
         }
-    }
-
-    /// Returns endpoint URL where data will be sent.
-    pub fn endpoint(&self) -> &str {
-        &self.endpoint
-    }
-
-    // Returns maximum time to wait until send a batch of telemetry.
-    pub fn interval(&self) -> Duration {
-        self.interval
     }
 }
 
@@ -109,10 +178,10 @@ mod tests {
 
     #[test]
     fn it_creates_config_with_default_values() {
-        let config = Config::new("instrumentation key".into());
+        let config = TelemetryConfig::new("instrumentation key".into());
 
         assert_eq!(
-            Config {
+            TelemetryConfig {
                 i_key: "instrumentation key".into(),
                 endpoint: "https://dc.services.visualstudio.com/v2/track".into(),
                 interval: Duration::from_secs(2)
@@ -123,14 +192,14 @@ mod tests {
 
     #[test]
     fn it_builds_config_with_custom_parameters() {
-        let config = Config::builder()
-            .with_i_key("instrumentation key")
-            .with_endpoint("https://google.com")
-            .with_interval(Duration::from_micros(100))
+        let config = TelemetryConfig::builder()
+            .i_key("instrumentation key")
+            .endpoint("https://google.com")
+            .interval(Duration::from_micros(100))
             .build();
 
         assert_eq!(
-            Config {
+            TelemetryConfig {
                 i_key: "instrumentation key".into(),
                 endpoint: "https://google.com".into(),
                 interval: Duration::from_micros(100)

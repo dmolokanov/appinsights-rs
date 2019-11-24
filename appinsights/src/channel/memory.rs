@@ -9,7 +9,7 @@ use crate::channel::state::Worker;
 use crate::channel::TelemetryChannel;
 use crate::contracts::Envelope;
 use crate::transmitter::Transmitter;
-use crate::Config;
+use crate::TelemetryConfig;
 
 // A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
@@ -20,7 +20,7 @@ pub struct InMemoryChannel {
 
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
-    pub fn new(config: &Config) -> Self {
+    pub fn new(config: &TelemetryConfig) -> Self {
         let (event_sender, event_receiver) = unbounded::<Envelope>();
         let (command_sender, command_receiver) = unbounded::<Command>();
 
