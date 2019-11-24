@@ -14,17 +14,51 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v1
-    - name: Environment check
+    - name: checkout branch
+      uses: actions/checkout@master
+
+    - name: install stable rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        override: true
+
+    - name: environment check
       run: |
         rustc --version
         cargo fmt --version
         cargo clippy --version
-    - name: Format
-      run: cargo fmt
-    - name: Style check
-      run: cargo clippy
-    - name: Build
-      run: cargo build
-    - name: Run tests
-      run: cargo test
+
+    - name: clippy
+      uses: actions-rs/cargo@v1
+      with:
+        command: clippy
+        args: --all --bins --examples
+
+    - name: check
+      uses: actions-rs/cargo@v1
+      with:
+        command: check
+        args: --all --bins --examples
+
+    - name: tests
+      uses: actions-rs/cargo@v1
+      with:
+        command: test
+        args: --all
+
+  format:
+    - name: checkout branch
+      uses: actions/checkout@master
+
+    - uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
+        components: rustfmt
+
+    - name: fmt
+      run: cargo fmt --all -- --check
+
+    - name: docs
+      run: cargo doc
