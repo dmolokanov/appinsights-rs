@@ -1,8 +1,7 @@
 # Application Insights for Rust
-[![Build Status](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
-[![Latest Version](https://img.shields.io/crates/v/appinsights.svg)](https://crates.io/crates/anyhow)
-[![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/appinsights)
-
+[![build-status](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
+[![crate-status]( https://img.shields.io/crates/v/appinsights.svg)](https://crates.io/crates/appinsights)
+[![docs-status](https://docs.rs/appinsights/badge.svg)](https://docs.rs/appinsights)
 
 This project provides a Rust SDK for [Application Insights](http://azure.microsoft.com/en-us/services/application-insights/). Application Insights is an APM service that helps to monitor running applications. This Rust crate allows to send various kinds of telemetry information to the server to be visualized later on Azure Portal. 
 
@@ -12,7 +11,7 @@ This project provides a Rust SDK for [Application Insights](http://azure.microso
 > _Microsoft and Azure are registered trademarks of Microsoft Corporation._
 
 ## Installation
-```sh
+```bash
 $ cargo add appinsights
 ```
 or just add this to your `Cargo.toml`:
