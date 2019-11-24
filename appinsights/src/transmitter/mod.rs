@@ -1,5 +1,5 @@
+mod client;
 mod transmission;
-mod transmitter;
 
+pub use client::*;
 pub use transmission::*;
-pub use transmitter::*;

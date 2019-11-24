@@ -77,6 +77,7 @@ impl Transmission {
     }
 }
 
+// TODO move it to contracts
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransmissionResponse {

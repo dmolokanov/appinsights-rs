@@ -184,7 +184,6 @@ impl Worker {
                 if transmission.can_retry() {
                     *items = items
                         .drain(..)
-                        .into_iter()
                         .enumerate()
                         .filter_map(|(i, envelope)| {
                             if transmission.can_retry_item(i) {
@@ -202,7 +201,7 @@ impl Worker {
             Err(err) => info!("Error occurred during sending telemetry items: {}", err),
         }
 
-        return m.transition(RetryRequested).as_enum();
+        m.transition(RetryRequested).as_enum()
     }
 
     fn handle_waiting<E: Event>(&self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {
@@ -233,12 +232,12 @@ impl Worker {
                     },
                     recv(timeout) -> _ => {
                         debug!("Timeout expired");
-                        return m.transition(TimeoutExpired).as_enum() // todo
+                        return m.transition(TimeoutExpired).as_enum()
                     },
                 }
             }
         } else {
-            return m.transition(RetryExhausted).as_enum();
+            m.transition(RetryExhausted).as_enum()
         }
     }
 }

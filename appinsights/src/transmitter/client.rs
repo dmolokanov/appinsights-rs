@@ -20,7 +20,7 @@ impl Transmitter {
         }
     }
 
-    pub fn transmit(&self, items: &Vec<Envelope>) -> Result<Transmission> {
+    pub fn transmit(&self, items: &[Envelope]) -> Result<Transmission> {
         let payload = serde_json::to_string(items)?;
 
         let response = self.client.post(&self.url).body(payload).send()?;
@@ -38,7 +38,7 @@ impl Transmitter {
     }
 
     //    use http::StatusCode;
-    //    pub fn transmit(&self, items: &Vec<Envelope>) -> Result<Transmission> {
+    //    pub fn transmit(&self, items: &[Envelope]) -> Result<Transmission> {
     //        std::thread::sleep(std::time::Duration::from_secs(1));
     //
     //        let count = items.len();
@@ -52,7 +52,7 @@ impl Transmitter {
     //    }
 
     //    use http::StatusCode;
-    //    pub fn transmit(&self, items: &Vec<Envelope>) -> Result<Transmission> {
+    //    pub fn transmit(&self, items: &[Envelope]) -> Result<Transmission> {
     //        std::thread::sleep(std::time::Duration::from_secs(1));
     //
     //        Ok(Transmission::new(
