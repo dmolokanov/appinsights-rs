@@ -1,5 +1,8 @@
 # Application Insights for Rust
-[![build](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
+[![Build Status](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
+[![Latest Version](https://img.shields.io/crates/v/appinsights.svg)](https://crates.io/crates/anyhow)
+[![Rust Documentation](https://img.shields.io/badge/api-rustdoc-blue.svg)](https://docs.rs/appinsights)
+
 
 This project provides a Rust SDK for [Application Insights](http://azure.microsoft.com/en-us/services/application-insights/). Application Insights is an APM service that helps to monitor running applications. This Rust crate allows to send various kinds of telemetry information to the server to be visualized later on Azure Portal. 
 
@@ -21,7 +24,7 @@ appinisghts = "0.1"
 
 ## Usage
 
-To start tracking telemetry for your application first thing you need to do is to obtain an [Instrumentation Key](https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-new-resource) and initialize TelemetryClient with it.
+To start tracking telemetry for your application first thing you need to do is to obtain an [Instrumentation Key](https://docs.microsoft.com/en-us/azure/azure-monitor/app/create-new-resource) and initialize `TelemetryClient` with it.
 
 This client will be used to send all telemetry data to Application Insights. This SDK doesn't collect any telemetry automatically, so this client should be used everywhere in the code to report health information about an application. 
 
@@ -36,4 +39,27 @@ fn main() {
     client.track_event("application started");
 }
 ```
+If you need more control over the client's behavior, you can create a new instance of `TelemetryConfig` and initilize a `TelemetryClient` with it.
 
+```rust
+use std::time::Duration;
+use appinsights::{TelemetryClient, TelemetryConfig};
+use appinsights::telemetry::SeverityLevel;
+
+fn main() {
+    // configure telemetry config with custom settings
+    let config = TelemetryConfig::builder()
+        // provide an instrumentation key for a client
+        .i_key("<instrumentation key>")
+        // set a new maximum time to wait until data will be sent to the server
+        .interval(Duration::from_secs(5))
+        // construct a new instance of telemetry configuration
+        .build();
+
+    // configure telemetry client with default settings
+    let client = TelemetryClient::from_config(config);
+
+    // send trace telemetry to the Application Insights server
+    client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
+}
+```
