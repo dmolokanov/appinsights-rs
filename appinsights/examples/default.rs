@@ -1,11 +1,10 @@
 use std::env;
-use std::error::Error;
+use std::time::Duration;
 
 use appinsights::{TelemetryChannel, TelemetryClient};
 use log::LevelFilter;
-use std::time::Duration;
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() {
     env_logger::builder().filter_level(LevelFilter::Info).init();
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
@@ -13,14 +12,13 @@ fn main() -> Result<(), Box<dyn Error>> {
     let client = TelemetryClient::new(i_key);
 
     for x in 1..25 {
-        client.track_event(format!("Client connected: {}", x))?;
+        client.track_event(format!("Client connected: {}", x));
         std::thread::sleep(Duration::from_millis(300));
 
         if x == 2 {
-            client.channel().flush()?;
+            client.channel().flush();
         }
     }
 
-    client.close_channel()?;
-    Ok(())
+    client.close_channel();
 }
