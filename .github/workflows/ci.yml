@@ -48,6 +48,9 @@ jobs:
         args: --all
 
   format:
+    runs-on: ubuntu-latest
+
+    steps:
     - name: checkout branch
       uses: actions/checkout@master
 
@@ -60,5 +63,5 @@ jobs:
     - name: fmt
       run: cargo fmt --all -- --check
 
-    - name: docs
-      run: cargo doc
+#    - name: docs
+#      run: cargo doc
