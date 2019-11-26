@@ -6,6 +6,23 @@ use crate::telemetry::{ContextTags, Properties, Telemetry};
 use crate::time;
 
 /// Metric telemetry item that represents a single data point.
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{Telemetry, MetricTelemetry};
+///
+/// // create a telemetry item
+/// let mut telemetry = MetricTelemetry::new("temp_sensor".to_string(), 55.0);
+///
+/// // assign custom properties and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "external_device".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct MetricTelemetry {
     /// Metric name.
     name: String,

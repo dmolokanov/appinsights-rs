@@ -6,7 +6,26 @@ use crate::telemetry::{ContextTags, Properties, Stats, Telemetry};
 use crate::time;
 
 /// Aggregated metric telemetry item that represents an aggregation of data points over time.
-/// There values can be calculated by the caller or with add_data function.
+/// There values can be calculated by the caller or with [add_data](struct.Stats.html#method.add_data)
+/// or [add_sampled_data](struct.Stats.html#method.add_sampled_data) method.
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{Telemetry, AggregateMetricTelemetry};
+///
+/// // create a telemetry item
+/// let mut telemetry = AggregateMetricTelemetry::new("temp_sensor");
+/// telemetry.stats_mut().add_data(&[50.0, 53.1, 56.4]);
+///
+/// // assign custom properties and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "external_device".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct AggregateMetricTelemetry {
     /// Metric name.
     name: String,

@@ -6,8 +6,8 @@ use std::ops::{Deref, DerefMut};
 pub struct ContextTags(BTreeMap<String, String>);
 
 impl ContextTags {
-    // Combines all tags from two bags. It can override some tags with values found
-    // in the second tags bag.
+    /// Combines all tags from two bags. It can override some tags with values found
+    /// in the second tags bag.
     pub fn combine(a: ContextTags, b: ContextTags) -> Self {
         let items = a.0.into_iter().chain(b.0).collect();
         Self(items)

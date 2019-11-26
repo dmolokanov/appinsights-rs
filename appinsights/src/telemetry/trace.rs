@@ -2,15 +2,34 @@ use chrono::{DateTime, SecondsFormat, Utc};
 
 use crate::context::TelemetryContext;
 use crate::contracts::{SeverityLevel as ContractsSeverityLevel, *};
-use crate::telemetry::{ContextTags, Properties, Telemetry};
+use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time;
 
-// Represents printf-like trace statements that can be text searched.
+/// Represents printf-like trace statements that can be text searched. A trace telemetry items have
+/// a message and an associated [`SeverityLevel`](enum.SeverityLevel.html).
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{TraceTelemetry, SeverityLevel, Telemetry};
+///
+/// // create a telemetry item
+/// let mut telemetry = TraceTelemetry::new("Starting data processing".to_string(), SeverityLevel::Information);
+///
+/// // attach custom properties, measurements and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+/// telemetry.measurements_mut().insert("records_count".to_string(), 115.0);
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct TraceTelemetry {
     /// A trace message.
     message: String,
 
-    // Severity level.
+    /// Severity level.
     severity: SeverityLevel,
 
     /// The time stamp when this telemetry was measured.
@@ -21,6 +40,9 @@ pub struct TraceTelemetry {
 
     /// Telemetry context containing extra, optional tags.
     tags: ContextTags,
+
+    /// Custom measurements.
+    measurements: Measurements,
 }
 
 impl TraceTelemetry {
@@ -32,7 +54,18 @@ impl TraceTelemetry {
             timestamp: time::now(),
             properties: Default::default(),
             tags: Default::default(),
+            measurements: Default::default(),
         }
+    }
+
+    /// Returns custom measurements to submit with the telemetry item.
+    pub fn measurements(&self) -> &Measurements {
+        &self.measurements
+    }
+
+    /// Returns mutable reference to custom measurements.
+    pub fn measurements_mut(&mut self) -> &mut Measurements {
+        &mut self.measurements
     }
 }
 
@@ -69,6 +102,7 @@ impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
             MessageDataBuilder::new(telemetry.message)
                 .severity_level(telemetry.severity)
                 .properties(Properties::combine(context.properties, telemetry.properties))
+                .measurements(telemetry.measurements)
                 .build(),
         );
 
@@ -85,10 +119,19 @@ impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
 
 /// Defines the level of severity for the event.
 pub enum SeverityLevel {
+    /// Verbose severity level.
     Verbose,
+
+    /// Information severity level.
     Information,
+
+    /// Warning severity level.
     Warning,
+
+    /// Error severity level.
     Error,
+
+    /// Critical severity level.
     Critical,
 }
 
@@ -122,6 +165,7 @@ mod tests {
 
         let mut telemetry = TraceTelemetry::new("message".into(), SeverityLevel::Information);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
+        telemetry.measurements_mut().insert("value".into(), 5.0);
 
         let envelop = Envelope::from((context, telemetry));
 
@@ -137,6 +181,11 @@ mod tests {
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
+                })
+                .measurements({
+                    let mut measurements = BTreeMap::default();
+                    measurements.insert("value".into(), 5.0);
+                    measurements
                 })
                 .build(),
         )))
@@ -168,6 +217,7 @@ mod tests {
             MessageDataBuilder::new("message")
                 .severity_level(crate::contracts::SeverityLevel::Information)
                 .properties(BTreeMap::default())
+                .measurements(BTreeMap::default())
                 .build(),
         )))
         .i_key("instrumentation")

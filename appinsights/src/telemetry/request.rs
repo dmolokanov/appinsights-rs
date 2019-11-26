@@ -10,8 +10,33 @@ use crate::time::{self, Duration};
 use crate::uuid::{self, Uuid};
 use std::str::FromStr;
 
-// Represents completion of an external request to the application and contains a summary of that
-// request execution and results.
+/// Represents completion of an external request to the application and contains a summary of that
+/// request execution and results. This struct is focused on HTTP requests.
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{Telemetry, RequestTelemetry};
+/// use http::{Method, Uri};
+/// use std::time::Duration;
+///
+/// // create a telemetry item
+/// let mut telemetry = RequestTelemetry::new(
+///     Method::GET,
+///     "https://api.github.com/dmolokanov/appinsights-rs".parse::<Uri>().unwrap(),
+///     Duration::from_millis(182),
+///     "200".to_string()
+/// );
+///
+/// // attach custom properties, measurements and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+/// telemetry.measurements_mut().insert("body_size".to_string(), 115.0);
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct RequestTelemetry {
     /// Identifier of a request call instance.
     /// It is used for correlation between request and other telemetry items.
@@ -83,7 +108,7 @@ impl RequestTelemetry {
         &mut self.measurements
     }
 
-    // Returns an indication of successful or unsuccessful call.
+    /// Returns an indication of successful or unsuccessful call.
     pub fn is_success(&self) -> bool {
         if let Ok(response_code) = StatusCode::from_str(&self.response_code) {
             response_code < StatusCode::BAD_REQUEST || response_code == StatusCode::UNAUTHORIZED

@@ -9,6 +9,31 @@ use crate::time::{self, Duration};
 use crate::uuid::Uuid;
 
 /// Represents interactions of the monitored component with a remote component/service like SQL or an HTTP endpoint.
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{Telemetry, RemoteDependencyTelemetry};
+/// use std::time::Duration;
+///
+/// // create a telemetry item
+/// let mut telemetry = RemoteDependencyTelemetry::new(
+///     "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
+///     "HTTP".into(),
+///     Duration::from_secs(2),
+///     "api.github.com".to_string(),
+///     true,
+/// );
+///
+/// // attach custom properties, measurements and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+/// telemetry.measurements_mut().insert("body_size".to_string(), 115.0);
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct RemoteDependencyTelemetry {
     /// Identifier of a dependency call instance.
     /// It is used for correlation with the request telemetry item corresponding to this dependency call.

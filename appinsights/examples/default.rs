@@ -1,7 +1,7 @@
 use std::env;
 use std::time::Duration;
 
-use appinsights::{TelemetryChannel, TelemetryClient};
+use appinsights::TelemetryClient;
 use log::LevelFilter;
 
 fn main() {
@@ -11,12 +11,12 @@ fn main() {
 
     let client = TelemetryClient::new(i_key);
 
-    for x in 1..25 {
+    for x in 1..=25 {
         client.track_event(format!("Client connected: {}", x));
         std::thread::sleep(Duration::from_millis(300));
 
         if x == 2 {
-            client.channel().flush();
+            client.flush_channel();
         }
     }
 

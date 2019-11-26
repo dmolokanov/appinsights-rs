@@ -6,8 +6,8 @@ use std::ops::{Deref, DerefMut};
 pub struct Properties(BTreeMap<String, String>);
 
 impl Properties {
-    // Combines all properties from two objects. It can override some properties with values found
-    // in the second properties bag.
+    /// Combines all properties from two objects. It can override some properties with values found
+    /// in the second properties bag.
     pub fn combine(a: Properties, b: Properties) -> Self {
         let items = a.0.into_iter().chain(b.0).collect();
         Self(items)

@@ -1,3 +1,4 @@
+//! Module for Application Insights telemetry items.
 mod availability;
 mod event;
 mod exception;

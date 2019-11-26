@@ -6,6 +6,24 @@ use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time;
 
 /// Represents structured event records.
+///
+/// # Examples
+/// ```rust, no_run
+/// # use appinsights::TelemetryClient;
+/// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+/// use appinsights::telemetry::{Telemetry, EventTelemetry};
+///
+/// // create a telemetry item
+/// let mut telemetry = EventTelemetry::new("Starting data processing".to_string());
+///
+/// // attach custom properties, measurements and context tags
+/// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
+/// telemetry.tags_mut().insert("os_version".to_string(), "linux x86_64".to_string());
+/// telemetry.measurements_mut().insert("records_count".to_string(), 115.0);
+///
+/// // submit telemetry item to server
+/// client.track(telemetry);
+/// ```
 pub struct EventTelemetry {
     /// Event name.
     name: String,

@@ -54,7 +54,8 @@ jobs:
     - name: checkout branch
       uses: actions/checkout@master
 
-    - uses: actions-rs/toolchain@v1
+    - name: install rustfmt
+      uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
         profile: minimal

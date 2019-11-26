@@ -19,7 +19,7 @@ pub struct Stats {
 
 impl Stats {
     /// Adds data points to the aggregate totals included in this telemetry item.
-    /// This can be used for all the data at once or incrementally.  Calculates
+    /// This can be used for all the data at once or incrementally. Calculates
     /// min, max, sum, count, and std_dev (by way of variance).
     pub fn add_data(&mut self, values: &[f64]) {
         let variance_sum = if self.std_dev != 0.0 {
@@ -35,10 +35,10 @@ impl Stats {
         }
     }
 
-    // Adds sampled data points to the aggregate totals included in this telemetry item.
-    // This can be used for all the data at once or incrementally. Differs from add_data
-    // in how it calculates standard deviation, and should not be used interchangeably
-    // with add_data.
+    /// Adds sampled data points to the aggregate totals included in this telemetry item.
+    /// This can be used for all the data at once or incrementally. Differs from [add_data](#method.add_data)
+    /// in how it calculates standard deviation, and should not be used interchangeably
+    /// with [add_data](#method.add_data)
     pub fn add_sampled_data(&mut self, values: &[f64]) {
         let variance_sum = if self.std_dev != 0.0 {
             self.std_dev * self.std_dev * self.count as f64

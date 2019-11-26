@@ -1,13 +1,14 @@
+//! Module for telemetry client configuration.
 use std::time::Duration;
 
-/// Configuration data used to initialize a new [TelemetryClient](struct.TelemetryClient.html) with.
+/// Configuration data used to initialize a new [`TelemetryClient`](../struct.TelemetryClient.html) with.
 ///
 /// # Examples
 ///
 /// Creating a telemetry client configuration with default settings
 /// ```rust
 /// # use appinsights::TelemetryConfig;
-/// let config = TelemetryConfig::new("<instrumentation key>".into());
+/// let config = TelemetryConfig::new("<instrumentation key>".to_string());
 /// ```
 ///
 /// Creating a telemetry client configuration with customg settings
@@ -33,86 +34,32 @@ pub struct TelemetryConfig {
 
 impl TelemetryConfig {
     /// Creates a new telemetry configuration with specified instrumentation key and default values.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use std::time::Duration;
-    /// # use appinsights::TelemetryConfig;
-    /// let config = TelemetryConfig::new("<instrumentation key>".into());
-    ///
-    /// assert_eq!(config.i_key(), "<instrumentation key>");
-    /// assert_eq!(config.interval(), Duration::from_secs(2));
-    /// assert_eq!(config.endpoint(), "https://dc.services.visualstudio.com/v2/track");
-    /// ```
     pub fn new(i_key: String) -> Self {
         TelemetryConfig::builder().i_key(i_key).build()
     }
 
     /// Creates a new telemetry configuration builder with default parameters.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use std::time::Duration;
-    /// # use appinsights::TelemetryConfig;
-    /// let config = TelemetryConfig::builder()
-    ///     .i_key("<another instrumentation key>")
-    ///     .interval(Duration::from_secs(5))
-    ///     .build();
-    ///
-    /// assert_eq!(config.i_key(), "<another instrumentation key>");
-    /// assert_eq!(config.interval(), Duration::from_secs(5));
-    /// ```
     pub fn builder() -> DefaultTelemetryConfigBuilder {
         DefaultTelemetryConfigBuilder::default()
     }
 
     /// Returns an instrumentation key for the client.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use appinsights::TelemetryConfig;
-    /// let config = TelemetryConfig::new("<instrumentation key>".into());
-    ///
-    /// assert_eq!(config.i_key(), "<instrumentation key>");
-    /// ```
     pub fn i_key(&self) -> &str {
         &self.i_key
     }
 
     /// Returns endpoint URL where data will be sent.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use appinsights::TelemetryConfig;
-    /// let config = TelemetryConfig::new("<instrumentation key>".into());
-    ///
-    /// assert_eq!(config.endpoint(), "https://dc.services.visualstudio.com/v2/track");
-    /// ```
     pub fn endpoint(&self) -> &str {
         &self.endpoint
     }
 
-    // Returns maximum time to wait until send a batch of telemetry.
-    ///
-    /// # Examples
-    ///
-    /// ```rust
-    /// # use std::time::Duration;
-    /// # use appinsights::TelemetryConfig;
-    /// let config = TelemetryConfig::new("<instrumentation key>".into());
-    ///
-    /// assert_eq!(config.interval(), Duration::from_secs(2));
-    /// ```
+    /// Returns maximum time to wait until send a batch of telemetry.
     pub fn interval(&self) -> Duration {
         self.interval
     }
 }
 
-/// Constructs a new instance of a [TelemetryConfig](struct.TelemetryConfig.html) with required
+/// Constructs a new instance of a [`TelemetryConfig`](struct.TelemetryConfig.html) with required
 /// instrumentation key and custom settings.
 #[derive(Default)]
 pub struct DefaultTelemetryConfigBuilder;
@@ -131,7 +78,7 @@ impl DefaultTelemetryConfigBuilder {
     }
 }
 
-/// Constructs a new instance of a [TelemetryConfig](struct.TelemetryConfig.html) with custom settings.
+/// Constructs a new instance of a [`TelemetryConfig`](struct.TelemetryConfig.html) with custom settings.
 pub struct TelemetryConfigBuilder {
     i_key: String,
     endpoint: String,
@@ -163,6 +110,7 @@ impl TelemetryConfigBuilder {
         self
     }
 
+    /// Constructs a new instance of a [`TelemetryConfig`](struct.TelemetryConfig.html) with custom settings.
     pub fn build(self) -> TelemetryConfig {
         TelemetryConfig {
             i_key: self.i_key,
