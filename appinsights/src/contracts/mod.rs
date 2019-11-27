@@ -40,6 +40,3 @@ pub use remotedependencydata::*;
 pub use requestdata::*;
 pub use severitylevel::*;
 pub use stackframe::*;
-
-#[cfg(test)]
-mod tests;

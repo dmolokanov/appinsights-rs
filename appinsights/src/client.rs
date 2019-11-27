@@ -264,11 +264,9 @@ impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient<InMemoryChann
 mod tests {
     use std::cell::RefCell;
 
-    use chrono::{DateTime, SecondsFormat, Utc};
+    use chrono::{DateTime, Utc};
 
     use super::*;
-    use crate::contracts::EnvelopeBuilder;
-    use crate::time;
 
     #[test]
     fn it_enabled_by_default() {
@@ -345,7 +343,7 @@ mod tests {
 
     impl From<(TelemetryContext, TestTelemetry)> for Envelope {
         fn from((_, _): (TelemetryContext, TestTelemetry)) -> Self {
-            EnvelopeBuilder::new("test", time::now().to_rfc3339_opts(SecondsFormat::Millis, true)).build()
+            Envelope::default()
         }
     }
 

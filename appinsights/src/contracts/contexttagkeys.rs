@@ -69,7 +69,7 @@ pub struct ContextTagKeysBuilder {
 }
 
 impl ContextTagKeysBuilder {
-    /// Creates a new [ContextTagKeysBuilder](trait.ContextTagKeysBuilder.html) instance with default values set by the schema.
+    /// Creates a new [ContextTagKeys](struct.ContextTagKeys.html) instance with default values set by the schema.
     pub fn new() -> Self {
         Self {
             application_version: Some(String::from("ai.application.ver")),
@@ -269,7 +269,7 @@ impl ContextTagKeysBuilder {
         self
     }
 
-    /// Creates a new [ContextTagKeys](trait.ContextTagKeys.html) instance with values from [ContextTagKeysBuilder](trait.ContextTagKeysBuilder.html).
+    /// Creates a new [ContextTagKeys](trait.ContextTagKeys.html) instance with values from [ContextTagKeys](struct.ContextTagKeys.html).
     pub fn build(&self) -> ContextTagKeys {
         ContextTagKeys {
             application_version: self.application_version.clone(),

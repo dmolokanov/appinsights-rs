@@ -95,28 +95,27 @@ impl Telemetry for AggregateMetricTelemetry {
 
 impl From<(TelemetryContext, AggregateMetricTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, AggregateMetricTelemetry)) -> Self {
-        let data_point = DataPointBuilder::new(telemetry.name, telemetry.stats.value)
-            .count(telemetry.stats.count)
-            .kind(DataPointType::Aggregation)
-            .min(telemetry.stats.min)
-            .max(telemetry.stats.max)
-            .std_dev(telemetry.stats.std_dev)
-            .build();
-
-        let data = Data::MetricData(
-            MetricDataBuilder::new(data_point)
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .build(),
-        );
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.Metric".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::MetricData(MetricData {
+                metrics: DataPoint {
+                    name: telemetry.name,
+                    kind: Some(DataPointType::Aggregation),
+                    value: telemetry.stats.value,
+                    count: Some(telemetry.stats.count),
+                    min: Some(telemetry.stats.min),
+                    max: Some(telemetry.stats.max),
+                    std_dev: Some(telemetry.stats.std_dev),
+                    ..DataPoint::default()
+                },
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                ..MetricData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -143,31 +142,32 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Metric",
-            "2019-01-02T03:04:05.100Z",
-        )
-        .data(Base::Data(Data::MetricData(
-            MetricDataBuilder::new(
-                DataPointBuilder::new("test", 50)
-                    .std_dev(2)
-                    .min(7)
-                    .max(13)
-                    .count(5)
-                    .kind(DataPointType::Aggregation)
-                    .build(),
-            )
-            .properties({
-                let mut properties = BTreeMap::default();
-                properties.insert("test".into(), "ok".into());
-                properties.insert("no-write".into(), "ok".into());
-                properties
-            })
-            .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Metric".into(),
+            time: "2019-01-02T03:04:05.100Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::MetricData(MetricData {
+                metrics: DataPoint {
+                    name: "test".into(),
+                    kind: Some(DataPointType::Aggregation),
+                    value: 50.0,
+                    count: Some(5),
+                    min: Some(7.0),
+                    max: Some(13.0),
+                    std_dev: Some(2.0),
+                    ..DataPoint::default()
+                },
+                properties: Some({
+                    let mut properties = BTreeMap::default();
+                    properties.insert("test".into(), "ok".into());
+                    properties.insert("no-write".into(), "ok".into());
+                    properties
+                }),
+                ..MetricData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -186,31 +186,32 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Metric",
-            "2019-01-02T03:04:05.101Z",
-        )
-        .data(Base::Data(Data::MetricData(
-            MetricDataBuilder::new(
-                DataPointBuilder::new("test", 50)
-                    .std_dev(2)
-                    .min(7)
-                    .max(13)
-                    .count(5)
-                    .kind(DataPointType::Aggregation)
-                    .build(),
-            )
-            .properties(Properties::default())
-            .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Metric".into(),
+            time: "2019-01-02T03:04:05.101Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::MetricData(MetricData {
+                metrics: DataPoint {
+                    name: "test".into(),
+                    kind: Some(DataPointType::Aggregation),
+                    value: 50.0,
+                    count: Some(5),
+                    min: Some(7.0),
+                    max: Some(13.0),
+                    std_dev: Some(2.0),
+                    ..DataPoint::default()
+                },
+                properties: Some(BTreeMap::default()),
+                ..MetricData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

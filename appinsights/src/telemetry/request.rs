@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, SecondsFormat, Utc};
@@ -8,7 +9,6 @@ use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time::{self, Duration};
 use crate::uuid::{self, Uuid};
-use std::str::FromStr;
 
 /// Represents completion of an external request to the application and contains a summary of that
 /// request execution and results. This struct is focused on HTTP requests.
@@ -148,28 +148,24 @@ impl Telemetry for RequestTelemetry {
 impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, RequestTelemetry)) -> Self {
         let success = telemetry.is_success();
-        let data = Data::RequestData(
-            RequestDataBuilder::new(
-                telemetry.id.to_hyphenated().to_string(),
-                telemetry.duration.to_string(),
-                telemetry.response_code.as_str(),
-            )
-            .name(telemetry.name)
-            .success(success)
-            .url(telemetry.uri.to_string())
-            .properties(Properties::combine(context.properties, telemetry.properties))
-            .measurements(telemetry.measurements)
-            .build(),
-        );
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.Request".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::RequestData(RequestData {
+                id: telemetry.id.to_hyphenated().to_string(),
+                name: Some(telemetry.name),
+                duration: telemetry.duration.to_string(),
+                response_code: telemetry.response_code,
+                success,
+                url: Some(telemetry.uri.to_string()),
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..RequestData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -203,31 +199,33 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Request",
-            "2019-01-02T03:04:05.800Z",
-        )
-        .data(Base::Data(Data::RequestData(
-            RequestDataBuilder::new("910b414a-f368-4b3a-aff6-326632aac566", "0.00:00:02.0000000", "200")
-                .name("GET https://example.com/main.html")
-                .success(true)
-                .url("https://example.com/main.html")
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Request".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::RequestData(RequestData {
+                id: "910b414a-f368-4b3a-aff6-326632aac566".into(),
+                name: Some("GET https://example.com/main.html".into()),
+                duration: "0.00:00:02.0000000".into(),
+                response_code: "200".into(),
+                success: true,
+                url: Some("https://example.com/main.html".into()),
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                measurements: Some({
+                    let mut measurements = BTreeMap::default();
+                    measurements.insert("latency".into(), 200.0);
+                    measurements
+                }),
+                ..RequestData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -247,36 +245,32 @@ mod tests {
             StdDuration::from_secs(2),
             "200".into(),
         );
-        telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
-
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Request",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::RequestData(
-            RequestDataBuilder::new("910b414a-f368-4b3a-aff6-326632aac566", "0.00:00:02.0000000", "200")
-                .name("GET https://example.com/main.html")
-                .success(true)
-                .url("https://example.com/main.html")
-                .properties(Properties::default())
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Request".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::RequestData(RequestData {
+                id: "910b414a-f368-4b3a-aff6-326632aac566".into(),
+                name: Some("GET https://example.com/main.html".into()),
+                duration: "0.00:00:02.0000000".into(),
+                response_code: "200".into(),
+                success: true,
+                url: Some("https://example.com/main.html".into()),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..RequestData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

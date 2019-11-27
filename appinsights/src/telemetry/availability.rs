@@ -122,36 +122,27 @@ impl Telemetry for AvailabilityTelemetry {
 
 impl From<(TelemetryContext, AvailabilityTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, AvailabilityTelemetry)) -> Self {
-        let data = Data::AvailabilityData({
-            let id = telemetry
-                .id
-                .map(|id| id.to_hyphenated().to_string())
-                .unwrap_or_default();
-            let mut builder =
-                AvailabilityDataBuilder::new(id, telemetry.name, telemetry.duration.to_string(), telemetry.success);
-            builder
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements);
-
-            if let Some(run_location) = telemetry.run_location {
-                builder.run_location(run_location);
-            }
-
-            if let Some(message) = telemetry.message {
-                builder.run_location(message);
-            }
-
-            builder.build()
-        });
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.Availability".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::AvailabilityData(AvailabilityData {
+                id: telemetry
+                    .id
+                    .map(|id| id.to_hyphenated().to_string())
+                    .unwrap_or_default(),
+                name: telemetry.name,
+                duration: telemetry.duration.to_string(),
+                success: telemetry.success,
+                run_location: telemetry.run_location,
+                message: telemetry.message,
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..AvailabilityData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -181,28 +172,31 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Availability",
-            "2019-01-02T03:04:05.800Z",
-        )
-        .data(Base::Data(Data::AvailabilityData(
-            AvailabilityDataBuilder::new("", "GET https://example.com/main.html", "0.00:00:02.0000000", true)
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Availability".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::AvailabilityData(AvailabilityData {
+                name: "GET https://example.com/main.html".into(),
+                duration: "0.00:00:02.0000000".into(),
+                success: true,
+                message: None,
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
-                    let mut measurement = Measurements::default();
+                }),
+                measurements: Some({
+                    let mut measurement = BTreeMap::default();
                     measurement.insert("latency".into(), 200.0);
                     measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                ..AvailabilityData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -220,33 +214,30 @@ mod tests {
             StdDuration::from_secs(2),
             true,
         );
-        telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
-
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Availability",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::AvailabilityData(
-            AvailabilityDataBuilder::new("", "GET https://example.com/main.html", "0.00:00:02.0000000", true)
-                .properties(Properties::default())
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Availability".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::AvailabilityData(AvailabilityData {
+                name: "GET https://example.com/main.html".into(),
+                duration: "0.00:00:02.0000000".into(),
+                success: true,
+                message: None,
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..AvailabilityData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

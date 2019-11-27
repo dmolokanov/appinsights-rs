@@ -137,38 +137,26 @@ impl Telemetry for RemoteDependencyTelemetry {
 
 impl From<(TelemetryContext, RemoteDependencyTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, RemoteDependencyTelemetry)) -> Self {
-        let data = Data::RemoteDependencyData({
-            let mut builder = RemoteDependencyDataBuilder::new(telemetry.name, telemetry.duration.to_string());
-            builder
-                .type_(telemetry.dependency_type)
-                .target(telemetry.target)
-                .success(telemetry.success)
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements);
-
-            if let Some(id) = telemetry.id {
-                builder.id(id.to_hyphenated().to_string());
-            }
-
-            if let Some(result_code) = telemetry.result_code {
-                builder.result_code(result_code);
-            }
-
-            if let Some(data) = telemetry.data {
-                builder.data(data);
-            }
-
-            builder.build()
-        });
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.RemoteDependency".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::RemoteDependencyData(RemoteDependencyData {
+                name: telemetry.name,
+                id: telemetry.id.map(|id| id.to_hyphenated().to_string()),
+                result_code: telemetry.result_code,
+                duration: telemetry.duration.to_string(),
+                success: Some(telemetry.success),
+                data: telemetry.data,
+                target: Some(telemetry.target),
+                type_: Some(telemetry.dependency_type),
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..RemoteDependencyData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -200,31 +188,32 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.RemoteDependency",
-            "2019-01-02T03:04:05.800Z",
-        )
-        .data(Base::Data(Data::RemoteDependencyData(
-            RemoteDependencyDataBuilder::new("GET https://example.com/main.html", "0.00:00:02.0000000")
-                .type_("HTTP")
-                .target("example.com")
-                .success(true)
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.RemoteDependency".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::RemoteDependencyData(RemoteDependencyData {
+                name: "GET https://example.com/main.html".into(),
+                duration: "0.00:00:02.0000000".into(),
+                success: Some(true),
+                target: Some("example.com".into()),
+                type_: Some("HTTP".into()),
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                measurements: Some({
+                    let mut measurements = BTreeMap::default();
+                    measurements.insert("latency".into(), 200.0);
+                    measurements
+                }),
+                ..RemoteDependencyData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -244,36 +233,32 @@ mod tests {
             "example.com".into(),
             true,
         );
-        telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.RemoteDependency",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::RemoteDependencyData(
-            RemoteDependencyDataBuilder::new("GET https://example.com/main.html", "0.00:00:02.0000000")
-                .type_("HTTP")
-                .target("example.com")
-                .success(true)
-                .properties(Properties::default())
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.RemoteDependency".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::RemoteDependencyData(RemoteDependencyData {
+                name: "GET https://example.com/main.html".into(),
+                duration: "0.00:00:02.0000000".into(),
+                success: Some(true),
+                target: Some("example.com".into()),
+                type_: Some("HTTP".into()),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..RemoteDependencyData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

@@ -98,22 +98,20 @@ impl Telemetry for TraceTelemetry {
 
 impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, TraceTelemetry)) -> Self {
-        let data = Data::MessageData(
-            MessageDataBuilder::new(telemetry.message)
-                .severity_level(telemetry.severity)
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements)
-                .build(),
-        );
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.Message".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::MessageData(MessageData {
+                message: telemetry.message,
+                severity_level: Some(telemetry.severity.into()),
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..MessageData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -169,29 +167,29 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Message",
-            "2019-01-02T03:04:05.800Z",
-        )
-        .data(Base::Data(Data::MessageData(
-            MessageDataBuilder::new("message")
-                .severity_level(crate::contracts::SeverityLevel::Information)
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Message".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::MessageData(MessageData {
+                message: "message".into(),
+                severity_level: Some(crate::contracts::SeverityLevel::Information),
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
+                }),
+                measurements: Some({
                     let mut measurements = BTreeMap::default();
                     measurements.insert("value".into(), 5.0);
                     measurements
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                ..MessageData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -209,25 +207,25 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Message",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::MessageData(
-            MessageDataBuilder::new("message")
-                .severity_level(crate::contracts::SeverityLevel::Information)
-                .properties(BTreeMap::default())
-                .measurements(BTreeMap::default())
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Message".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::MessageData(MessageData {
+                message: "message".into(),
+                severity_level: Some(crate::contracts::SeverityLevel::Information),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..MessageData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

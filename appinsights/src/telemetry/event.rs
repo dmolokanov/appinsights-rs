@@ -93,21 +93,19 @@ impl Telemetry for EventTelemetry {
 
 impl From<(TelemetryContext, EventTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, EventTelemetry)) -> Self {
-        let data = Data::EventData(
-            EventDataBuilder::new(telemetry.name)
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements)
-                .build(),
-        );
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.Event".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::EventData(EventData {
+                name: telemetry.name,
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..EventData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -134,28 +132,28 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Event",
-            "2019-01-02T03:04:05.600Z",
-        )
-        .data(Base::Data(Data::EventData(
-            EventDataBuilder::new("test")
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Event".into(),
+            time: "2019-01-02T03:04:05.600Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::EventData(EventData {
+                name: "test".into(),
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
+                }),
+                measurements: Some({
                     let mut measurements = BTreeMap::default();
                     measurements.insert("value".into(), 5.0);
                     measurements
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                ..EventData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -173,24 +171,24 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.Event",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::EventData(
-            EventDataBuilder::new("test")
-                .properties(BTreeMap::default())
-                .measurements(BTreeMap::default())
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Event".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::EventData(EventData {
+                name: "test".into(),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..EventData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }

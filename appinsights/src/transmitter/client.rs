@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use http::header::RETRY_AFTER;
-use reqwest::blocking::Client;
+use reqwest::Client;
 
 use crate::contracts::Envelope;
 use crate::transmitter::Transmission;
@@ -23,7 +23,7 @@ impl Transmitter {
     pub fn transmit(&self, items: &[Envelope]) -> Result<Transmission> {
         let payload = serde_json::to_string(items)?;
 
-        let response = self.client.post(&self.url).body(payload).send()?;
+        let mut response = self.client.post(&self.url).body(payload).send()?;
 
         let status_code = response.status();
 

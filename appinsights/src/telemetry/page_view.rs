@@ -113,32 +113,26 @@ impl Telemetry for PageViewTelemetry {
 
 impl From<(TelemetryContext, PageViewTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, PageViewTelemetry)) -> Self {
-        let data = Data::PageViewData({
-            let id = telemetry
-                .id
-                .map(|id| id.to_hyphenated().to_string())
-                .unwrap_or_default();
-            let mut builder = PageViewDataBuilder::new(telemetry.name, id);
-            builder
-                .url(telemetry.uri.to_string())
-                .properties(Properties::combine(context.properties, telemetry.properties))
-                .measurements(telemetry.measurements);
-
-            if let Some(duration) = telemetry.duration {
-                builder.duration(duration.to_string());
-            }
-
-            builder.build()
-        });
-
-        let envelope_name = data.envelope_name(&context.normalized_i_key);
-        let timestamp = telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true);
-
-        EnvelopeBuilder::new(envelope_name, timestamp)
-            .data(Base::Data(data))
-            .i_key(context.i_key)
-            .tags(ContextTags::combine(context.tags, telemetry.tags))
-            .build()
+        Envelope {
+            name: "Microsoft.ApplicationInsights.PageView".into(),
+            time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
+            i_key: Some(context.i_key),
+            tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
+            data: Some(Base::Data(Data::PageViewData(PageViewData {
+                name: telemetry.name,
+                url: Some(telemetry.uri.to_string()),
+                duration: telemetry.duration.map(|duration| duration.to_string()),
+                referrer_uri: None,
+                id: telemetry
+                    .id
+                    .map(|id| id.to_hyphenated().to_string())
+                    .unwrap_or_default(),
+                properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
+                measurements: Some(telemetry.measurements.into()),
+                ..PageViewData::default()
+            }))),
+            ..Envelope::default()
+        }
     }
 }
 
@@ -165,29 +159,29 @@ mod tests {
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.PageView",
-            "2019-01-02T03:04:05.800Z",
-        )
-        .data(Base::Data(Data::PageViewData(
-            PageViewDataBuilder::new("page updated", "")
-                .url("https://example.com/main.html")
-                .properties({
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.PageView".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::PageViewData(PageViewData {
+                name: "page updated".into(),
+                url: Some("https://example.com/main.html".into()),
+                properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
                     properties.insert("no-write".into(), "ok".into());
                     properties
-                })
-                .measurements({
-                    let mut measurement = Measurements::default();
+                }),
+                measurements: Some({
+                    let mut measurement = BTreeMap::default();
                     measurement.insert("latency".into(), 200.0);
                     measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags(BTreeMap::default())
-        .build();
+                }),
+                ..PageViewData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
@@ -202,34 +196,29 @@ mod tests {
 
         let mut telemetry =
             PageViewTelemetry::new("page updated".into(), "https://example.com/main.html".parse().unwrap());
-        telemetry.measurements_mut().insert("latency".into(), 200.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
 
-        let expected = EnvelopeBuilder::new(
-            "Microsoft.ApplicationInsights.instrumentation.PageView",
-            "2019-01-02T03:04:05.700Z",
-        )
-        .data(Base::Data(Data::PageViewData(
-            PageViewDataBuilder::new("page updated", "")
-                .url("https://example.com/main.html")
-                .properties(Properties::default())
-                .measurements({
-                    let mut measurement = Measurements::default();
-                    measurement.insert("latency".into(), 200.0);
-                    measurement
-                })
-                .build(),
-        )))
-        .i_key("instrumentation")
-        .tags({
-            let mut tags = BTreeMap::default();
-            tags.insert("test".into(), "ok".into());
-            tags.insert("no-write".into(), "ok".into());
-            tags
-        })
-        .build();
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.PageView".into(),
+            time: "2019-01-02T03:04:05.700Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("test".into(), "ok".into());
+                tags.insert("no-write".into(), "ok".into());
+                tags
+            }),
+            data: Some(Base::Data(Data::PageViewData(PageViewData {
+                name: "page updated".into(),
+                url: Some("https://example.com/main.html".into()),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..PageViewData::default()
+            }))),
+            ..Envelope::default()
+        };
 
         assert_eq!(envelop, expected)
     }
