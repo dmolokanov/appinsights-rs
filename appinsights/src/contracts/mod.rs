@@ -1,42 +1,41 @@
 // NOTE: This file was automatically generated.
 
 #![allow(unused_variables, dead_code, unused_imports)]
-#![allow(clippy::clone_on_copy)] // TODO fix codegen
 
-mod availabilitydata;
+mod availability_data;
 mod base;
-mod contexttagkeys;
+mod context_tag_keys;
 mod data;
-mod datapoint;
-mod datapointtype;
+mod data_point;
+mod data_point_type;
 mod domain;
 mod envelope;
-mod eventdata;
-mod exceptiondata;
-mod exceptiondetails;
-mod messagedata;
-mod metricdata;
-mod pageviewdata;
-mod remotedependencydata;
-mod requestdata;
-mod severitylevel;
-mod stackframe;
+mod event_data;
+mod exception_data;
+mod exception_details;
+mod message_data;
+mod metric_data;
+mod page_view_data;
+mod remote_dependency_data;
+mod request_data;
+mod severity_level;
+mod stack_frame;
 
-pub use availabilitydata::*;
+pub use availability_data::*;
 pub use base::*;
-pub use contexttagkeys::*;
+pub use context_tag_keys::*;
 pub use data::*;
-pub use datapoint::*;
-pub use datapointtype::*;
+pub use data_point::*;
+pub use data_point_type::*;
 pub use domain::*;
 pub use envelope::*;
-pub use eventdata::*;
-pub use exceptiondata::*;
-pub use exceptiondetails::*;
-pub use messagedata::*;
-pub use metricdata::*;
-pub use pageviewdata::*;
-pub use remotedependencydata::*;
-pub use requestdata::*;
-pub use severitylevel::*;
-pub use stackframe::*;
+pub use event_data::*;
+pub use exception_data::*;
+pub use exception_details::*;
+pub use message_data::*;
+pub use metric_data::*;
+pub use page_view_data::*;
+pub use remote_dependency_data::*;
+pub use request_data::*;
+pub use severity_level::*;
+pub use stack_frame::*;
