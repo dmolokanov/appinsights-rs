@@ -69,16 +69,16 @@ impl AvailabilityTelemetry {
     /// Creates a new availability telemetry item with the specified test name, duration and success code.
     pub fn new(name: String, duration: StdDuration, success: bool) -> Self {
         Self {
-            id: Default::default(),
+            id: Option::default(),
             name,
             duration: duration.into(),
-            run_location: Default::default(),
-            message: Default::default(),
+            run_location: Option::default(),
+            message: Option::default(),
             success,
             timestamp: time::now(),
-            properties: Default::default(),
-            tags: Default::default(),
-            measurements: Default::default(),
+            properties: Properties::default(),
+            tags: ContextTags::default(),
+            measurements: Measurements::default(),
         }
     }
 

@@ -82,18 +82,18 @@ impl RemoteDependencyTelemetry {
     /// Creates a new telemetry item with specified name, dependency type, target site and success status.
     pub fn new(name: String, dependency_type: String, duration: StdDuration, target: String, success: bool) -> Self {
         Self {
-            id: Default::default(),
+            id: Option::default(),
             name,
             duration: duration.into(),
-            result_code: Default::default(),
+            result_code: Option::default(),
             success,
-            data: Default::default(),
+            data: Option::default(),
             dependency_type,
             target,
             timestamp: time::now(),
-            properties: Default::default(),
-            tags: Default::default(),
-            measurements: Default::default(),
+            properties: Properties::default(),
+            tags: ContextTags::default(),
+            measurements: Measurements::default(),
         }
     }
 

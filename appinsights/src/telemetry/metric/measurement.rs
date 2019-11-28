@@ -47,8 +47,8 @@ impl MetricTelemetry {
             name,
             value,
             timestamp: time::now(),
-            properties: Default::default(),
-            tags: Default::default(),
+            properties: Properties::default(),
+            tags: ContextTags::default(),
         }
     }
 }

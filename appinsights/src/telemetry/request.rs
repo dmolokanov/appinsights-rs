@@ -92,9 +92,9 @@ impl RequestTelemetry {
             duration: duration.into(),
             response_code,
             timestamp: time::now(),
-            properties: Default::default(),
-            tags: Default::default(),
-            measurements: Default::default(),
+            properties: Properties::default(),
+            tags: ContextTags::default(),
+            measurements: Measurements::default(),
         }
     }
 

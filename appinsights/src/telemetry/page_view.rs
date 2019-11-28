@@ -62,14 +62,14 @@ impl PageViewTelemetry {
     /// Creates a new page view telemetry item with the specified name and url.
     pub fn new(name: String, uri: Uri) -> Self {
         Self {
-            id: Default::default(),
+            id: Option::default(),
             name,
             uri,
-            duration: Default::default(),
+            duration: Option::default(),
             timestamp: time::now(),
-            properties: Default::default(),
-            tags: Default::default(),
-            measurements: Default::default(),
+            properties: Properties::default(),
+            tags: ContextTags::default(),
+            measurements: Measurements::default(),
         }
     }
 
