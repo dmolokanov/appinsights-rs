@@ -1,11 +1,11 @@
 use std::time::Duration;
 
 use crossbeam_channel::{after, select, Receiver};
-use log::{debug, error, info};
+use log::{debug, error};
 use sm::{sm, Event};
 
 use crate::contracts::Envelope;
-use crate::transmitter::Transmitter;
+use crate::transmitter::{Response, Transmitter};
 
 use crate::channel::command::Command;
 use crate::channel::retry::Retry;
@@ -168,40 +168,23 @@ impl Worker {
         );
 
         // attempt to send items
-        match self.transmitter.transmit(&items) {
-            Ok(transmission) => {
-                info!(
-                    "Successfully sent {}/{} telemetry items",
-                    transmission.accepted(),
-                    transmission.received()
-                );
-
-                if transmission.is_success() {
-                    return m.transition(ItemsSentAndContinue).as_enum();
-                }
-
-                // make an attempt to re-send only if there are any items in the list that can be re-sent
-                if transmission.can_retry() {
-                    *items = items
-                        .drain(..)
-                        .enumerate()
-                        .filter_map(|(i, envelope)| {
-                            if transmission.can_retry_item(i) {
-                                Some(envelope)
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-                    if items.is_empty() {
-                        return m.transition(ItemsSentAndContinue).as_enum();
-                    }
-                }
+        match self.transmitter.send(items) {
+            Ok(Response::Success) => m.transition(ItemsSentAndContinue).as_enum(),
+            Ok(Response::Retry(retry_items)) => {
+                *items = retry_items;
+                m.transition(RetryRequested).as_enum()
             }
-            Err(err) => info!("Error occurred during sending telemetry items: {}", err),
+            Ok(Response::Throttled(_retry_after, retry_items)) => {
+                *items = retry_items;
+                // TODO implement throttling instead
+                m.transition(RetryRequested).as_enum()
+            }
+            Ok(Response::NoRetry) => m.transition(ItemsSentAndContinue).as_enum(),
+            Err(err) => {
+                debug!("Error occurred during sending telemetry items: {}", err);
+                m.transition(RetryRequested).as_enum()
+            }
         }
-
-        m.transition(RetryRequested).as_enum()
     }
 
     fn handle_waiting<E: Event>(&self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {

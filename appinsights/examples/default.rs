@@ -5,7 +5,7 @@ use appinsights::TelemetryClient;
 use log::LevelFilter;
 
 fn main() {
-    env_logger::builder().filter_level(LevelFilter::Info).init();
+    env_logger::builder().filter_level(LevelFilter::Debug).init();
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
 

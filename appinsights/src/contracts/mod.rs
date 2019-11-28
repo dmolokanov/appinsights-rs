@@ -1,6 +1,6 @@
 // NOTE: This file was automatically generated.
 
-#![allow(unused_variables, dead_code, unused_imports)]
+#![allow(dead_code, unused_imports)]
 
 mod availability_data;
 mod base;
@@ -18,6 +18,7 @@ mod metric_data;
 mod page_view_data;
 mod remote_dependency_data;
 mod request_data;
+mod response;
 mod severity_level;
 mod stack_frame;
 
@@ -37,5 +38,6 @@ pub use metric_data::*;
 pub use page_view_data::*;
 pub use remote_dependency_data::*;
 pub use request_data::*;
+pub use response::*;
 pub use severity_level::*;
 pub use stack_frame::*;
