@@ -167,22 +167,33 @@ impl Worker {
             m.trigger().unwrap()
         );
 
-        // attempt to send items
-        match self.transmitter.send(items) {
-            Ok(Response::Success) => m.transition(ItemsSentAndContinue).as_enum(),
-            Ok(Response::Retry(retry_items)) => {
-                *items = retry_items;
-                m.transition(RetryRequested).as_enum()
-            }
-            Ok(Response::Throttled(_retry_after, retry_items)) => {
-                *items = retry_items;
-                // TODO implement throttling instead
-                m.transition(RetryRequested).as_enum()
-            }
-            Ok(Response::NoRetry) => m.transition(ItemsSentAndContinue).as_enum(),
-            Err(err) => {
-                debug!("Error occurred during sending telemetry items: {}", err);
-                m.transition(RetryRequested).as_enum()
+        if items.is_empty() {
+            debug!("Nothing to send. Continue to wait");
+            m.transition(ItemsSentAndContinue).as_enum()
+        } else {
+            // attempt to send items
+            match self.transmitter.send(items) {
+                Ok(Response::Success) => {
+                    items.clear();
+                    m.transition(ItemsSentAndContinue).as_enum()
+                }
+                Ok(Response::Retry(retry_items)) => {
+                    *items = retry_items;
+                    m.transition(RetryRequested).as_enum()
+                }
+                Ok(Response::Throttled(_retry_after, retry_items)) => {
+                    *items = retry_items;
+                    // TODO implement throttling instead
+                    m.transition(RetryRequested).as_enum()
+                }
+                Ok(Response::NoRetry) => {
+                    items.clear();
+                    m.transition(ItemsSentAndContinue).as_enum()
+                }
+                Err(err) => {
+                    debug!("Error occurred during sending telemetry items: {}", err);
+                    m.transition(RetryRequested).as_enum()
+                }
             }
         }
     }
