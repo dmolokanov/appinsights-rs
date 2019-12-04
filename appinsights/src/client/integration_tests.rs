@@ -6,12 +6,13 @@ use std::thread;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use crossbeam_channel::{unbounded, Receiver};
+use crossbeam_channel::{unbounded, Receiver, RecvTimeoutError};
 use http::{Response, StatusCode};
 use lazy_static::lazy_static;
 use matches::assert_matches;
 use serde_json::json;
 
+use crate::channel::InMemoryChannel;
 use crate::{timeout, TelemetryClient, TelemetryConfig};
 
 lazy_static! {
@@ -40,27 +41,52 @@ serial_test! {
 
         let server = server().status(StatusCode::OK).create();
 
-        let config = TelemetryConfig::builder()
-            .i_key("instrumentation key")
-            .endpoint(server.url())
-            .interval(Duration::from_millis(500))
-            .build();
-
-        let client = TelemetryClient::from_config(config);
-
+        let client = create_client(server.url());
         client.track_event("--event--".into());
 
         timeout::expire();
 
         // expect one requests available so far
         let receiver = server.requests();
-        assert_matches!(receiver.recv_timeout(Duration::from_secs(1)), Ok(_));
+        assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
     }
+}
+
+serial_test! {
+    fn it_does_not_resend_submitted_telemetry_items() {
+        timeout::init();
+
+        let server = server().status(StatusCode::OK).create();
+
+        let client = create_client(server.url());
+        client.track_event("--event--".into());
+
+        // verify 1 items is sent after first interval expired
+        let receiver = server.requests();
+        timeout::expire();
+        assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
+
+        // verify no items is sent after next interval expired
+        timeout::expire();
+        assert_matches!(
+            receiver.recv_timeout(Duration::from_millis(500)),
+            Err(RecvTimeoutError::Timeout)
+        );
+    }
+}
+
+fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
+    let config = TelemetryConfig::builder()
+        .i_key("instrumentation key")
+        .endpoint(endpoint)
+        .interval(Duration::from_millis(300))
+        .build();
+
+    TelemetryClient::from_config(config)
 }
 
 struct TestServer {
     url: String,
-    //    requests: Arc<Mutex<Vec<String>>>,
     requests: Receiver<String>,
     running: Arc<AtomicBool>,
 }
@@ -126,7 +152,7 @@ impl Builder {
         let running_copy = running.clone();
 
         thread::spawn(move || {
-            let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
+            let listener = TcpListener::bind("0.0.0.0:0").unwrap();
 
             let url = match listener.local_addr() {
                 Ok(addr) => Some(format!("http://{}/track", addr)),
