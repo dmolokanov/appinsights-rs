@@ -108,6 +108,7 @@ mod context;
 mod contracts;
 pub mod telemetry;
 mod time;
+mod timeout;
 mod transmitter;
 mod uuid;
 

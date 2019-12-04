@@ -4,29 +4,56 @@ use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
-use appinsights::{TelemetryClient, TelemetryConfig};
 use chrono::{DateTime, Utc};
 use http::{Response, StatusCode};
+use lazy_static::lazy_static;
 use serde_json::json;
 
-#[test]
-fn it_sends_one_telemetry_item() {
-    let server = server().status(StatusCode::OK).create();
+use crate::{timeout, TelemetryClient, TelemetryConfig};
 
-    let config = TelemetryConfig::builder()
-        .i_key("instrumentation key")
-        .endpoint(server.url())
-        .interval(Duration::from_millis(500))
-        .build();
+lazy_static! {
+    /// A global lock since most tests need to run in serial.
+    static ref SERIAL_TEST_MUTEX: Mutex<()> = Mutex::new(());
+}
 
-    let client = TelemetryClient::from_config(config);
+/// Macro to crate a serial test, that locks the `SERIAL_TEST_MUTEX` while testing.
+macro_rules! serial_test {
+    (fn $name: ident() $body: block) => {
+        #[test]
+        fn $name() {
+            let guard = SERIAL_TEST_MUTEX.lock().unwrap();
+            // Catch any panics to not poison the lock.
+            if let Err(err) = std::panic::catch_unwind(|| $body) {
+                drop(guard);
+                std::panic::resume_unwind(err);
+            }
+        }
+    };
+}
 
-    client.track_event("--event--".into());
+serial_test! {
+    fn it_sends_one_telemetry_item() {
+        env_logger::builder().filter_level(log::LevelFilter::Debug).init();
+        timeout::init();
 
-    thread::sleep(Duration::from_secs(3)); // todo use waitgroup instead
-    let requests = server.requests.lock().expect("lock read");
+        let server = server().status(StatusCode::OK).create();
 
-    assert_eq!(requests.len(), 1)
+        let config = TelemetryConfig::builder()
+            .i_key("instrumentation key")
+            .endpoint(server.url())
+            .interval(Duration::from_millis(500))
+            .build();
+
+        let client = TelemetryClient::from_config(config);
+
+        client.track_event("--event--".into());
+
+        timeout::expire();
+
+        thread::sleep(Duration::from_millis(100)); // todo use waitgroup instead
+
+        assert_eq!(server.requests().len(), 1)
+    }
 }
 
 struct TestServer {
@@ -37,6 +64,11 @@ struct TestServer {
 impl TestServer {
     fn url(&self) -> &str {
         &self.url
+    }
+
+    fn requests(&self) -> Vec<String> {
+        let requests = self.requests.lock().expect("requests lock");
+        requests.clone()
     }
 }
 

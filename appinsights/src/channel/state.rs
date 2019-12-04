@@ -1,10 +1,11 @@
 use std::time::Duration;
 
-use crossbeam_channel::{after, select, Receiver};
+use crossbeam_channel::{select, Receiver};
 use log::{debug, error};
 use sm::{sm, Event};
 
 use crate::contracts::Envelope;
+use crate::timeout;
 use crate::transmitter::{Response, Transmitter};
 
 use crate::channel::command::Command;
@@ -100,7 +101,7 @@ impl Worker {
     fn handle_receiving<E: Event>(&self, m: Machine<Receiving, E>, items: &mut Vec<Envelope>) -> Variant {
         debug!("Receiving messages triggered by {:?}", m.trigger());
 
-        let timeout = after(self.interval);
+        let timeout = timeout::after(self.interval);
         items.clear();
 
         loop {
@@ -206,7 +207,7 @@ impl Worker {
         );
         if let Some(timeout) = retry.next() {
             // sleep until next sending attempt
-            let timeout = after(timeout);
+            let timeout = timeout::after(timeout);
 
             // wait for either timeout expired or stop command received
             loop {
