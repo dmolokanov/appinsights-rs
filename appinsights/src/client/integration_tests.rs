@@ -1,12 +1,15 @@
 use std::io::{Read, Write};
 use std::net::TcpListener;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
+use crossbeam_channel::{unbounded, Receiver};
 use http::{Response, StatusCode};
 use lazy_static::lazy_static;
+use matches::assert_matches;
 use serde_json::json;
 
 use crate::{timeout, TelemetryClient, TelemetryConfig};
@@ -33,7 +36,6 @@ macro_rules! serial_test {
 
 serial_test! {
     fn it_sends_one_telemetry_item() {
-        env_logger::builder().filter_level(log::LevelFilter::Debug).init();
         timeout::init();
 
         let server = server().status(StatusCode::OK).create();
@@ -50,15 +52,17 @@ serial_test! {
 
         timeout::expire();
 
-        thread::sleep(Duration::from_millis(100)); // todo use waitgroup instead
-
-        assert_eq!(server.requests().len(), 1)
+        // expect one requests available so far
+        let receiver = server.requests();
+        assert_matches!(receiver.recv_timeout(Duration::from_secs(1)), Ok(_));
     }
 }
 
 struct TestServer {
     url: String,
-    requests: Arc<Mutex<Vec<String>>>,
+    //    requests: Arc<Mutex<Vec<String>>>,
+    requests: Receiver<String>,
+    running: Arc<AtomicBool>,
 }
 
 impl TestServer {
@@ -66,9 +70,14 @@ impl TestServer {
         &self.url
     }
 
-    fn requests(&self) -> Vec<String> {
-        let requests = self.requests.lock().expect("requests lock");
-        requests.clone()
+    fn requests(&self) -> Receiver<String> {
+        self.requests.clone()
+    }
+}
+
+impl Drop for TestServer {
+    fn drop(&mut self) {
+        self.running.store(false, Ordering::Relaxed);
     }
 }
 
@@ -109,10 +118,12 @@ impl Builder {
     fn create(self) -> TestServer {
         let (tx, rx) = mpsc::channel();
 
-        let requests = Arc::new(Mutex::new(Vec::new()));
-        let requests_copy = requests.clone();
+        let (request_sender, request_receiver) = unbounded();
 
         let mut responses = self.responses.into_iter();
+
+        let running = Arc::new(AtomicBool::new(true));
+        let running_copy = running.clone();
 
         thread::spawn(move || {
             let listener = TcpListener::bind("0.0.0.0:3000").unwrap();
@@ -124,9 +135,9 @@ impl Builder {
 
             tx.send(url).unwrap();
 
-            for stream in listener.incoming() {
-                match stream {
-                    Ok(mut stream) => {
+            while running.load(Ordering::Relaxed) {
+                match listener.accept() {
+                    Ok((mut stream, _)) => {
                         let mut buffer = [0; 512];
                         let mut body = String::new();
 
@@ -145,8 +156,7 @@ impl Builder {
                             body.push_str(&chunk);
                         }
 
-                        let mut requests = requests_copy.lock().expect("lock");
-                        requests.push(body);
+                        request_sender.send(body).unwrap();
 
                         if let Some(response) = responses.next() {
                             let line = format!("HTTP/1.1 {}\r\n\r\n", response.status());
@@ -167,6 +177,10 @@ impl Builder {
 
         let url = rx.recv().ok().and_then(|url| url).unwrap();
 
-        TestServer { url, requests }
+        TestServer {
+            url,
+            requests: request_receiver,
+            running: running_copy,
+        }
     }
 }
