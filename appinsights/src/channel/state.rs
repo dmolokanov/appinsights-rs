@@ -1,7 +1,7 @@
 use std::time::Duration;
 
 use crossbeam_channel::{select, Receiver};
-use log::{debug, error};
+use log::{debug, error, trace};
 use sm::{sm, Event};
 
 use crate::contracts::Envelope;
@@ -109,6 +109,7 @@ impl Worker {
                 recv(self.event_receiver) -> event => {
                     match event {
                         Ok(envelope) => {
+                            trace!("Telemetry item received: {}", envelope.name);
                             items.push(envelope);
                             continue
                         },
@@ -120,10 +121,13 @@ impl Worker {
                 }
                 recv(self.command_receiver) -> command => {
                     match command {
-                        Ok(command) => match command {
-                            Command::Flush => return m.transition(FlushRequested).as_enum(),
-                            Command::Terminate => return m.transition(TerminateRequested).as_enum(),
-                            Command::Close => return m.transition(CloseRequested).as_enum(),
+                        Ok(command) => {
+                            trace!("Command received: {}", command);
+                            match command {
+                                Command::Flush => return m.transition(FlushRequested).as_enum(),
+                                Command::Terminate => return m.transition(TerminateRequested).as_enum(),
+                                Command::Close => return m.transition(CloseRequested).as_enum(),
+                            }
                         },
                         Err(err) => {
                             error!("commands channel closed: {}", err);
