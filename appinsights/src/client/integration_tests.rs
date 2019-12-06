@@ -132,43 +132,6 @@ fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
 
     TelemetryClient::from_config(config)
 }
-//
-//struct TestServer {
-//    url: String,
-//    requests: Receiver<String>,
-//    running: Arc<AtomicBool>,
-//}
-//
-//impl TestServer {
-//    fn url(&self) -> &str {
-//        &self.url
-//    }
-//
-//    fn requests(&self) -> Receiver<String> {
-//        self.requests.clone()
-//    }
-//
-//    fn wait_for_requests(&self, count: usize) -> Vec<String> {
-//        let mut requests = Vec::new();
-//
-//        for _ in 0..count {
-//            match self.requests.recv_timeout(Duration::from_millis(500)) {
-//                Result::Ok(request) => requests.push(request),
-//                Result::Err(err) => {
-//                    dbg!(err);
-//                }
-//            }
-//        }
-//
-//        requests
-//    }
-//}
-//
-//impl Drop for TestServer {
-//    fn drop(&mut self) {
-//        self.running.store(false, Ordering::Relaxed);
-//    }
-//}
 
 struct Builder {
     responses: Vec<Response<String>>,
@@ -216,26 +179,6 @@ impl Drop for HyperTestServer {
         }
     }
 }
-//
-//struct TestService {
-//    requests: Sender<String>,
-//}
-//
-//impl Service for TestService {
-//    type ReqBody = Body;
-//    type ResBody = Body;
-//    type Error = hyper::Error;
-//    type Future = Box<dyn Future<Item = Response<Self::ResBody>, Error = Self::Error>>;
-//
-//    fn call(&mut self, req: Request<Self::ReqBody>) -> Self::Future {
-//        let requests = self.requests.clone();
-//        Box::new(req.into_body().concat2().and_then(move |body| {
-//            let body = String::from_utf8_lossy(&body);
-//            requests.send(body.into_owned()).unwrap();
-//            future::ok(Response::new(Body::empty()))
-//        }))
-//    }
-//}
 
 impl Builder {
     fn response(mut self, status: StatusCode, body: String, retry_after: Option<DateTime<Utc>>) -> Self {
@@ -325,103 +268,4 @@ impl Builder {
             shutdown: Some(shutdown_sender),
         }
     }
-
-    //    fn create(self) -> TestServer {
-    //        let (tx, rx) = mpsc::channel();
-    //
-    //        let (request_sender, request_receiver) = unbounded();
-    //
-    //        let mut responses = self.responses.into_iter();
-    //
-    //        let running = Arc::new(AtomicBool::new(true));
-    //        let running_copy = running.clone();
-    //
-    //        thread::spawn(move || {
-    //            let listener = TcpListener::bind("0.0.0.0:0").unwrap();
-    //
-    //            let url = match listener.local_addr() {
-    //                Ok(addr) => Some(format!("http://{}/track", addr)),
-    //                Err(_) => None,
-    //            };
-    //
-    //            tx.send(url).unwrap();
-    //
-    //            while running.load(Ordering::Relaxed) {
-    //                match listener.accept() {
-    //                    Ok((mut stream, _)) => {
-    //                        let mut buffer = [0; 1 * 1024 * 1024];
-    //                        let mut body = String::new();
-    //
-    //                        let mut all_buf = Vec::new();
-    //                        let mut headers = [httparse::EMPTY_HEADER; 16];
-    //                        let mut req = httparse::Request::new(&mut headers);
-    //
-    //                        loop {
-    //                            let mut buf = [0; 1024];
-    //
-    //                            let bytes = match stream.read(&mut buffer) {
-    //                                Ok(bytes) => bytes,
-    //                                Err(_) => 0,
-    //                            };
-    //
-    //                            if bytes <= 0 {
-    //                                break;
-    //                            }
-    //
-    //                            all_buf.extend_from_slice(&buf[..bytes]);
-    //
-    //                            match req.parse(&all_buf){
-    //                                Ok(httparse::Status::Complete(header_length)) => ,
-    //                                Ok(httparse::Status::Partial) => (),
-    //                                Err(err) => eprintln!("{}", err)
-    //                            }
-    //
-    //                        }
-    //
-    //                        // let mut req = httparse::Request::new(&mut headers);
-    //
-    //                        // //                        loop
-    //                        // {
-    //                        //     let bytes = match stream.read(&mut buffer) {
-    //                        //         Ok(bytes) => bytes,
-    //                        //         Err(_) => 0,
-    //                        //     };
-    //
-    //                        //     if bytes <= 0 {
-    //                        //         break;
-    //                        //     }
-    //
-    //                        //     req.parse(buffer);
-    //
-    //                        //     let chunk = String::from_utf8_lossy(&buffer[..bytes]);
-    //                        //     body.push_str(&chunk);
-    //                        // }
-    //
-    //                        request_sender.send(body).unwrap();
-    //
-    //                        if let Some(response) = responses.next() {
-    //                            let line = format!("HTTP/1.1 {}\r\n\r\n", response.status());
-    //                            stream.write_all(line.as_bytes()).unwrap();
-    //                        } else {
-    //                            let line = "HTTP/1.0 404 Not Found";
-    //                            stream.write_all(line.as_bytes()).unwrap();
-    //                        }
-    //
-    //                        stream.flush().unwrap();
-    //                    }
-    //                    Err(err) => {
-    //                        eprintln!("cannot read from stream: {}", err);
-    //                    }
-    //                }
-    //            }
-    //        });
-    //
-    //        let url = rx.recv().ok().and_then(|url| url).unwrap();
-    //
-    //        TestServer {
-    //            url,
-    //            requests: request_receiver,
-    //            running: running_copy,
-    //        }
-    //    }
 }
