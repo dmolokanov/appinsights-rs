@@ -49,4 +49,11 @@ mod imp {
             sender.send(Instant::now()).unwrap();
         }
     }
+
+    /// Resets a channel that emulates timeout expiration event with default
+    /// crossbeam_channel::bounded() instead.
+    pub fn reset() {
+        let mut channel = CHANNEL.write().expect("lock");
+        *channel = None;
+    }
 }

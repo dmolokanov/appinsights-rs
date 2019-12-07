@@ -37,10 +37,27 @@ macro_rules! serial_test {
     };
 }
 
-serial_test! {
-    fn it_sends_one_telemetry_item() {
-        timeout::init();
+macro_rules! manual_timeout_test {
+    (fn $name: ident() $body: block) => {
+        #[test]
+        fn $name() {
+            let guard = SERIAL_TEST_MUTEX.lock().unwrap();
+            timeout::init();
 
+            // Catch any panics to not poison the lock.
+            if let Err(err) = std::panic::catch_unwind(|| $body) {
+                drop(guard);
+
+                std::panic::resume_unwind(err);
+            }
+
+            timeout::reset();
+        }
+    };
+}
+
+manual_timeout_test! {
+    fn it_sends_one_telemetry_item() {
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -54,10 +71,8 @@ serial_test! {
     }
 }
 
-serial_test! {
+manual_timeout_test! {
     fn it_does_not_resend_submitted_telemetry_items() {
-        timeout::init();
-
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -77,51 +92,126 @@ serial_test! {
     }
 }
 
-#[test]
-#[ignore]
-//serial_test! {
-fn it_sends_telemetry_items_in_2_batches() {
-    //    simple_logger::init().unwrap();
+manual_timeout_test! {
+    fn it_sends_telemetry_items_in_2_batches() {
+        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
-    //    timeout::init();
-    let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+        let client = create_client(server.url());
 
-    let client = create_client(server.url());
+        // send 10 items and then interval expired
+        for i in 0..10 {
+            client.track_event(format!("--event {}--", i));
+        }
+        timeout::expire();
 
-    // send 10 items and then interval expired
-    for i in 0..10 {
-        client.track_event(format!("--event {}--", i));
+        // send next 5 items and then interval expired
+        for i in 10..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+        timeout::expire();
+
+        // verify that 2 requests has been send
+        let requests = server.wait_for_requests(2);
+        assert_eq!(requests.len(), 2);
+
+        // verify that all requests are available
+        let content = requests.into_iter().fold(String::new(), |mut content, body| {
+            content.push_str(&body);
+            content
+        });
+        let items_count = (0..15)
+            .filter_map(|i| {
+                if content.contains(&format!("--event {}--", i)) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .count();
+        assert_eq!(items_count, 15);
     }
-    std::thread::sleep(Duration::from_millis(300));
-    //    timeout::expire();
-
-    // send next 5 items and then interval expired
-    for i in 10..15 {
-        client.track_event(format!("--event {}--", i));
-    }
-    //    timeout::expire();
-
-    // check that 2 requests has been send
-    let requests = server.wait_for_requests(2);
-    assert_eq!(requests.len(), 2);
-
-    // check that all requests are available
-    let content = requests.into_iter().fold(String::new(), |mut content, body| {
-        content.push_str(&body);
-        content
-    });
-    let items_count = (0..15)
-        .filter_map(|i| {
-            if content.contains(&format!("--event {}--", i)) {
-                Some(i)
-            } else {
-                None
-            }
-        })
-        .count();
-    assert_eq!(items_count, 15);
 }
-//}
+
+manual_timeout_test! {
+    fn it_flushes_all_pending_telemetry_items() {
+        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+
+        // force client to send all items to the server
+        client.flush_channel();
+
+        // NOTE no timeout expired
+        // assert that 1 request has been sent
+        let requests = server.wait_for_requests(1);
+        assert_eq!(requests.len(), 1);
+
+        // verify request contains all items we submitted to the client
+        let content = requests.into_iter().fold(String::new(), |mut content, body| {
+            content.push_str(&body);
+            content
+        });
+        let items_count = (0..15)
+            .filter_map(|i| {
+                if content.contains(&format!("--event {}--", i)) {
+                    Some(i)
+                } else {
+                    None
+                }
+            })
+            .count();
+        assert_eq!(items_count, 15);
+    }
+}
+
+manual_timeout_test! {
+    fn it_does_not_send_any_pending_telemetry_items_when_drop_client() {
+        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+
+        // drop client
+        drop(client);
+
+        // verify that nothing has been sent to the server
+        let receiver = server.requests();
+        assert_matches!(
+                receiver.recv_timeout(Duration::from_millis(500)),
+                Err(RecvTimeoutError::Timeout)
+            );
+
+    }
+}
 
 fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
     let config = TelemetryConfig::builder()
