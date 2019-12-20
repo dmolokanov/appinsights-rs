@@ -32,13 +32,11 @@
 //! ```rust
 //! use appinsights::TelemetryClient;
 //!
-//! fn main() {
-//!     // configure telemetry client with default settings
-//!     let client = TelemetryClient::new("<instrumentation key>".to_string());
+//! // configure telemetry client with default settings
+//! let client = TelemetryClient::new("<instrumentation key>".to_string());
 //!
-//!     // send event telemetry to the Application Insights server
-//!     client.track_event("Application started".to_string());
-//! }
+//! // send event telemetry to the Application Insights server
+//! client.track_event("Application started".to_string());
 //! ```
 //!
 //! If you need more control over the client's behavior, you can create a new instance of
@@ -49,22 +47,20 @@
 //! use appinsights::{TelemetryClient, TelemetryConfig};
 //! use appinsights::telemetry::SeverityLevel;
 //!
-//! fn main() {
-//!     // configure telemetry config with custom settings
-//!     let config = TelemetryConfig::builder()
-//!         // provide an instrumentation key for a client
-//!         .i_key("<instrumentation key>")
-//!         // set a new maximum time to wait until data will be sent to the server
-//!         .interval(Duration::from_secs(5))
-//!         // construct a new instance of telemetry configuration
-//!         .build();
+//! // configure telemetry config with custom settings
+//! let config = TelemetryConfig::builder()
+//! // provide an instrumentation key for a client
+//!     .i_key("<instrumentation key>")
+//!     // set a new maximum time to wait until data will be sent to the server
+//!     .interval(Duration::from_secs(5))
+//!     // construct a new instance of telemetry configuration
+//!     .build();
 //!
-//!     // configure telemetry client with default settings
-//!     let client = TelemetryClient::from_config(config);
+//! // configure telemetry client with default settings
+//! let client = TelemetryClient::from_config(config);
 //!
-//!     // send trace telemetry to the Application Insights server
-//!     client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
-//! }
+//! // send trace telemetry to the Application Insights server
+//! client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
 //! ```
 //!
 //! ## Telemetry submission
