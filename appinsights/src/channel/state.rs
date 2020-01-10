@@ -204,16 +204,16 @@ impl Worker {
     }
 
     fn handle_waiting<E: Event>(&self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {
-        debug!(
-            "Waiting for timeout {:?} or stop command triggered by {:?}",
-            retry,
-            m.state()
-        );
         if let Some(timeout) = retry.next() {
+            debug!(
+                "Waiting for retry timeout {:?} or stop command triggered by {:?}",
+                timeout,
+                m.state()
+            );
             // sleep until next sending attempt
             let timeout = timeout::after(timeout);
 
-            // wait for either timeout expired or stop command received
+            // wait for either retry timeout expired or stop command received
             loop {
                 select! {
                     recv(self.command_receiver) -> command => {
@@ -230,12 +230,13 @@ impl Worker {
                         }
                     },
                     recv(timeout) -> _ => {
-                        debug!("Timeout expired");
+                        debug!("Retry timeout expired");
                         return m.transition(TimeoutExpired).as_enum()
                     },
                 }
             }
         } else {
+            debug!("All retries exhausted by {:?}", m.state());
             m.transition(RetryExhausted).as_enum()
         }
     }

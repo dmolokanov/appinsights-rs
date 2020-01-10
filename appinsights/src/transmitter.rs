@@ -91,14 +91,14 @@ impl Transmitter {
                 if let Ok(content) = response.json::<Transmission>() {
                     let retry_items = retry_items(items, content);
                     if retry_items.is_empty() {
-                        debug!("Service unavailable. Nothing to re-send");
+                        debug!("Service error. Nothing to re-send");
                         Response::NoRetry
                     } else {
-                        debug!("Service unavailable. Retry sending {} items", retry_items.len());
+                        debug!("Service error. Retry sending {} items", retry_items.len());
                         Response::Retry(retry_items)
                     }
                 } else {
-                    debug!("Service unavailable. Retry sending {} items", items.len());
+                    debug!("Service error. Retry sending {} items", items.len());
                     Response::Retry(items.to_vec())
                 }
             }
