@@ -21,22 +21,6 @@ lazy_static! {
     static ref SERIAL_TEST_MUTEX: Mutex<()> = Mutex::new(());
 }
 
-/// Macro to crate a serial test, that locks the `SERIAL_TEST_MUTEX` while testing.
-macro_rules! serial_test {
-    (fn $name: ident() $body: block) => {
-        #[test]
-        fn $name() {
-            let guard = SERIAL_TEST_MUTEX.lock().unwrap();
-            // Catch any panics to not poison the lock.
-            if let Err(err) = std::panic::catch_unwind(|| $body) {
-                drop(guard);
-
-                std::panic::resume_unwind(err);
-            }
-        }
-    };
-}
-
 macro_rules! manual_timeout_test {
     (fn $name: ident() $body: block) => {
         #[test]
@@ -126,13 +110,7 @@ manual_timeout_test! {
             content
         });
         let items_count = (0..15)
-            .filter_map(|i| {
-                if content.contains(&format!("--event {}--", i)) {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+            .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 15);
     }
@@ -170,13 +148,7 @@ manual_timeout_test! {
             content
         });
         let items_count = (0..15)
-            .filter_map(|i| {
-                if content.contains(&format!("--event {}--", i)) {
-                    Some(i)
-                } else {
-                    None
-                }
-            })
+            .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 15);
     }
@@ -206,10 +178,180 @@ manual_timeout_test! {
         // verify that nothing has been sent to the server
         let receiver = server.requests();
         assert_matches!(
-                receiver.recv_timeout(Duration::from_millis(500)),
-                Err(RecvTimeoutError::Timeout)
-            );
+            receiver.recv_timeout(Duration::from_millis(500)),
+            Err(RecvTimeoutError::Timeout)
+        );
 
+    }
+}
+
+manual_timeout_test! {
+    fn it_tries_to_send_pending_telemetry_items_when_close_channel_requested() {
+        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+
+        // close internal channel means that client will make an attempt to send telemetry items once
+        // and then tear down submission flow
+        client.close_channel();
+
+        // NOTE no timeout expired
+        // verify that 1 request has been sent
+        let requests = server.wait_for_requests(1);
+        assert_eq!(requests.len(), 1);
+
+        // verify request contains all items we submitted to the client
+        let content = requests.into_iter().fold(String::new(), |mut content, body| {
+            content.push_str(&body);
+            content
+        });
+        let items_count = (0..15)
+            .filter(|i| content.contains(&format!("--event {}--", i)))
+            .count();
+        assert_eq!(items_count, 15);
+    }
+}
+
+manual_timeout_test! {
+    fn it_retries_when_previous_submission_failed() {
+        let server = server()
+            .response(StatusCode::INTERNAL_SERVER_ERROR, json!({}), None)
+            .response(
+                StatusCode::OK,
+                json!(
+                {
+                    "itemsAccepted": 15,
+                    "itemsReceived": 15,
+                    "errors": [],
+                }),
+                None,
+            )
+            .create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+        timeout::expire();
+
+        // "wait" until retry logic handled
+        std::thread::sleep(Duration::from_millis(300));
+        timeout::expire();
+
+        // verify there are 2 identical requests
+        let requests = server.wait_for_requests(2);
+        assert_eq!(requests.len(), 2);
+        assert_eq!(requests[0], requests[1]);
+    }
+}
+
+manual_timeout_test! {
+    fn it_retries_when_partial_content() {
+        let server = server()
+            .response(
+                StatusCode::PARTIAL_CONTENT,
+                json!(
+                {
+                    "itemsAccepted": 12,
+                    "itemsReceived": 15,
+                    "errors": [
+                        {
+                            "index": 4,
+                            "statusCode": StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                            "message": "Internal Server Error"
+                        },
+                        {
+                            "index": 9,
+                            "statusCode": StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                            "message": "Internal Server Error"
+                        },
+                        {
+                            "index": 14,
+                            "statusCode": StatusCode::INTERNAL_SERVER_ERROR.as_u16(),
+                            "message": "Internal Server Error"
+                        }
+                    ],
+                }),
+                None,
+            )
+            .response(
+                StatusCode::OK,
+                json!(
+                {
+                    "itemsAccepted": 3,
+                    "itemsReceived": 3,
+                    "errors": [],
+                }),
+                None,
+            )
+            .create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // TODO delete this hack
+        // this thread::sleep is required only to await while all items sent in previous step be
+        // processed buy internal worker. Now it contains multiple channels that worker loop reads
+        // events from one by one sometimes it picks expiration command instead of items sent
+        // before.
+        std::thread::sleep(Duration::from_millis(300));
+        timeout::expire();
+
+        // "wait" until retry logic handled
+        std::thread::sleep(Duration::from_millis(300));
+        timeout::expire();
+
+        // verify it sends a first request with all items
+        let requests = server.wait_for_requests(1);
+        assert_eq!(requests.len(), 1);
+
+        let content = requests.into_iter().fold(String::new(), |mut content, body| {
+            content.push_str(&body);
+            content
+        });
+        let items_count = (0..15)
+            .filter(|i| content.contains(&format!("--event {}--", i)))
+            .count();
+        assert_eq!(items_count, 15);
+
+        // verify it re-send only errors that previously were invalid
+        let requests = server.wait_for_requests(1);
+        assert_eq!(requests.len(), 1);
+
+        let content = requests.into_iter().fold(String::new(), |mut content, body| {
+            content.push_str(&body);
+            content
+        });
+        let items_count = [4, 9, 14]
+            .iter()
+            .filter(|i| content.contains(&format!("--event {}--", i)))
+            .count();
+        assert_eq!(items_count, 3);
     }
 }
 
@@ -253,7 +395,7 @@ impl HyperTestServer {
             match self.requests.recv_timeout(Duration::from_millis(1000)) {
                 Result::Ok(request) => requests.push(request),
                 Result::Err(err) => {
-                    dbg!(err);
+                    log::error!("{:?}", err);
                 }
             }
         }
@@ -271,7 +413,7 @@ impl Drop for HyperTestServer {
 }
 
 impl Builder {
-    fn response(mut self, status: StatusCode, body: String, retry_after: Option<DateTime<Utc>>) -> Self {
+    fn response(mut self, status: StatusCode, body: impl ToString, retry_after: Option<DateTime<Utc>>) -> Self {
         let mut builder = Response::builder();
         builder.status(status);
 
@@ -280,20 +422,23 @@ impl Builder {
             builder.header("Retry-After", retry_after);
         }
 
-        let response = builder.body(body.into()).unwrap();
+        let response = builder.body(body.to_string()).unwrap();
         self.responses.push(response);
 
         self
     }
 
     fn status(self, status: StatusCode) -> Self {
-        let body = json!({
-            "itemsAccepted": 1,
-            "itemsReceived": 1,
-            "errors": [],
-        })
-        .to_string();
-        self.response(status, body, None)
+        self.response(
+            status,
+            json!(
+            {
+                    "itemsAccepted": 1,
+                    "itemsReceived": 1,
+                    "errors": [],
+            }),
+            None,
+        )
     }
 
     fn create(self) -> HyperTestServer {
