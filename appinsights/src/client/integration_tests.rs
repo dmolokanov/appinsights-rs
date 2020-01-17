@@ -1,17 +1,17 @@
+#![allow(dead_code, unused_variables)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use chrono::{DateTime, Utc};
-use crossbeam_channel::{unbounded, Receiver, RecvTimeoutError};
-use futures::future;
-use futures::sync::oneshot;
-use hyper::rt::{Future, Stream};
-use hyper::service::service_fn;
+use crossbeam_channel::{bounded, unbounded, Receiver, RecvTimeoutError};
+use futures::stream::StreamExt;
+use hyper::service::{make_service_fn, service_fn};
 use hyper::{Body, Request, Response, Server, StatusCode};
 use lazy_static::lazy_static;
 use matches::assert_matches;
 use serde_json::json;
+use tokio::sync::oneshot;
 
 use crate::channel::InMemoryChannel;
 use crate::{timeout, TelemetryClient, TelemetryConfig};
@@ -376,7 +376,7 @@ fn server() -> Builder {
 struct HyperTestServer {
     url: String,
     requests: Receiver<String>,
-    shutdown: Option<futures::sync::oneshot::Sender<()>>,
+    shutdown: Option<oneshot::Sender<()>>,
 }
 
 impl HyperTestServer {
@@ -414,12 +414,11 @@ impl Drop for HyperTestServer {
 
 impl Builder {
     fn response(mut self, status: StatusCode, body: impl ToString, retry_after: Option<DateTime<Utc>>) -> Self {
-        let mut builder = Response::builder();
-        builder.status(status);
+        let mut builder = Response::builder().status(status);
 
         if let Some(retry_after) = retry_after {
             let retry_after = retry_after.to_rfc2822();
-            builder.header("Retry-After", retry_after);
+            builder = builder.header("Retry-After", retry_after);
         }
 
         let response = builder.body(body.to_string()).unwrap();
@@ -433,9 +432,9 @@ impl Builder {
             status,
             json!(
             {
-                    "itemsAccepted": 1,
-                    "itemsReceived": 1,
-                    "errors": [],
+                "itemsAccepted": 1,
+                "itemsReceived": 1,
+                "errors": [],
             }),
             None,
         )
@@ -443,59 +442,77 @@ impl Builder {
 
     fn create(self) -> HyperTestServer {
         let (shutdown_sender, shutdown_receiver) = oneshot::channel::<()>();
+        let (url_sender, url_receiver) = bounded::<String>(1);
         let (request_sender, request_receiver) = unbounded::<String>();
 
         let responses = Arc::new(self.responses);
         let counter = Arc::new(AtomicUsize::new(0));
 
-        let new_service = move || {
+        let make_service = make_service_fn(move |_| {
             let request_sender = request_sender.clone();
             let counter = counter.clone();
             let responses = responses.clone();
 
-            service_fn(move |req: Request<Body>| {
-                let request_sender = request_sender.clone();
-                let counter = counter.clone();
-                let responses = responses.clone();
+            async move {
+                Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
+                    let request_sender = request_sender.clone();
+                    let counter = counter.clone();
+                    let responses = responses.clone();
 
-                req.into_body()
-                    .fold(Vec::new(), |mut acc, chuck| {
-                        acc.extend_from_slice(chuck.as_ref());
-                        future::ok::<_, hyper::Error>(acc)
-                    })
-                    .and_then(move |body| {
+                    async move {
+                        let body = req
+                            .into_body()
+                            .fold(Vec::new(), |mut acc, chunk| {
+                                async move {
+                                    if let Ok(chunk) = chunk {
+                                        acc.extend_from_slice(chunk.as_ref());
+                                    }
+                                    acc
+                                }
+                            })
+                            .await;
                         let content = String::from_utf8(body).unwrap();
                         request_sender.send(content).unwrap();
 
                         let count = counter.fetch_add(1, Ordering::AcqRel);
 
-                        if let Some(response) = responses.get(count) {
-                            let res = Response::builder()
+                        let response = if let Some(response) = responses.get(count) {
+                            Response::builder()
                                 .status(response.status())
                                 .body(Body::from(response.body().clone()))
-                                .unwrap();
-                            future::ok(res)
+                                .unwrap()
                         } else {
-                            future::ok(
-                                Response::builder()
-                                    .status(StatusCode::NOT_FOUND)
-                                    .body(Body::empty())
-                                    .unwrap(),
-                            )
-                        }
-                    })
-            })
-        };
+                            Response::builder()
+                                .status(StatusCode::NOT_FOUND)
+                                .body(Body::empty())
+                                .unwrap()
+                        };
 
-        let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(new_service);
-        let url = format!("http://{}", server.local_addr());
-        let graceful = server
-            .with_graceful_shutdown(shutdown_receiver)
-            .map_err(|err| eprintln!("server error: {}", err));
+                        Ok::<_, hyper::Error>(response)
+                    }
+                }))
+            }
+        });
 
         std::thread::spawn(move || {
-            hyper::rt::run(graceful.map_err(|_| ()));
+            let mut rt = tokio::runtime::Runtime::new().expect("runtime");
+            rt.block_on(async move {
+                let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(make_service);
+
+                let url = format!("http://{}", server.local_addr());
+                url_sender.send(url).unwrap();
+
+                let graceful = server.with_graceful_shutdown(async {
+                    shutdown_receiver.await.ok();
+                });
+
+                if let Err(e) = graceful.await {
+                    log::error!("server error: {}", e);
+                }
+            });
         });
+
+        let url = url_receiver.recv().expect("url");
 
         HyperTestServer {
             url,

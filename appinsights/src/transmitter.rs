@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use http::header::RETRY_AFTER;
 use http::StatusCode;
 use log::debug;
-use reqwest::Client;
+use reqwest::blocking::Client;
 
 use crate::contracts::{Envelope, Transmission, TransmissionItem};
 use crate::Result;
@@ -36,7 +36,7 @@ impl Transmitter {
     pub fn send(&self, items: &mut Vec<Envelope>) -> Result<Response> {
         let payload = serde_json::to_string(&items)?;
 
-        let mut response = self.client.post(&self.url).body(payload).send()?;
+        let response = self.client.post(&self.url).body(payload).send()?;
         let response = match response.status() {
             StatusCode::OK => {
                 debug!("Successfully sent {} items", items.len());
@@ -63,13 +63,15 @@ impl Transmitter {
                 }
             }
             StatusCode::TOO_MANY_REQUESTS | StatusCode::REQUEST_TIMEOUT => {
+                let retry_after = response.headers().get(RETRY_AFTER).cloned();
+
                 let items = if let Ok(content) = response.json::<Transmission>() {
                     retry_items(items, content)
                 } else {
                     items.to_vec()
                 };
 
-                if let Some(retry_after) = response.headers().get(RETRY_AFTER) {
+                if let Some(retry_after) = retry_after {
                     let retry_after = retry_after.to_str()?;
                     let retry_after = DateTime::parse_from_rfc2822(retry_after)?.with_timezone(&Utc);
                     debug!(
