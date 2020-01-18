@@ -33,7 +33,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all --bins --examples
+        args: --all --tests --bins --examples
 
     - name: check
       uses: actions-rs/cargo@v1
