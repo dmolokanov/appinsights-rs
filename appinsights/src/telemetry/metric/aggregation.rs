@@ -45,9 +45,9 @@ pub struct AggregateMetricTelemetry {
 
 impl AggregateMetricTelemetry {
     /// Creates a metric telemetry item with specified name and value.
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: String) -> Self {
         Self {
-            name: name.into(),
+            name,
             stats: Stats::default(),
             timestamp: time::now(),
             properties: Properties::default(),
@@ -224,7 +224,7 @@ mod tests {
         let mut telemetry = AggregateMetricTelemetry::new("stats".into());
         *telemetry.stats_mut() = stats;
 
-        assert_eq!(telemetry.stats().value, 15.0);
+        assert!((telemetry.stats().value - 15.0).abs() < std::f64::EPSILON);
     }
 
     #[test]
