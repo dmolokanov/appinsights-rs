@@ -16,7 +16,7 @@ use crate::time;
 /// use appinsights::telemetry::{Telemetry, AggregateMetricTelemetry};
 ///
 /// // create a telemetry item
-/// let mut telemetry = AggregateMetricTelemetry::new("temp_sensor");
+/// let mut telemetry = AggregateMetricTelemetry::new("temp_sensor".into());
 /// telemetry.stats_mut().add_data(&[50.0, 53.1, 56.4]);
 ///
 /// // assign custom properties and context tags
