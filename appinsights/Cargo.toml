@@ -7,7 +7,7 @@ description = "Application Insights SDK for Rust"
 license = "MIT"
 documentation = "https://docs.rs/appinsights"
 repository = "https://github.com/dmolokanov/appinsights-rs"
-readme = "../../README.md"
+readme = "../README.md"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], default-features = false }
