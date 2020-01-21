@@ -8,7 +8,7 @@ use std::time::Duration as StdDuration;
 mod imp {
     use chrono::{DateTime, Utc};
 
-    /// Returns a DataTime which corresponds a current date.
+    /// Returns a DateTime which corresponds to a current date.
     pub fn now() -> DateTime<Utc> {
         Utc::now()
     }
