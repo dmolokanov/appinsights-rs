@@ -3,6 +3,10 @@ name = "appinsights"
 version = "0.1.0"
 authors = ["dmolokanov <dmolokanov@users.noreply.github.com>"]
 edition = "2018"
+description = "Application Insights SDK for Rust"
+license = "MIT"
+documentation = "https://docs.rs/appinsights"
+repository = "https://github.com/dmolokanov/appinsights-rs"
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"], default-features = false }
