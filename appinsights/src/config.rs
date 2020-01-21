@@ -28,7 +28,7 @@ pub struct TelemetryConfig {
     /// Endpoint URL where data will be sent.
     endpoint: String,
 
-    // Maximum time to wait until send a batch of telemetry.
+    /// Maximum time to wait until send a batch of telemetry.
     interval: Duration,
 }
 
