@@ -11,7 +11,7 @@ use std::time::Duration;
 /// let config = TelemetryConfig::new("<instrumentation key>".to_string());
 /// ```
 ///
-/// Creating a telemetry client configuration with customg settings
+/// Creating a telemetry client configuration with custom settings
 /// ```rust
 /// # use std::time::Duration;
 /// # use appinsights::TelemetryConfig;
