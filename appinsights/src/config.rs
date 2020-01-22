@@ -11,7 +11,7 @@ use std::time::Duration;
 /// let config = TelemetryConfig::new("<instrumentation key>".to_string());
 /// ```
 ///
-/// Creating a telemetry client configuration with customg settings
+/// Creating a telemetry client configuration with custom settings
 /// ```rust
 /// # use std::time::Duration;
 /// # use appinsights::TelemetryConfig;
@@ -28,7 +28,7 @@ pub struct TelemetryConfig {
     /// Endpoint URL where data will be sent.
     endpoint: String,
 
-    // Maximum time to wait until send a batch of telemetry.
+    /// Maximum time to wait until send a batch of telemetry.
     interval: Duration,
 }
 
