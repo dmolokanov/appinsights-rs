@@ -38,7 +38,7 @@ fn main() {
     client.track_event("application started");
 }
 ```
-If you need more control over the client's behavior, you can create a new instance of `TelemetryConfig` and initilize a `TelemetryClient` with it.
+If you need more control over the client's behavior, you can create a new instance of `TelemetryConfig` and initialize a `TelemetryClient` with it.
 
 ```rust
 use std::time::Duration;

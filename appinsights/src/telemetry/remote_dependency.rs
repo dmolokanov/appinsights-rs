@@ -137,7 +137,7 @@ impl Telemetry for RemoteDependencyTelemetry {
 
 impl From<(TelemetryContext, RemoteDependencyTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, RemoteDependencyTelemetry)) -> Self {
-        Envelope {
+        Self {
             name: "Microsoft.ApplicationInsights.RemoteDependency".into(),
             time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
             i_key: Some(context.i_key),

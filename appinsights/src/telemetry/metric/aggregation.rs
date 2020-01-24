@@ -95,7 +95,7 @@ impl Telemetry for AggregateMetricTelemetry {
 
 impl From<(TelemetryContext, AggregateMetricTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, AggregateMetricTelemetry)) -> Self {
-        Envelope {
+        Self {
             name: "Microsoft.ApplicationInsights.Metric".into(),
             time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
             i_key: Some(context.i_key),

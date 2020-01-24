@@ -98,7 +98,7 @@ impl Telemetry for TraceTelemetry {
 
 impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, TraceTelemetry)) -> Self {
-        Envelope {
+        Self {
             name: "Microsoft.ApplicationInsights.Message".into(),
             time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
             i_key: Some(context.i_key),

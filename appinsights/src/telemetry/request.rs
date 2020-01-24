@@ -148,7 +148,7 @@ impl Telemetry for RequestTelemetry {
 impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, RequestTelemetry)) -> Self {
         let success = telemetry.is_success();
-        Envelope {
+        Self {
             name: "Microsoft.ApplicationInsights.Request".into(),
             time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
             i_key: Some(context.i_key),

@@ -113,7 +113,7 @@ impl Telemetry for PageViewTelemetry {
 
 impl From<(TelemetryContext, PageViewTelemetry)> for Envelope {
     fn from((context, telemetry): (TelemetryContext, PageViewTelemetry)) -> Self {
-        Envelope {
+        Self {
             name: "Microsoft.ApplicationInsights.PageView".into(),
             time: telemetry.timestamp.to_rfc3339_opts(SecondsFormat::Millis, true),
             i_key: Some(context.i_key),
