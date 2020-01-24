@@ -172,7 +172,7 @@ mod tests {
     fn it_overrides_properties_from_context() {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
 
-        let mut context = TelemetryContext::new("instrumentation".into());
+        let mut context = TelemetryContext::with_i_key("instrumentation".into());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
@@ -222,7 +222,7 @@ mod tests {
     fn it_overrides_tags_from_context() {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
 
-        let mut context = TelemetryContext::new("instrumentation".into());
+        let mut context = TelemetryContext::with_i_key("instrumentation".into());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 

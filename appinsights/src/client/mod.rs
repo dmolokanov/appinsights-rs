@@ -20,6 +20,11 @@ impl TelemetryClient<InMemoryChannel> {
     pub fn new(i_key: String) -> Self {
         Self::from_config(TelemetryConfig::new(i_key))
     }
+
+    // /// Creates a new telemetry client with prepared context.
+    // pub fn with_context(context: TelemetryContext) -> Self {
+    //     Self { enabled: true, context, channel: InMemoryChannel::new() }
+    // }
 }
 
 impl TelemetryClient<InMemoryChannel> {
@@ -27,7 +32,7 @@ impl TelemetryClient<InMemoryChannel> {
     pub fn from_config(config: TelemetryConfig) -> Self {
         Self {
             enabled: true,
-            context: TelemetryContext::new(config.i_key().to_string()),
+            context: TelemetryContext::with_i_key(config.i_key().to_string()),
             channel: InMemoryChannel::new(&config),
         }
     }
@@ -307,7 +312,7 @@ mod tests {
     fn create_client() -> TelemetryClient<TestChannel> {
         TelemetryClient {
             enabled: true,
-            context: TelemetryContext::new("instrumentation key".to_string()),
+            context: TelemetryContext::with_i_key("instrumentation key".to_string()),
             channel: TestChannel {
                 events: RefCell::new(Vec::new()),
             },
