@@ -2,6 +2,7 @@
 [![build-status](https://github.com/dmolokanov/appinsights-rs/workflows/CI/badge.svg)](https://github.com/dmolokanov/appinsights-rs/actions)
 [![crate-status](https://img.shields.io/crates/v/appinsights.svg)](https://crates.io/crates/appinsights)
 [![docs-status](https://docs.rs/appinsights/badge.svg)](https://docs.rs/appinsights)
+[![dependabot-status](https://api.dependabot.com/badges/status?host=github&repo=dmolokanov/appinsights-rs)](https://dependabot.com)
 
 This project provides a Rust SDK for [Application Insights](http://azure.microsoft.com/en-us/services/application-insights/). Application Insights is an APM service that helps to monitor running applications. This Rust crate allows to send various kinds of telemetry information to the server to be visualized later on Azure Portal. 
 
@@ -62,3 +63,6 @@ fn main() {
     client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
 }
 ```
+
+## License
+This project is licensed under the terms of the [MIT](LICENSE) license.
