@@ -8,7 +8,7 @@ use std::time::Duration as StdDuration;
 mod imp {
     use chrono::{DateTime, Utc};
 
-    /// Returns a DataTime which corresponds a current date.
+    /// Returns a DateTime which corresponds to a current date.
     pub fn now() -> DateTime<Utc> {
         Utc::now()
     }
@@ -22,7 +22,7 @@ mod imp {
 
     thread_local!(static NOW: RefCell<Option<DateTime<Utc>>> = RefCell::new(None));
 
-    /// Returns a DataTime which corresponds a current date or the value user set in advance.
+    /// Returns a DateTime which corresponds to a current date or the value user set in advance.
     pub fn now() -> DateTime<Utc> {
         NOW.with(|ts| if let Some(now) = *ts.borrow() { now } else { Utc::now() })
     }
