@@ -20,11 +20,6 @@ impl TelemetryClient<InMemoryChannel> {
     pub fn new(i_key: String) -> Self {
         Self::from_config(TelemetryConfig::new(i_key))
     }
-
-    // /// Creates a new telemetry client with prepared context.
-    // pub fn with_context(context: TelemetryContext) -> Self {
-    //     Self { enabled: true, context, channel: InMemoryChannel::new() }
-    // }
 }
 
 impl TelemetryClient<InMemoryChannel> {
