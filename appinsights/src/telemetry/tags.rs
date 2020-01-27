@@ -214,19 +214,6 @@ tags!(
 );
 
 #[cfg(test)]
-tags!(
-    /// Returns example wrapper
-    example,
-    /// Example tags
-    ExampleTags {
-        /// foo
-        foo: "foo",
-        /// bar
-        bar: "bar"
-    }
-);
-
-#[cfg(test)]
 mod tests {
     use super::*;
 
@@ -253,4 +240,16 @@ mod tests {
         assert_eq!(example.foo(), Some("foo"));
         assert_eq!(example.bar(), Some("bar"));
     }
+
+    tags!(
+        /// Returns example wrapper
+        example,
+        /// Example tags
+        ExampleTags {
+            /// foo
+            foo: "foo",
+            /// bar
+            bar: "bar"
+        }
+    );
 }

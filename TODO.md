@@ -3,7 +3,7 @@
 - [x] Context tags to expose convenient API
 - [ ] Setup default context
 - [ ] Add examples how to configure context (and pass to context)
-- [ ] Fix mutability inconvenience for tags
+- [x] Fix mutability inconvenience for tags
 - [ ] Revisit telemetry client, items and context use facing methods 
 - [ ] make Stats immutable
 - [ ] Support exceptions telemetry with rust backtrace
