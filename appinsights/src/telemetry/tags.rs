@@ -65,7 +65,7 @@ macro_rules! tags {
 
             $(
                 $(#[$attr_method])*
-                pub fn $method(&'a self) -> Option<&'a str> {
+                pub fn $method(&self) -> Option<&str> {
                     self.items.get($key).map(|x| x.as_ref())
                 }
             )*
@@ -84,7 +84,7 @@ macro_rules! tags {
                 }
                 $(
                     $(#[$attr_method])*
-                    pub fn [<set_ $method>](&'a mut self, value: String) {
+                    pub fn [<set_ $method>](&mut self, value: String) {
                         self.items.insert($key.into(), value);
                     }
                 )*
@@ -247,10 +247,10 @@ mod tests {
 
         let mut example = tags.example_mut();
         example.set_foo("foo".into());
-        // example.set_bar("bar".into()); // TODO figure out how to deal with this case
+        example.set_bar("bar".into());
 
         let example = tags.example();
         assert_eq!(example.foo(), Some("foo"));
-        // assert_eq!(example.bar(), Some("bar"));
+        assert_eq!(example.bar(), Some("bar"));
     }
 }
