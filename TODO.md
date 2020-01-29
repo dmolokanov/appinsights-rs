@@ -1,10 +1,10 @@
 # TODO
 - [x] Common properties
 - [x] Context tags to expose convenient API
-- [ ] Setup default context
-- [ ] Add examples how to configure context (and pass to context)
+- [x] Setup default context
+- [x] Add examples how to configure context (and pass to context)
 - [x] Fix mutability inconvenience for tags
-- [ ] Revisit telemetry client, items and context use facing methods 
+- [ ] Revisit telemetry client, items and context user facing methods 
 - [ ] make Stats immutable
 - [ ] Support exceptions telemetry with rust backtrace
 - [ ] Handle message throttling from server

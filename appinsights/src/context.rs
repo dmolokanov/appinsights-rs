@@ -49,9 +49,11 @@ impl TelemetryContext {
         let mut tags = ContextTags::default();
         tags.internal_mut().set_sdk_version(sdk_version);
         tags.device_mut().set_os_version(os_version.into());
-        // TODO get a hostname
-        // TODO tags.device_mut().set_id(hostname.clone());
-        // TODO tags.cloud_mut().set_role_instance(hostname);
+
+        if let Ok(Ok(host)) = &hostname::get().map(|host| host.into_string()) {
+            tags.device_mut().set_id(host.into());
+            tags.cloud_mut().set_role_instance(host.into());
+        }
 
         let properties = Properties::default();
         Self::new(i_key, tags, properties)
@@ -89,6 +91,8 @@ impl TelemetryContext {
 
 #[cfg(test)]
 mod tests {
+    use matches::assert_matches;
+
     use super::*;
 
     #[test]
@@ -99,5 +103,19 @@ mod tests {
 
         assert_eq!(context.properties().len(), 1);
         assert_eq!(context.properties().get("Resource Group"), Some(&"my-rg".to_string()));
+    }
+
+    #[test]
+    fn it_creates_a_context_with_default_values() {
+        let config = TelemetryConfig::new("instrumentation".into());
+
+        let context = TelemetryContext::from_config(&config);
+
+        assert_eq!(&context.i_key, "instrumentation");
+        assert_matches!(&context.tags().internal().sdk_version(), Some(_));
+        assert_matches!(&context.tags().device().os_version(), Some(_));
+        assert_matches!(&context.tags().device().id(), Some(_));
+        assert_matches!(&context.tags().cloud().role_instance(), Some(_));
+        assert!(context.properties().is_empty());
     }
 }
