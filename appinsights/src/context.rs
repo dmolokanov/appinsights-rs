@@ -1,4 +1,5 @@
 use crate::telemetry::{ContextTags, Properties};
+use crate::TelemetryConfig;
 
 /// Encapsulates contextual data common to all telemetry submitted through a telemetry client.
 /// # Examples
@@ -30,9 +31,30 @@ pub struct TelemetryContext {
 }
 
 impl TelemetryContext {
-    /// Creates a new instance of telemetry context with instrumentation key and default tags and properties.
-    pub fn with_i_key(i_key: String) -> Self {
-        Self::new(i_key, ContextTags::default(), Properties::default())
+    /// Creates a new instance of telemetry context from config
+    pub fn from_config(config: &TelemetryConfig) -> Self {
+        let i_key = config.i_key().into();
+
+        let sdk_version = format!("rust:{}", env!("CARGO_PKG_VERSION"));
+        let os_version = if cfg!(target_os = "linux") {
+            "linux"
+        } else if cfg!(target_os = "windows") {
+            "windows"
+        } else if cfg!(target_os = "macos") {
+            "macos"
+        } else {
+            "unknown"
+        };
+
+        let mut tags = ContextTags::default();
+        tags.internal_mut().set_sdk_version(sdk_version);
+        tags.device_mut().set_os_version(os_version.into());
+        // TODO get a hostname
+        // TODO tags.device_mut().set_id(hostname.clone());
+        // TODO tags.cloud_mut().set_role_instance(hostname);
+
+        let properties = Properties::default();
+        Self::new(i_key, tags, properties)
     }
 
     /// Creates a new instance of telemetry context.
@@ -71,7 +93,8 @@ mod tests {
 
     #[test]
     fn it_updates_common_properties() {
-        let mut context = TelemetryContext::with_i_key("intrumentation".to_string());
+        let config = TelemetryConfig::new("instrumentation".into());
+        let mut context = TelemetryContext::from_config(&config);
         context.properties_mut().insert("Resource Group".into(), "my-rg".into());
 
         assert_eq!(context.properties().len(), 1);

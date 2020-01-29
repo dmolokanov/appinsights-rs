@@ -184,7 +184,8 @@ mod tests {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
         uuid::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
-        let mut context = TelemetryContext::with_i_key("instrumentation".into());
+        let mut context =
+            TelemetryContext::new("instrumentation".into(), ContextTags::default(), Properties::default());
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
@@ -235,7 +236,8 @@ mod tests {
         time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 700));
         uuid::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
 
-        let mut context = TelemetryContext::with_i_key("instrumentation".into());
+        let mut context =
+            TelemetryContext::new("instrumentation".into(), ContextTags::default(), Properties::default());
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 

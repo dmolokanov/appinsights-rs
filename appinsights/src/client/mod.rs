@@ -27,7 +27,7 @@ impl TelemetryClient<InMemoryChannel> {
     pub fn from_config(config: TelemetryConfig) -> Self {
         Self {
             enabled: true,
-            context: TelemetryContext::with_i_key(config.i_key().to_string()),
+            context: TelemetryContext::from_config(&config),
             channel: InMemoryChannel::new(&config),
         }
     }
@@ -64,6 +64,38 @@ where
     /// ```
     pub fn enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
+    }
+
+    /// Returns an immutable reference to a collection of tag data to attach to the telemetry item.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use appinsights::TelemetryClient;
+    /// let mut client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// client.context_mut().tags_mut().cloud_mut().set_role("rust_server".to_string());
+    ///
+    /// assert_eq!(client.context().tags().cloud().role(), Some("rust_server"));
+    /// ```
+    pub fn context(&self) -> &TelemetryContext {
+        &self.context
+    }
+
+    /// Returns a mutable reference to a collection of tag data to attach to the telemetry item.
+    ///
+    /// # Examples
+    ///
+    /// ```rust
+    /// # use appinsights::TelemetryClient;
+    /// let mut client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// client.context_mut().tags_mut().insert("app_version".into(), "v0.1.1".to_string());
+    /// client.context_mut().properties_mut().insert("Resource Group".into(), "my-rg".to_string());
+    ///
+    /// assert_eq!(client.context().tags().get("app_version"), Some(&"v0.1.1".to_string()));
+    /// assert_eq!(client.context().properties().get("Resource Group"), Some(&"my-rg".to_string()));
+    /// ```
+    pub fn context_mut(&mut self) -> &mut TelemetryContext {
+        &mut self.context
     }
 
     /// Logs a user action with the specified name.
@@ -265,6 +297,7 @@ mod tests {
     use std::cell::RefCell;
 
     use chrono::{DateTime, Utc};
+    use matches::assert_matches;
 
     use super::*;
 
@@ -304,10 +337,20 @@ mod tests {
         assert!(events.is_empty())
     }
 
+    #[test]
+    fn it_creates_client_with_default_tags() {
+        let client = TelemetryClient::new("instrumentation".into());
+
+        let tags = client.context().tags();
+        assert_matches!(tags.internal().sdk_version(), Some(version) if version.starts_with("rust"));
+        assert_matches!(tags.device().os_version(), Some(_))
+    }
+
     fn create_client() -> TelemetryClient<TestChannel> {
+        let config = TelemetryConfig::new("instrumentation".into());
         TelemetryClient {
             enabled: true,
-            context: TelemetryContext::with_i_key("instrumentation key".to_string()),
+            context: TelemetryContext::from_config(&config),
             channel: TestChannel {
                 events: RefCell::new(Vec::new()),
             },
