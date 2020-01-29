@@ -42,6 +42,7 @@
 //! If you need more control over the client's behavior, you can create a new instance of
 //! [`TelemetryConfig`](struct.TelemetryConfig.html) and initialize a
 //! [`TelemetryClient`](struct.TelemetryClient.html) with it.
+//!
 //! ```rust
 //! use std::time::Duration;
 //! use appinsights::{TelemetryClient, TelemetryConfig};
@@ -90,12 +91,54 @@
 //! items submitted to a server. In case when some tags exists in both telemetry client context tags
 //! and telemetry item tags, later will be sent to the server.
 //!
+//! ```rust
+//! use std::time::Duration;
+//! use http::Method;
+//! use appinsights::TelemetryClient;
+//! use appinsights::telemetry::{RequestTelemetry, Telemetry};
+//!
+//! // configure telemetry with default settings
+//! let mut client = TelemetryClient::new("instrumentation".to_string());
+//!
+//! // set role instance name globally. This is usually the name of the service submitting the telemetry
+//! client.context_mut().tags_mut().cloud_mut().set_role("rust_server".to_string());
+//!
+//! // set the role instance to the host name. Note that this is done automatically by the SDK
+//! client.context_mut().tags_mut().cloud_mut().set_role_instance("rust_server".to_string());
+//!
+//! let mut telemetry = RequestTelemetry::new(
+//!     Method::GET,
+//!     "https://example.com/main.html".parse().unwrap(),
+//!     Duration::from_secs(2),
+//!     "200".into(),
+//! );
+//!
+//! // set the account id context tag
+//! telemetry.tags_mut().user_mut().set_account_id("account_id".to_string());
+//!
+//! // send telemetry to the Application Insights server
+//! client.track(telemetry);
+//! ```
+//!
 //! ## Common properties
 //!
 //! All telemetry items have [`properties`](telemetry/trait.Telemetry.html#method.properties) field
 //! and a [`TelemetryContext`](struct.TelemetryContext.html) also have [`properties`](struct.TelemetryContext.html#method.properties).
 //! These properties will be applied to all telemetry items submitted to a server. In case when some properties exists in both telemetry
 //! client properties and telemetry item properties, later will be sent to the server.
+//!
+//! ```rust
+//! use appinsights::TelemetryClient;
+//! use appinsights::telemetry::{RequestTelemetry, Telemetry};
+//!
+//! // configure telemetry with default settings
+//! let mut client = TelemetryClient::new("instrumentation".to_string());
+//!
+//! // set custom telemetry item property globally
+//! client.context_mut().properties_mut().insert("Resource Group".to_string(), "my-rg".to_string());
+//!
+//! // ... send telemetry to the Application Insights server
+//! ```
 //!
 //! ## Shutdown
 //!
