@@ -1,14 +1,12 @@
 // NOTE: This file was automatically generated.
 
-#![allow(dead_code, unused_imports)]
+#![allow(unused_imports)]
 
 mod availability_data;
 mod base;
-mod context_tag_keys;
 mod data;
 mod data_point;
 mod data_point_type;
-mod domain;
 mod envelope;
 mod event_data;
 mod exception_data;
@@ -24,11 +22,9 @@ mod stack_frame;
 
 pub use availability_data::*;
 pub use base::*;
-pub use context_tag_keys::*;
 pub use data::*;
 pub use data_point::*;
 pub use data_point_type::*;
-pub use domain::*;
 pub use envelope::*;
 pub use event_data::*;
 pub use exception_data::*;
