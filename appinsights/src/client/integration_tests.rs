@@ -462,13 +462,11 @@ impl Builder {
                     async move {
                         let body = req
                             .into_body()
-                            .fold(Vec::new(), |mut acc, chunk| {
-                                async move {
-                                    if let Ok(chunk) = chunk {
-                                        acc.extend_from_slice(chunk.as_ref());
-                                    }
-                                    acc
+                            .fold(Vec::new(), |mut acc, chunk| async move {
+                                if let Ok(chunk) = chunk {
+                                    acc.extend_from_slice(chunk.as_ref());
                                 }
+                                acc
                             })
                             .await;
                         let content = String::from_utf8(body).unwrap();
