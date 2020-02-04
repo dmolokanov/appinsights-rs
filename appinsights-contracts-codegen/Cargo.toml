@@ -8,5 +8,5 @@ edition = "2018"
 codegen = "0.1.1"
 structopt = "0.3.9"
 serde = { version = "1.0.102", features = ["derive"] }
-serde_json = "1.0.41"
+serde_json = "1.0.46"
 heck = "0.3.1"
