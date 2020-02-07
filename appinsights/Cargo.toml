@@ -30,4 +30,4 @@ lazy_static = "1.4"
 matches = "0.1"
 hyper = { version = "0.13.2" }
 tokio = { version = "0.2.11", default-features = false }
-futures = { version = "0.3.2", default-features = false }
+futures = { version = "0.3.4", default-features = false }
