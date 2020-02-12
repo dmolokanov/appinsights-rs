@@ -11,7 +11,7 @@ use crate::contracts::Envelope;
 use crate::transmitter::Transmitter;
 use crate::TelemetryConfig;
 
-// A telemetry channel that stores events exclusively in memory.
+/// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
     event_sender: Sender<Envelope>,
     command_sender: Option<Sender<Command>>,
