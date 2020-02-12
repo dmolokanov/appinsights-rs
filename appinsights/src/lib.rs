@@ -169,6 +169,7 @@ mod timeout;
 mod transmitter;
 mod uuid;
 
+pub use channel::InMemoryChannel;
 pub use client::TelemetryClient;
 #[doc(inline)]
 pub use config::TelemetryConfig;
