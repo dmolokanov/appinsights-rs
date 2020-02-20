@@ -1,6 +1,6 @@
 [package]
 name = "appinsights"
-version = "0.1.2"
+version = "0.1.3"
 authors = ["dmolokanov <dmolokanov@users.noreply.github.com>"]
 edition = "2018"
 description = "Application Insights SDK for Rust"
