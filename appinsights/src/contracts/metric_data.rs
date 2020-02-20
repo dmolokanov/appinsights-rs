@@ -8,7 +8,7 @@ use serde::Serialize;
 #[serde(rename_all = "camelCase")]
 pub struct MetricData {
     pub ver: i32,
-    pub metrics: DataPoint,
+    pub metrics: Vec<DataPoint>,
     pub properties: Option<std::collections::BTreeMap<String, String>>,
 }
 
@@ -16,7 +16,7 @@ impl Default for MetricData {
     fn default() -> Self {
         Self {
             ver: 2,
-            metrics: DataPoint::default(),
+            metrics: Vec::default(),
             properties: Option::default(),
         }
     }
