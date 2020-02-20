@@ -88,13 +88,13 @@ impl From<(TelemetryContext, MetricTelemetry)> for Envelope {
             i_key: Some(context.i_key),
             tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: telemetry.name,
                     kind: Some(DataPointType::Measurement),
                     value: telemetry.value,
                     count: Some(1),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
                 ..MetricData::default()
             }))),
@@ -132,13 +132,13 @@ mod tests {
             i_key: Some("instrumentation".into()),
             tags: Some(BTreeMap::default()),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: "test".into(),
                     kind: Some(DataPointType::Measurement),
                     value: 123.0,
                     count: Some(1),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
@@ -178,13 +178,13 @@ mod tests {
                 tags
             }),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: "test".into(),
                     kind: Some(DataPointType::Measurement),
                     value: 123.0,
                     count: Some(1),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some(BTreeMap::default()),
                 ..MetricData::default()
             }))),

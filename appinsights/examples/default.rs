@@ -9,16 +9,16 @@ fn main() {
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
 
-    let client = TelemetryClient::new(i_key);
+    let ai = TelemetryClient::new(i_key);
 
     for x in 1..=25 {
-        client.track_event(format!("Client connected: {}", x));
+        ai.track_event(format!("Client connected: {}", x));
         std::thread::sleep(Duration::from_millis(300));
 
         if x == 2 {
-            client.flush_channel();
+            ai.flush_channel();
         }
     }
 
-    client.close_channel();
+    ai.close_channel();
 }

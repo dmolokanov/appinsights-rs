@@ -101,7 +101,7 @@ impl From<(TelemetryContext, AggregateMetricTelemetry)> for Envelope {
             i_key: Some(context.i_key),
             tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: telemetry.name,
                     kind: Some(DataPointType::Aggregation),
                     value: telemetry.stats.value,
@@ -110,7 +110,7 @@ impl From<(TelemetryContext, AggregateMetricTelemetry)> for Envelope {
                     max: Some(telemetry.stats.max),
                     std_dev: Some(telemetry.stats.std_dev),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
                 ..MetricData::default()
             }))),
@@ -149,7 +149,7 @@ mod tests {
             i_key: Some("instrumentation".into()),
             tags: Some(BTreeMap::default()),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: "test".into(),
                     kind: Some(DataPointType::Aggregation),
                     value: 50.0,
@@ -158,7 +158,7 @@ mod tests {
                     max: Some(13.0),
                     std_dev: Some(2.0),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some({
                     let mut properties = BTreeMap::default();
                     properties.insert("test".into(), "ok".into());
@@ -199,7 +199,7 @@ mod tests {
                 tags
             }),
             data: Some(Base::Data(Data::MetricData(MetricData {
-                metrics: DataPoint {
+                metrics: vec![DataPoint {
                     name: "test".into(),
                     kind: Some(DataPointType::Aggregation),
                     value: 50.0,
@@ -208,7 +208,7 @@ mod tests {
                     max: Some(13.0),
                     std_dev: Some(2.0),
                     ..DataPoint::default()
-                },
+                }],
                 properties: Some(BTreeMap::default()),
                 ..MetricData::default()
             }))),

@@ -5,7 +5,6 @@ use serde::Serialize;
 
 /// Type of the metric data measurement.
 #[derive(Debug, Clone, PartialEq, Serialize)]
-#[serde(rename_all = "camelCase")]
 pub enum DataPointType {
     Measurement,
     Aggregation,

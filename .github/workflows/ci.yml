@@ -46,6 +46,8 @@ jobs:
       with:
         command: test
         args: --all
+      env:
+        APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.APPINSIGHTS_INSTRUMENTATIONKEY }} 
 
   format:
     runs-on: ubuntu-latest
