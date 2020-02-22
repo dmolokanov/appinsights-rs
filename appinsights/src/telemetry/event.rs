@@ -14,7 +14,7 @@ use crate::time;
 /// use appinsights::telemetry::{Telemetry, EventTelemetry};
 ///
 /// // create a telemetry item
-/// let mut telemetry = EventTelemetry::new("Starting data processing".to_string());
+/// let mut telemetry = EventTelemetry::new("Starting data processing");
 ///
 /// // attach custom properties, measurements and context tags
 /// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
@@ -43,9 +43,9 @@ pub struct EventTelemetry {
 
 impl EventTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(name: String) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
-            name,
+            name: name.into(),
             timestamp: time::now(),
             properties: Properties::default(),
             tags: ContextTags::default(),
@@ -127,7 +127,7 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new("test".into());
+        let mut telemetry = EventTelemetry::new("test");
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("value".into(), 5.0);
 
@@ -168,7 +168,7 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = EventTelemetry::new("test".into());
+        let mut telemetry = EventTelemetry::new("test");
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));

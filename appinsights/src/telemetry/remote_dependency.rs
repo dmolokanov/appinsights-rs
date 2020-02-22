@@ -19,10 +19,10 @@ use crate::uuid::Uuid;
 ///
 /// // create a telemetry item
 /// let mut telemetry = RemoteDependencyTelemetry::new(
-///     "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
-///     "HTTP".into(),
+///     "GET https://api.github.com/dmolokanov/appinsights-rs",
+///     "HTTP",
 ///     Duration::from_secs(2),
-///     "api.github.com".to_string(),
+///     "api.github.com",
 ///     true,
 /// );
 ///
@@ -80,16 +80,22 @@ pub struct RemoteDependencyTelemetry {
 
 impl RemoteDependencyTelemetry {
     /// Creates a new telemetry item with specified name, dependency type, target site and success status.
-    pub fn new(name: String, dependency_type: String, duration: StdDuration, target: String, success: bool) -> Self {
+    pub fn new(
+        name: impl Into<String>,
+        dependency_type: impl Into<String>,
+        duration: StdDuration,
+        target: impl Into<String>,
+        success: bool,
+    ) -> Self {
         Self {
             id: Option::default(),
-            name,
+            name: name.into(),
             duration: duration.into(),
             result_code: Option::default(),
             success,
             data: Option::default(),
-            dependency_type,
-            target,
+            dependency_type: dependency_type.into(),
+            target: target.into(),
             timestamp: time::now(),
             properties: Properties::default(),
             tags: ContextTags::default(),
@@ -178,10 +184,10 @@ mod tests {
         context.properties_mut().insert("no-write".into(), "fail".into());
 
         let mut telemetry = RemoteDependencyTelemetry::new(
-            "GET https://example.com/main.html".into(),
-            "HTTP".into(),
+            "GET https://example.com/main.html",
+            "HTTP",
             StdDuration::from_secs(2),
-            "example.com".into(),
+            "example.com",
             true,
         );
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
@@ -229,10 +235,10 @@ mod tests {
         context.tags_mut().insert("no-write".into(), "fail".into());
 
         let mut telemetry = RemoteDependencyTelemetry::new(
-            "GET https://example.com/main.html".into(),
-            "HTTP".into(),
+            "GET https://example.com/main.html",
+            "HTTP",
             StdDuration::from_secs(2),
-            "example.com".into(),
+            "example.com",
             true,
         );
         telemetry.tags_mut().insert("no-write".into(), "ok".into());

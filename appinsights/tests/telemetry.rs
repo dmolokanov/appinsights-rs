@@ -10,14 +10,14 @@ use hyper::{Method, Uri};
 #[test]
 fn it_tracks_all_telemetry_items() {
     let entries = Arc::new(RwLock::new(Vec::new()));
-    logger::init(entries.clone()).unwrap();
+    logger::init(entries.clone());
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
     let ai = TelemetryClient::new(i_key);
 
-    ai.track_event("event happened".into());
-    ai.track_trace("Unable to connect to a gateway".to_string(), SeverityLevel::Warning);
-    ai.track_metric("gateway_latency_ms".to_string(), 113.0);
+    ai.track_event("event happened");
+    ai.track_trace("Unable to connect to a gateway", SeverityLevel::Warning);
+    ai.track_metric("gateway_latency_ms", 113.0);
     ai.track_request(
         Method::GET,
         "https://api.github.com/dmolokanov/appinsights-rs"
@@ -27,13 +27,13 @@ fn it_tracks_all_telemetry_items() {
         "200".to_string(),
     );
     ai.track_remote_dependency(
-        "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
-        "HTTP".to_string(),
-        "api.github.com".to_string(),
+        "GET https://api.github.com/dmolokanov/appinsights-rs",
+        "HTTP",
+        "api.github.com",
         true,
     );
     ai.track_availability(
-        "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
+        "GET https://api.github.com/dmolokanov/appinsights-rs",
         Duration::from_secs(2),
         true,
     );
@@ -67,9 +67,60 @@ pub mod logger {
         }
     }
 
+    pub fn init(entries: Arc<RwLock<Vec<String>>>) {
+        builder(entries).init()
+    }
+
+    pub fn builder(entries: Arc<RwLock<Vec<String>>>) -> Builder {
+        Builder::new(entries)
+    }
+
+    pub struct Builder {
+        entries: Arc<RwLock<Vec<String>>>,
+        level: Level,
+        output: bool,
+    }
+
+    impl Builder {
+        pub fn new(entries: Arc<RwLock<Vec<String>>>) -> Self {
+            Self {
+                entries,
+                level: Level::Debug,
+                output: false,
+            }
+        }
+
+        pub fn level(&mut self, level: Level) -> &mut Self {
+            self.level = level;
+            self
+        }
+
+        pub fn output(&mut self, output: bool) -> &mut Self {
+            self.output = output;
+            self
+        }
+
+        pub fn init(&mut self) {
+            self.try_init().expect("Builder::init failed")
+        }
+
+        pub fn try_init(&mut self) -> Result<(), SetLoggerError> {
+            let logger = MemoryLogger {
+                entries: self.entries.clone(),
+                level: self.level,
+                output: self.output,
+            };
+
+            log::set_boxed_logger(Box::new(logger))?;
+            log::set_max_level(LevelFilter::Trace);
+            Ok(())
+        }
+    }
+
     struct MemoryLogger {
         entries: Arc<RwLock<Vec<String>>>,
         level: Level,
+        output: bool,
     }
 
     impl Log for MemoryLogger {
@@ -93,23 +144,15 @@ pub mod logger {
                 },
                 record.args()
             );
-            println!("{}", entry);
+
+            if self.output {
+                println!("{}", entry);
+            }
 
             let mut entries = self.entries.write().unwrap();
             entries.push(entry);
         }
 
         fn flush(&self) {}
-    }
-
-    pub fn init(entries: Arc<RwLock<Vec<String>>>) -> Result<(), SetLoggerError> {
-        init_with_level(entries, Level::Debug)
-    }
-
-    pub fn init_with_level(entries: Arc<RwLock<Vec<String>>>, level: Level) -> Result<(), SetLoggerError> {
-        let logger = MemoryLogger { entries, level };
-        log::set_boxed_logger(Box::new(logger))?;
-        log::set_max_level(LevelFilter::Trace);
-        Ok(())
     }
 }

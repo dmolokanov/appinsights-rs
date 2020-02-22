@@ -14,7 +14,7 @@ use crate::time;
 /// use appinsights::telemetry::{Telemetry, MetricTelemetry};
 ///
 /// // create a telemetry item
-/// let mut telemetry = MetricTelemetry::new("temp_sensor".to_string(), 55.0);
+/// let mut telemetry = MetricTelemetry::new("temp_sensor", 55.0);
 ///
 /// // assign custom properties and context tags
 /// telemetry.properties_mut().insert("component".to_string(), "external_device".to_string());
@@ -42,9 +42,9 @@ pub struct MetricTelemetry {
 
 impl MetricTelemetry {
     /// Creates a metric telemetry item with specified name and value.
-    pub fn new(name: String, value: f64) -> Self {
+    pub fn new(name: impl Into<String>, value: f64) -> Self {
         Self {
-            name,
+            name: name.into(),
             value,
             timestamp: time::now(),
             properties: Properties::default(),
@@ -121,7 +121,7 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = MetricTelemetry::new("test".into(), 123.0);
+        let mut telemetry = MetricTelemetry::new("test", 123.0);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
@@ -162,7 +162,7 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = MetricTelemetry::new("test".into(), 123.0);
+        let mut telemetry = MetricTelemetry::new("test", 123.0);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
