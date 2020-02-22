@@ -110,7 +110,7 @@
 //!     Method::GET,
 //!     "https://example.com/main.html".parse().unwrap(),
 //!     Duration::from_secs(2),
-//!     "200".into(),
+//!     "200",
 //! );
 //!
 //! // set the account id context tag

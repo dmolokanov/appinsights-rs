@@ -15,7 +15,7 @@ use crate::time;
 /// use appinsights::telemetry::{TraceTelemetry, SeverityLevel, Telemetry};
 ///
 /// // create a telemetry item
-/// let mut telemetry = TraceTelemetry::new("Starting data processing".to_string(), SeverityLevel::Information);
+/// let mut telemetry = TraceTelemetry::new("Starting data processing", SeverityLevel::Information);
 ///
 /// // attach custom properties, measurements and context tags
 /// telemetry.properties_mut().insert("component".to_string(), "data_processor".to_string());
@@ -47,9 +47,9 @@ pub struct TraceTelemetry {
 
 impl TraceTelemetry {
     /// Creates an event telemetry item with specified name.
-    pub fn new(message: String, severity: SeverityLevel) -> Self {
+    pub fn new(message: impl Into<String>, severity: SeverityLevel) -> Self {
         Self {
-            message,
+            message: message.into(),
             severity,
             timestamp: time::now(),
             properties: Properties::default(),
@@ -162,7 +162,7 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = TraceTelemetry::new("message".into(), SeverityLevel::Information);
+        let mut telemetry = TraceTelemetry::new("message", SeverityLevel::Information);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("value".into(), 5.0);
 
@@ -204,7 +204,7 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = TraceTelemetry::new("message".into(), SeverityLevel::Information);
+        let mut telemetry = TraceTelemetry::new("message", SeverityLevel::Information);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));

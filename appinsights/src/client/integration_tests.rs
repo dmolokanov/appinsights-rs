@@ -355,6 +355,8 @@ manual_timeout_test! {
     }
 }
 
+// TODO Check case when all retries exhausted. Pending items should not be lost
+
 fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
     let config = TelemetryConfig::builder()
         .i_key("instrumentation key")

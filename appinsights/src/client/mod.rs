@@ -209,7 +209,7 @@ where
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
     /// use appinsights::telemetry::AggregateMetricTelemetry;
     ///
-    /// let mut telemetry = AggregateMetricTelemetry::new("device_message_latency_per_min".into());
+    /// let mut telemetry = AggregateMetricTelemetry::new("device_message_latency_per_min");
     /// telemetry.stats_mut().add_data(&[113.0, 250.0, 316.0]);
     ///
     /// client.track(telemetry);
