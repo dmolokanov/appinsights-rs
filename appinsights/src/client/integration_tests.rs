@@ -92,12 +92,7 @@ manual_timeout_test! {
         for i in 10..15 {
             client.track_event(format!("--event {}--", i));
         }
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
+
         timeout::expire();
 
         // verify that 2 requests has been send
@@ -126,13 +121,6 @@ manual_timeout_test! {
         for i in 0..15 {
             client.track_event(format!("--event {}--", i));
         }
-
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
 
         // force client to send all items to the server
         client.flush_channel();
@@ -165,13 +153,6 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
-
         // drop client
         drop(client);
 
@@ -195,13 +176,6 @@ manual_timeout_test! {
         for i in 0..15 {
             client.track_event(format!("--event {}--", i));
         }
-
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
 
         // close internal channel means that client will make an attempt to send telemetry items once
         // and then tear down submission flow
@@ -247,12 +221,6 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
         timeout::expire();
 
         // "wait" until retry logic handled
@@ -314,12 +282,6 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
         timeout::expire();
 
         // "wait" until retry logic handled

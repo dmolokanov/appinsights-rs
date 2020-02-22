@@ -106,19 +106,6 @@ impl Worker {
 
         loop {
             select! {
-                recv(self.event_receiver) -> event => {
-                    match event {
-                        Ok(envelope) => {
-                            trace!("Telemetry item received: {}", envelope.name);
-                            items.push(envelope);
-                            continue
-                        },
-                        Err(err) => {
-                            error!("event channel closed: {}", err);
-                            return m.transition(TerminateRequested).as_enum()
-                        }
-                    }
-                }
                 recv(self.command_receiver) -> command => {
                     match command {
                         Ok(command) => {
@@ -172,6 +159,11 @@ impl Worker {
             m.trigger().unwrap()
         );
 
+        // read items from a channel
+        let pending_items = self.event_receiver.try_iter();
+        items.extend(pending_items);
+
+        // submit items to the server if any
         if items.is_empty() {
             debug!("Nothing to send. Continue to wait");
             m.transition(ItemsSentAndContinue).as_enum()
