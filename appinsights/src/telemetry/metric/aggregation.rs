@@ -16,7 +16,7 @@ use crate::time;
 /// use appinsights::telemetry::{Telemetry, AggregateMetricTelemetry};
 ///
 /// // create a telemetry item
-/// let mut telemetry = AggregateMetricTelemetry::new("temp_sensor".into());
+/// let mut telemetry = AggregateMetricTelemetry::new("temp_sensor");
 /// telemetry.stats_mut().add_data(&[50.0, 53.1, 56.4]);
 ///
 /// // assign custom properties and context tags
@@ -45,9 +45,9 @@ pub struct AggregateMetricTelemetry {
 
 impl AggregateMetricTelemetry {
     /// Creates a metric telemetry item with specified name and value.
-    pub fn new(name: String) -> Self {
+    pub fn new(name: impl Into<String>) -> Self {
         Self {
-            name,
+            name: name.into(),
             stats: Stats::default(),
             timestamp: time::now(),
             properties: Properties::default(),
@@ -137,7 +137,7 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = AggregateMetricTelemetry::new("test".into());
+        let mut telemetry = AggregateMetricTelemetry::new("test");
         telemetry.stats_mut().add_data(&[9.0, 10.0, 11.0, 7.0, 13.0]);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
 
@@ -182,7 +182,7 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = AggregateMetricTelemetry::new("test".into());
+        let mut telemetry = AggregateMetricTelemetry::new("test");
         telemetry.stats_mut().add_data(&[9.0, 10.0, 11.0, 7.0, 13.0]);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
@@ -223,7 +223,7 @@ mod tests {
         let mut stats = Stats::default();
         stats.add_data(&[0.0, 1.0, 2.0, 3.0, 4.0, 5.0]);
 
-        let mut telemetry = AggregateMetricTelemetry::new("stats".into());
+        let mut telemetry = AggregateMetricTelemetry::new("stats");
         *telemetry.stats_mut() = stats;
 
         assert!((telemetry.stats().value - 15.0).abs() < std::f64::EPSILON);
@@ -234,7 +234,7 @@ mod tests {
         let mut properties = Properties::default();
         properties.insert("name".into(), "value".into());
 
-        let mut telemetry = AggregateMetricTelemetry::new("props".into());
+        let mut telemetry = AggregateMetricTelemetry::new("props");
         *telemetry.properties_mut() = properties;
 
         assert_eq!(telemetry.properties().len(), 1);
@@ -245,7 +245,7 @@ mod tests {
         let mut tags = ContextTags::default();
         tags.insert("name".into(), "value".into());
 
-        let mut telemetry = AggregateMetricTelemetry::new("props".into());
+        let mut telemetry = AggregateMetricTelemetry::new("props");
         *telemetry.tags_mut() = tags;
 
         assert_eq!(telemetry.tags().len(), 1);

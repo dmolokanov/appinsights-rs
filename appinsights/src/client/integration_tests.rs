@@ -45,7 +45,7 @@ manual_timeout_test! {
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
-        client.track_event("--event--".into());
+        client.track_event("--event--");
 
         timeout::expire();
 
@@ -60,7 +60,7 @@ manual_timeout_test! {
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
-        client.track_event("--event--".into());
+        client.track_event("--event--");
 
         // verify 1 items is sent after first interval expired
         let receiver = server.requests();
@@ -354,6 +354,8 @@ manual_timeout_test! {
         assert_eq!(items_count, 3);
     }
 }
+
+// TODO Check case when all retries exhausted. Pending items should not be lost
 
 fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
     let config = TelemetryConfig::builder()

@@ -36,7 +36,7 @@
 //! let client = TelemetryClient::new("<instrumentation key>".to_string());
 //!
 //! // send event telemetry to the Application Insights server
-//! client.track_event("Application started".to_string());
+//! client.track_event("Application started");
 //! ```
 //!
 //! If you need more control over the client's behavior, you can create a new instance of
@@ -61,7 +61,7 @@
 //! let client = TelemetryClient::from_config(config);
 //!
 //! // send trace telemetry to the Application Insights server
-//! client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
+//! client.track_trace("A database error occurred", SeverityLevel::Warning);
 //! ```
 //!
 //! ## Telemetry submission
@@ -110,7 +110,7 @@
 //!     Method::GET,
 //!     "https://example.com/main.html".parse().unwrap(),
 //!     Duration::from_secs(2),
-//!     "200".into(),
+//!     "200",
 //! );
 //!
 //! // set the account id context tag

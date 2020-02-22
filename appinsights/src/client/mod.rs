@@ -105,9 +105,9 @@ where
     /// ```rust, no_run
     /// # use appinsights::TelemetryClient;
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// client.track_event("app is running".to_string());
+    /// client.track_event("app is running");
     /// ```
-    pub fn track_event(&self, name: String) {
+    pub fn track_event(&self, name: impl Into<String>) {
         let event = EventTelemetry::new(name);
         self.track(event)
     }
@@ -120,9 +120,9 @@ where
     /// # use appinsights::TelemetryClient;
     /// # use appinsights::telemetry::SeverityLevel;
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// client.track_trace("Unable to connect to a gateway".to_string(), SeverityLevel::Warning);
+    /// client.track_trace("Unable to connect to a gateway", SeverityLevel::Warning);
     /// ```
-    pub fn track_trace(&self, message: String, severity: SeverityLevel) {
+    pub fn track_trace(&self, message: impl Into<String>, severity: SeverityLevel) {
         let event = TraceTelemetry::new(message, severity);
         self.track(event)
     }
@@ -136,9 +136,9 @@ where
     /// # use appinsights::TelemetryClient;
     /// # use appinsights::telemetry::SeverityLevel;
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// client.track_metric("gateway_latency_ms".to_string(), 113.0);
+    /// client.track_metric("gateway_latency_ms", 113.0);
     /// ```    
-    pub fn track_metric(&self, name: String, value: f64) {
+    pub fn track_metric(&self, name: impl Into<String>, value: f64) {
         let event = MetricTelemetry::new(name, value);
         self.track(event)
     }
@@ -154,9 +154,9 @@ where
     /// use std::time::Duration;
     ///
     /// let uri: Uri = "https://api.github.com/dmolokanov/appinsights-rs".parse().unwrap();
-    /// client.track_request(Method::GET, uri, Duration::from_millis(100), "200".to_string());
+    /// client.track_request(Method::GET, uri, Duration::from_millis(100), "200");
     /// ```
-    pub fn track_request(&self, method: Method, uri: Uri, duration: Duration, response_code: String) {
+    pub fn track_request(&self, method: Method, uri: Uri, duration: Duration, response_code: impl Into<String>) {
         let event = RequestTelemetry::new(method, uri, duration, response_code);
         self.track(event)
     }
@@ -169,13 +169,19 @@ where
     /// # use appinsights::TelemetryClient;
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
     /// client.track_remote_dependency(
-    ///     "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
-    ///     "HTTP".to_string(),
-    ///     "api.github.com".to_string(),
+    ///     "GET https://api.github.com/dmolokanov/appinsights-rs",
+    ///     "HTTP",
+    ///     "api.github.com",
     ///     true
     /// );
     /// ```
-    pub fn track_remote_dependency(&self, name: String, dependency_type: String, target: String, success: bool) {
+    pub fn track_remote_dependency(
+        &self,
+        name: impl Into<String>,
+        dependency_type: impl Into<String>,
+        target: impl Into<String>,
+        success: bool,
+    ) {
         let event = RemoteDependencyTelemetry::new(name, dependency_type, Default::default(), target, success);
         self.track(event)
     }
@@ -190,12 +196,12 @@ where
     /// use std::time::Duration;
     ///
     /// client.track_availability(
-    ///     "GET https://api.github.com/dmolokanov/appinsights-rs".to_string(),
+    ///     "GET https://api.github.com/dmolokanov/appinsights-rs",
     ///     Duration::from_millis(100),
     ///     true
     /// );
     /// ```
-    pub fn track_availability(&self, name: String, duration: Duration, success: bool) {
+    pub fn track_availability(&self, name: impl Into<String>, duration: Duration, success: bool) {
         let event = AvailabilityTelemetry::new(name, duration, success);
         self.track(event)
     }
@@ -209,7 +215,7 @@ where
     /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
     /// use appinsights::telemetry::AggregateMetricTelemetry;
     ///
-    /// let mut telemetry = AggregateMetricTelemetry::new("device_message_latency_per_min".into());
+    /// let mut telemetry = AggregateMetricTelemetry::new("device_message_latency_per_min");
     /// telemetry.stats_mut().add_data(&[113.0, 250.0, 316.0]);
     ///
     /// client.track(telemetry);
@@ -239,7 +245,7 @@ where
     /// // send heartbeats while application is running
     /// let running = true;
     /// while running {
-    ///     client.track_event("app is running".to_string());
+    ///     client.track_event("app is running");
     /// }
     ///
     /// // wait until pending telemetry is sent at most once and tear down submission flow
@@ -265,7 +271,7 @@ where
     /// // send heartbeats while application is running
     /// let running = true;
     /// while running {
-    ///     client.track_event("app is running".to_string());
+    ///     client.track_event("app is running");
     ///     counter += 1;
     ///
     ///     // if the rate is bigger than submission interval you can make sure that data is

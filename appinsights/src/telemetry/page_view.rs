@@ -19,7 +19,7 @@ use crate::uuid::Uuid;
 ///
 /// // create a telemetry item
 /// let mut telemetry = PageViewTelemetry::new(
-///     "check github repo page".to_string(),
+///     "check github repo page",
 ///     "https://github.com/dmolokanov/appinsights-rs".parse::<Uri>().unwrap(),
 /// );
 ///
@@ -60,10 +60,10 @@ pub struct PageViewTelemetry {
 
 impl PageViewTelemetry {
     /// Creates a new page view telemetry item with the specified name and url.
-    pub fn new(name: String, uri: Uri) -> Self {
+    pub fn new(name: impl Into<String>, uri: Uri) -> Self {
         Self {
             id: Option::default(),
-            name,
+            name: name.into(),
             uri,
             duration: Option::default(),
             timestamp: time::now(),
@@ -153,8 +153,7 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry =
-            PageViewTelemetry::new("page updated".into(), "https://example.com/main.html".parse().unwrap());
+        let mut telemetry = PageViewTelemetry::new("page updated", "https://example.com/main.html".parse().unwrap());
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("latency".into(), 200.0);
 
@@ -196,8 +195,7 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry =
-            PageViewTelemetry::new("page updated".into(), "https://example.com/main.html".parse().unwrap());
+        let mut telemetry = PageViewTelemetry::new("page updated", "https://example.com/main.html".parse().unwrap());
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));

@@ -26,7 +26,7 @@ use crate::uuid::{self, Uuid};
 ///     Method::GET,
 ///     "https://api.github.com/dmolokanov/appinsights-rs".parse::<Uri>().unwrap(),
 ///     Duration::from_millis(182),
-///     "200".to_string()
+///     "200"
 /// );
 ///
 /// // attach custom properties, measurements and context tags
@@ -69,7 +69,7 @@ pub struct RequestTelemetry {
 
 impl RequestTelemetry {
     /// Creates a new telemetry item for HTTP request.
-    pub fn new(method: Method, uri: Uri, duration: StdDuration, response_code: String) -> Self {
+    pub fn new(method: Method, uri: Uri, duration: StdDuration, response_code: impl Into<String>) -> Self {
         let mut authority = String::new();
         if let Some(host) = &uri.host() {
             authority.push_str(host);
@@ -90,7 +90,7 @@ impl RequestTelemetry {
             name: format!("{} {}", method, uri),
             uri,
             duration: duration.into(),
-            response_code,
+            response_code: response_code.into(),
             timestamp: time::now(),
             properties: Properties::default(),
             tags: ContextTags::default(),
@@ -193,7 +193,7 @@ mod tests {
             Method::GET,
             "https://example.com/main.html".parse().unwrap(),
             StdDuration::from_secs(2),
-            "200".into(),
+            "200",
         );
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("latency".into(), 200.0);
@@ -245,7 +245,7 @@ mod tests {
             Method::GET,
             "https://example.com/main.html".parse().unwrap(),
             StdDuration::from_secs(2),
-            "200".into(),
+            "200",
         );
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 

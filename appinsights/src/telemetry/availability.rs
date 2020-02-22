@@ -19,7 +19,7 @@ use crate::uuid::Uuid;
 ///
 /// // create a telemetry item
 /// let mut telemetry = AvailabilityTelemetry::new(
-///     "PING https://api.github.com/dmolokanov/appinsights-rs".to_string(),
+///     "PING https://api.github.com/dmolokanov/appinsights-rs",
 ///      Duration::from_secs(2),
 ///      true,
 /// );
@@ -67,10 +67,10 @@ pub struct AvailabilityTelemetry {
 
 impl AvailabilityTelemetry {
     /// Creates a new availability telemetry item with the specified test name, duration and success code.
-    pub fn new(name: String, duration: StdDuration, success: bool) -> Self {
+    pub fn new(name: impl Into<String>, duration: StdDuration, success: bool) -> Self {
         Self {
             id: Option::default(),
-            name,
+            name: name.into(),
             duration: duration.into(),
             run_location: Option::default(),
             message: Option::default(),
@@ -163,11 +163,8 @@ mod tests {
         context.properties_mut().insert("test".into(), "ok".into());
         context.properties_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = AvailabilityTelemetry::new(
-            "GET https://example.com/main.html".into(),
-            StdDuration::from_secs(2),
-            true,
-        );
+        let mut telemetry =
+            AvailabilityTelemetry::new("GET https://example.com/main.html", StdDuration::from_secs(2), true);
         telemetry.properties_mut().insert("no-write".into(), "ok".into());
         telemetry.measurements_mut().insert("latency".into(), 200.0);
 
@@ -211,11 +208,8 @@ mod tests {
         context.tags_mut().insert("test".into(), "ok".into());
         context.tags_mut().insert("no-write".into(), "fail".into());
 
-        let mut telemetry = AvailabilityTelemetry::new(
-            "GET https://example.com/main.html".into(),
-            StdDuration::from_secs(2),
-            true,
-        );
+        let mut telemetry =
+            AvailabilityTelemetry::new("GET https://example.com/main.html", StdDuration::from_secs(2), true);
         telemetry.tags_mut().insert("no-write".into(), "ok".into());
 
         let envelop = Envelope::from((context, telemetry));
