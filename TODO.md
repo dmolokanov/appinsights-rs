@@ -4,7 +4,7 @@
 - [x] Setup default context
 - [x] Add examples how to configure context (and pass to context)
 - [x] Fix mutability inconvenience for tags
-- [ ] Throttle sending when items read from events_channel using limits from client config
+- [x] Throttle sending when items read from events_channel using limits from client config
 - [ ] Add keywords to Cargo.toml
 - [ ] Make flush and close operations work in a predictable manner
 - [ ] Make flush_channel_and_wait() ?
