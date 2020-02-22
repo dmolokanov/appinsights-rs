@@ -33,7 +33,7 @@ use appinsights::TelemetryClient;
 
 fn main() {
     // configure telemetry client with default settings
-    let client = TelemetryClient::new("<instrumentation key>");
+    let client = TelemetryClient::new("<instrumentation key>".to_string());
     
     // send event telemetry to the Application Insights server
     client.track_event("application started");
@@ -60,7 +60,7 @@ fn main() {
     let client = TelemetryClient::from_config(config);
 
     // send trace telemetry to the Application Insights server
-    client.track_trace("A database error occurred".to_string(), SeverityLevel::Warning);
+    client.track_trace("A database error occurred", SeverityLevel::Warning);
 }
 ```
 
