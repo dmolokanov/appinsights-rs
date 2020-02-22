@@ -1,4 +1,3 @@
-#![allow(dead_code, unused_variables)]
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -64,6 +63,8 @@ manual_timeout_test! {
 
         // verify 1 items is sent after first interval expired
         let receiver = server.requests();
+
+        // "wait" until interval expired
         timeout::expire();
         assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
 
@@ -86,6 +87,8 @@ manual_timeout_test! {
         for i in 0..10 {
             client.track_event(format!("--event {}--", i));
         }
+
+        // "wait" until interval expired
         timeout::expire();
 
         // send next 5 items and then interval expired
@@ -93,6 +96,7 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
+        // "wait" until next interval expired
         timeout::expire();
 
         // verify that 2 requests has been send
@@ -221,10 +225,10 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
+        // "wait" until interval expired
         timeout::expire();
 
         // "wait" until retry logic handled
-        std::thread::sleep(Duration::from_millis(300));
         timeout::expire();
 
         // verify there are 2 identical requests
@@ -282,10 +286,10 @@ manual_timeout_test! {
             client.track_event(format!("--event {}--", i));
         }
 
+        // "wait" until interval expired
         timeout::expire();
 
         // "wait" until retry logic handled
-        std::thread::sleep(Duration::from_millis(300));
         timeout::expire();
 
         // verify it sends a first request with all items
