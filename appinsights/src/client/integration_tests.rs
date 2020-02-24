@@ -78,7 +78,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_sends_telemetry_items_in_2_batches() {
+    fn it_sends_telemetry_items_in_several_batches() {
         let _ = env_logger::builder().is_test(true).filter_level(log::LevelFilter::Debug).try_init();
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
@@ -90,12 +90,6 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        // TODO delete this hack
-        // this thread::sleep is required only to await while all items sent in previous step be
-        // processed buy internal worker. Now it contains multiple channels that worker loop reads
-        // events from one by one sometimes it picks expiration command instead of items sent
-        // before.
-        std::thread::sleep(Duration::from_millis(300));
         timeout::expire();
 
         // send next 5 items and then interval expired
@@ -106,11 +100,8 @@ manual_timeout_test! {
         // "wait" until next interval expired
         timeout::expire();
 
-        // verify that 2 requests has been send
+        // verify that all items were send
         let requests = server.wait_for_requests(2);
-        assert_eq!(requests.len(), 2);
-
-        // verify that all requests are available
         let content = requests.into_iter().fold(String::new(), |mut content, body| {
             content.push_str(&body);
             content
