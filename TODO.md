@@ -5,7 +5,9 @@
 - [x] Add examples how to configure context (and pass to context)
 - [x] Fix mutability inconvenience for tags
 - [x] Add keywords to Cargo.toml
-- [ ] Make flush and close operations work in a predictable manner
+- [x] Make flush and close operations work in a predictable manner
+- [ ] Check that telemetry items are not lost when server unavailable (500) and all retries exhausted
+- [ ] Throttle sending when items read from events_channel using limits from client config
 - [ ] Make flush_channel_and_wait() ?
 - [ ] Revisit telemetry client, items and context user facing methods 
 - [ ] make Stats immutable

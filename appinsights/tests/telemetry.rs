@@ -38,8 +38,6 @@ fn it_tracks_all_telemetry_items() {
         true,
     );
 
-    // TODO make something more reliable
-    std::thread::sleep(Duration::from_millis(300));
     ai.close_channel();
 
     logger::wait_until(&entries, "Successfully sent 6 items", Duration::from_secs(10));
