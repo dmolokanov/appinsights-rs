@@ -79,7 +79,6 @@ manual_timeout_test! {
 
 manual_timeout_test! {
     fn it_sends_telemetry_items_in_several_batches() {
-        let _ = env_logger::builder().is_test(true).filter_level(log::LevelFilter::Debug).try_init();
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
