@@ -14,6 +14,10 @@ categories = [
     "development-tools::profiling"
 ]
 
+[features]
+native-tls = ["reqwest/native-tls"]
+rustls-tls = ["reqwest/rustls-tls"]
+
 [dependencies]
 serde = { version = "1.0", features = ["derive"], default-features = false }
 serde_json = "1.0"
