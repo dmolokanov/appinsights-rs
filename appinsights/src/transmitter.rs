@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use http::header::RETRY_AFTER;
 use http::StatusCode;
 use log::debug;
-use reqwest::blocking::Client;
+use reqwest::Client;
 
 use crate::contracts::{Envelope, Transmission, TransmissionItem};
 use crate::Result;
@@ -33,17 +33,17 @@ impl Transmitter {
 
     // TODO get rid of to_vec() calls
     /// Sends a telemetry items to the server.
-    pub fn send(&self, items: &mut Vec<Envelope>) -> Result<Response> {
+    pub async fn send(&self, items: &mut Vec<Envelope>) -> Result<Response> {
         let payload = serde_json::to_string(&items)?;
 
-        let response = self.client.post(&self.url).body(payload).send()?;
+        let response = self.client.post(&self.url).body(payload).send().await?;
         let response = match response.status() {
             StatusCode::OK => {
                 debug!("Successfully sent {} items", items.len());
                 Response::Success
             }
             StatusCode::PARTIAL_CONTENT => {
-                let content: Transmission = response.json()?;
+                let content: Transmission = response.json().await?;
                 let log_prefix = format!(
                     "Successfully sent {}/{} telemetry items",
                     content.items_accepted, content.items_received
@@ -65,7 +65,7 @@ impl Transmitter {
             StatusCode::TOO_MANY_REQUESTS | StatusCode::REQUEST_TIMEOUT => {
                 let retry_after = response.headers().get(RETRY_AFTER).cloned();
 
-                let items = if let Ok(content) = response.json::<Transmission>() {
+                let items = if let Ok(content) = response.json::<Transmission>().await {
                     retry_items(items, content)
                 } else {
                     items.to_vec()
@@ -90,7 +90,7 @@ impl Transmitter {
                 Response::Retry(items.to_vec())
             }
             StatusCode::INTERNAL_SERVER_ERROR => {
-                if let Ok(content) = response.json::<Transmission>() {
+                if let Ok(content) = response.json::<Transmission>().await {
                     let retry_items = retry_items(items, content);
                     if retry_items.is_empty() {
                         debug!("Service error. Nothing to re-send");
@@ -181,7 +181,9 @@ mod tests {
 
         let transmitter = Transmitter::new(&format!("{}/track", url));
 
-        let response = transmitter.send(&mut items).unwrap();
+        let response = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { transmitter.send(&mut items).await.unwrap() });
 
         assert_eq!(response, expected)
     }

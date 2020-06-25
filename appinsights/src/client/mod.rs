@@ -307,6 +307,11 @@ mod tests {
 
     use super::*;
 
+    #[tokio::test]
+    async fn it_should_not_crash_in_tokio_context() {
+        let _client = TelemetryClient::new("key".into());
+    }
+
     #[test]
     fn it_enabled_by_default() {
         let client = TelemetryClient::new("key".into());

@@ -76,7 +76,7 @@ impl Worker {
         }
     }
 
-    pub fn run(&self) {
+    pub async fn run(&self) {
         let mut state = Machine::new(Receiving).as_enum();
 
         let mut items: Vec<Envelope> = Default::default();
@@ -87,9 +87,9 @@ impl Worker {
                 InitialReceiving(m) => self.handle_receiving(m, &mut items),
                 ReceivingByItemsSentAndContinue(m) => self.handle_receiving(m, &mut items),
                 ReceivingByRetryExhausted(m) => self.handle_receiving(m, &mut items),
-                SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
-                SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
-                SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry),
+                SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry).await,
+                SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry).await,
+                SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry).await,
                 WaitingByRetryRequested(m) => self.handle_waiting(m, &mut retry),
                 StoppedByItemsSentAndStop(_) => break,
                 StoppedByCloseRequested(_) => break,
@@ -130,17 +130,17 @@ impl Worker {
         }
     }
 
-    fn handle_sending_with_retry<E: Event>(
+    async fn handle_sending_with_retry<E: Event>(
         &self,
         m: Machine<Sending, E>,
         items: &mut Vec<Envelope>,
         retry: &mut Retry,
     ) -> Variant {
         *retry = Retry::exponential();
-        self.handle_sending(m, items)
+        self.handle_sending(m, items).await
     }
 
-    fn handle_sending_once_and_terminate<E: Event>(
+    async fn handle_sending_once_and_terminate<E: Event>(
         &self,
         m: Machine<Sending, E>,
         items: &mut Vec<Envelope>,
@@ -148,11 +148,11 @@ impl Worker {
     ) -> Variant {
         *retry = Retry::once();
         let cloned = m.clone(); // clone here
-        self.handle_sending(m, items);
+        self.handle_sending(m, items).await;
         cloned.transition(TerminateRequested).as_enum()
     }
 
-    fn handle_sending<E: Event>(&self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
+    async fn handle_sending<E: Event>(&self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
         // read items from a channel
         let pending_items = self.event_receiver.try_iter();
         items.extend(pending_items);
@@ -169,7 +169,7 @@ impl Worker {
             m.transition(ItemsSentAndContinue).as_enum()
         } else {
             // attempt to send items
-            match self.transmitter.send(items) {
+            match self.transmitter.send(items).await {
                 Ok(Response::Success) => {
                     items.clear();
                     m.transition(ItemsSentAndContinue).as_enum()

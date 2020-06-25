@@ -1,5 +1,4 @@
 use std::thread;
-use std::thread::JoinHandle;
 
 use crossbeam_channel::{unbounded, Sender};
 use log::{debug, trace, warn};
@@ -15,7 +14,13 @@ use crate::TelemetryConfig;
 pub struct InMemoryChannel {
     event_sender: Sender<Envelope>,
     command_sender: Option<Sender<Command>>,
-    thread: Option<JoinHandle<()>>,
+    join_handle: ThreadHandle,
+}
+
+enum ThreadHandle {
+    None,
+    Thread(std::thread::JoinHandle<()>),
+    Future(tokio::task::JoinHandle<()>),
 }
 
 impl InMemoryChannel {
@@ -31,14 +36,21 @@ impl InMemoryChannel {
             config.interval(),
         );
 
-        let thread = thread::spawn(move || {
-            worker.run();
-        });
+        let future = async move { worker.run().await };
+
+        let join_handle = if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            ThreadHandle::Future(handle.spawn(future))
+        } else {
+            ThreadHandle::Thread(thread::spawn(|| {
+                let mut runtime = tokio::runtime::Runtime::new().unwrap();
+                runtime.block_on(future);
+            }))
+        };
 
         Self {
             event_sender,
             command_sender: Some(command_sender),
-            thread: Some(thread),
+            join_handle,
         }
     }
 
@@ -47,9 +59,10 @@ impl InMemoryChannel {
             Self::send_command(&sender, command);
         }
 
-        if let Some(thread) = self.thread.take() {
-            debug!("Shutting down worker");
-            thread.join().unwrap();
+        match std::mem::replace(&mut self.join_handle, ThreadHandle::None) {
+            ThreadHandle::Thread(thread) => thread.join().unwrap(),
+            ThreadHandle::Future(_thread) => {} // TODO: can we block on this?
+            ThreadHandle::None => {}
         }
     }
 
