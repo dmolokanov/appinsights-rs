@@ -85,15 +85,20 @@ impl RequestTelemetry {
             .build()
             .unwrap_or(uri);
 
+        let name = format!("{} {}", method, uri);
+
+        let mut tags = ContextTags::default();
+        tags.operation_mut().set_name(name.clone());
+
         Self {
             id: uuid::new(),
-            name: format!("{} {}", method, uri),
+            name,
             uri,
             duration: duration.into(),
             response_code: response_code.into(),
             timestamp: time::now(),
             properties: Properties::default(),
-            tags: ContextTags::default(),
+            tags,
             measurements: Measurements::default(),
         }
     }
