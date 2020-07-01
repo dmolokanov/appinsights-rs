@@ -85,15 +85,20 @@ impl RequestTelemetry {
             .build()
             .unwrap_or(uri);
 
+        let name = format!("{} {}", method, uri);
+
+        let mut tags = ContextTags::default();
+        tags.operation_mut().set_name(name.clone());
+
         Self {
             id: uuid::new(),
-            name: format!("{} {}", method, uri),
+            name,
             uri,
             duration: duration.into(),
             response_code: response_code.into(),
             timestamp: time::now(),
             properties: Properties::default(),
-            tags: ContextTags::default(),
+            tags,
             measurements: Measurements::default(),
         }
     }
@@ -204,7 +209,11 @@ mod tests {
             name: "Microsoft.ApplicationInsights.Request".into(),
             time: "2019-01-02T03:04:05.800Z".into(),
             i_key: Some("instrumentation".into()),
-            tags: Some(BTreeMap::default()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("ai.operation.name".into(), "GET https://example.com/main.html".into());
+                tags
+            }),
             data: Some(Base::Data(Data::RequestData(RequestData {
                 id: "910b414a-f368-4b3a-aff6-326632aac566".into(),
                 name: Some("GET https://example.com/main.html".into()),
@@ -256,6 +265,7 @@ mod tests {
             i_key: Some("instrumentation".into()),
             tags: Some({
                 let mut tags = BTreeMap::default();
+                tags.insert("ai.operation.name".into(), "GET https://example.com/main.html".into());
                 tags.insert("test".into(), "ok".into());
                 tags.insert("no-write".into(), "ok".into());
                 tags
