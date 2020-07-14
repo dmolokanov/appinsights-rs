@@ -152,8 +152,8 @@ impl RequestTelemetry {
     /// trace.tags_mut().operation_mut().set_parent_id(request_id);
     /// client.track(trace);
     /// ```
-    pub fn set_id(&mut self, id: String) {
-        self.id = Some(id);
+    pub fn set_id(&mut self, id: impl Into<String>) {
+        self.id = Some(id.into());
     }
 }
 

@@ -140,8 +140,8 @@ impl RemoteDependencyTelemetry {
     /// trace.tags_mut().operation_mut().set_parent_id(dependency_id);
     /// client.track(trace);
     /// ```
-    pub fn set_id(&mut self, id: String) {
-        self.id = Some(id);
+    pub fn set_id(&mut self, id: impl Into<String>) {
+        self.id = Some(id.into());
     }
 }
 
@@ -217,7 +217,7 @@ mod tests {
             "example.com",
             true,
         );
-        telemetry.set_id("specified-id".into());
+        telemetry.set_id("specified-id");
 
         let envelop = Envelope::from((context, telemetry));
 
