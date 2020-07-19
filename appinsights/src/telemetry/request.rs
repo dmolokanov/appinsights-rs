@@ -8,7 +8,7 @@ use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time::{self, Duration};
-use crate::uuid::{self, Uuid};
+use crate::uuid;
 
 /// Represents completion of an external request to the application and contains a summary of that
 /// request execution and results. This struct is focused on HTTP requests.
@@ -40,7 +40,7 @@ use crate::uuid::{self, Uuid};
 pub struct RequestTelemetry {
     /// Identifier of a request call instance.
     /// It is used for correlation between request and other telemetry items.
-    id: Uuid,
+    id: Option<String>,
 
     /// Request name. For HTTP requests it represents the HTTP method and URL path template.
     name: String,
@@ -91,7 +91,7 @@ impl RequestTelemetry {
         tags.operation_mut().set_name(name.clone());
 
         Self {
-            id: uuid::new(),
+            id: Option::default(),
             name,
             uri,
             duration: duration.into(),
@@ -120,6 +120,40 @@ impl RequestTelemetry {
         } else {
             true
         }
+    }
+
+    /// Sets the request id. Use this to link other telemetry to this request by setting their operation
+    /// parent id to this request's id.
+    ///
+    /// ```rust,no_run
+    /// # use appinsights::TelemetryClient;
+    /// # use appinsights::telemetry::{RequestTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
+    /// # use http::{Method, Uri};
+    /// # use std::time::Duration;
+    /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// let operation_id = "...".to_string();
+    /// let request_id = "...".to_string();
+    ///
+    /// let mut request = RequestTelemetry::new(
+    ///     Method::GET,
+    ///     "https://api.github.com/dmolokanov/appinsights-rs".parse::<Uri>().unwrap(),
+    ///     Duration::from_millis(182),
+    ///     "200",
+    /// );
+    /// request.set_id(request_id.clone());
+    /// request.tags_mut().operation_mut().set_id(operation_id.clone());
+    /// client.track(request);
+    ///
+    /// let mut trace = TraceTelemetry::new(
+    ///     "Starting data processing",
+    ///     SeverityLevel::Information,
+    /// );
+    /// trace.tags_mut().operation_mut().set_id(operation_id);
+    /// trace.tags_mut().operation_mut().set_parent_id(request_id);
+    /// client.track(trace);
+    /// ```
+    pub fn set_id(&mut self, id: impl Into<String>) {
+        self.id = Some(id.into());
     }
 }
 
@@ -159,7 +193,7 @@ impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
             i_key: Some(context.i_key),
             tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
             data: Some(Base::Data(Data::RequestData(RequestData {
-                id: telemetry.id.to_hyphenated().to_string(),
+                id: telemetry.id.unwrap_or_else(|| uuid::new().to_hyphenated().to_string()),
                 name: Some(telemetry.name),
                 duration: telemetry.duration.to_string(),
                 response_code: telemetry.response_code,
@@ -183,6 +217,45 @@ mod tests {
 
     use super::*;
     use crate::uuid::{self, Uuid};
+
+    #[test]
+    fn it_uses_specified_id() {
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
+        uuid::set(Uuid::from_str("910b414a-f368-4b3a-aff6-326632aac566").unwrap());
+
+        let id = "specified-id".to_string();
+        let context = TelemetryContext::new("instrumentation".into(), ContextTags::default(), Properties::default());
+        let mut telemetry = RequestTelemetry::new(
+            Method::GET,
+            "https://example.com/main.html".parse().unwrap(),
+            StdDuration::from_secs(2),
+            "200",
+        );
+        telemetry.set_id(id);
+
+        let envelop = Envelope::from((context, telemetry));
+
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.Request".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::RequestData(RequestData {
+                id: "specified-id".into(),
+                name: Some("GET https://example.com/main.html".into()),
+                duration: "0.00:00:02.0000000".into(),
+                response_code: "200".into(),
+                success: true,
+                url: Some("https://example.com/main.html".into()),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..RequestData::default()
+            }))),
+            ..Envelope::default()
+        };
+
+        assert_eq!(envelop, expected)
+    }
 
     #[test]
     fn it_overrides_properties_from_context() {

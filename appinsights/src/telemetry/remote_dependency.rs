@@ -6,7 +6,6 @@ use crate::context::TelemetryContext;
 use crate::contracts::*;
 use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
 use crate::time::{self, Duration};
-use crate::uuid::Uuid;
 
 /// Represents interactions of the monitored component with a remote component/service like SQL or an HTTP endpoint.
 ///
@@ -37,7 +36,7 @@ use crate::uuid::Uuid;
 pub struct RemoteDependencyTelemetry {
     /// Identifier of a dependency call instance.
     /// It is used for correlation with the request telemetry item corresponding to this dependency call.
-    id: Option<Uuid>,
+    id: Option<String>,
 
     /// Name of the command that initiated this dependency call. Low cardinality value.
     /// Examples are stored procedure name and URL path template.
@@ -112,6 +111,38 @@ impl RemoteDependencyTelemetry {
     pub fn measurements_mut(&mut self) -> &mut Measurements {
         &mut self.measurements
     }
+
+    /// Sets the dependency id. Use this to link other telemetry to this dependency by setting their operation
+    /// parent id to this id.
+    ///
+    /// ```rust,no_run
+    /// # use appinsights::TelemetryClient;
+    /// # use appinsights::telemetry::{RemoteDependencyTelemetry, SeverityLevel, Telemetry, TraceTelemetry};
+    /// # use http::{Method, Uri};
+    /// # use std::time::Duration;
+    /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// let operation_id = "...".to_string();
+    /// let dependency_id = "...".to_string();
+    ///
+    /// let mut dependency = RemoteDependencyTelemetry::new(
+    ///     "Data processing",
+    ///     "InProc",
+    ///     Duration::from_millis(42),
+    ///     "internal",
+    ///     true,
+    /// );
+    /// dependency.set_id(dependency_id.clone());
+    /// dependency.tags_mut().operation_mut().set_id(operation_id.clone());
+    /// client.track(dependency);
+    ///
+    /// let mut trace = TraceTelemetry::new("Start", SeverityLevel::Information);
+    /// trace.tags_mut().operation_mut().set_id(operation_id);
+    /// trace.tags_mut().operation_mut().set_parent_id(dependency_id);
+    /// client.track(trace);
+    /// ```
+    pub fn set_id(&mut self, id: impl Into<String>) {
+        self.id = Some(id.into());
+    }
 }
 
 impl Telemetry for RemoteDependencyTelemetry {
@@ -150,7 +181,7 @@ impl From<(TelemetryContext, RemoteDependencyTelemetry)> for Envelope {
             tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
             data: Some(Base::Data(Data::RemoteDependencyData(RemoteDependencyData {
                 name: telemetry.name,
-                id: telemetry.id.map(|id| id.to_hyphenated().to_string()),
+                id: telemetry.id,
                 result_code: telemetry.result_code,
                 duration: telemetry.duration.to_string(),
                 success: Some(telemetry.success),
@@ -173,6 +204,44 @@ mod tests {
     use chrono::TimeZone;
 
     use super::*;
+
+    #[test]
+    fn it_uses_specified_id() {
+        time::set(Utc.ymd(2019, 1, 2).and_hms_milli(3, 4, 5, 800));
+
+        let context = TelemetryContext::new("instrumentation".into(), ContextTags::default(), Properties::default());
+        let mut telemetry = RemoteDependencyTelemetry::new(
+            "GET https://example.com/main.html",
+            "HTTP",
+            StdDuration::from_secs(2),
+            "example.com",
+            true,
+        );
+        telemetry.set_id("specified-id");
+
+        let envelop = Envelope::from((context, telemetry));
+
+        let expected = Envelope {
+            name: "Microsoft.ApplicationInsights.RemoteDependency".into(),
+            time: "2019-01-02T03:04:05.800Z".into(),
+            i_key: Some("instrumentation".into()),
+            tags: Some(BTreeMap::default()),
+            data: Some(Base::Data(Data::RemoteDependencyData(RemoteDependencyData {
+                id: Some("specified-id".into()),
+                name: "GET https://example.com/main.html".into(),
+                duration: "0.00:00:02.0000000".into(),
+                success: Some(true),
+                target: Some("example.com".into()),
+                type_: Some("HTTP".into()),
+                properties: Some(BTreeMap::default()),
+                measurements: Some(BTreeMap::default()),
+                ..RemoteDependencyData::default()
+            }))),
+            ..Envelope::default()
+        };
+
+        assert_eq!(envelop, expected)
+    }
 
     #[test]
     fn it_overrides_properties_from_context() {
