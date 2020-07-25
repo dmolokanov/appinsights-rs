@@ -23,7 +23,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
 name = "appinsights"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "chrono 0.4.13 (registry+https://github.com/rust-lang/crates.io-index)",
  "crossbeam-channel 0.4.3 (registry+https://github.com/rust-lang/crates.io-index)",
