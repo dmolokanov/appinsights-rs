@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::BTreeMap,
+    ops::{Deref, DerefMut},
+};
 
 /// Contains all tags for telemetry to submit.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct ContextTags(BTreeMap<String, String>);
 
 impl ContextTags {

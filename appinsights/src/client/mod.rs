@@ -2,11 +2,16 @@ use std::time::Duration;
 
 use http::{Method, Uri};
 
-use crate::channel::{InMemoryChannel, TelemetryChannel};
-use crate::context::TelemetryContext;
-use crate::contracts::Envelope;
-use crate::telemetry::*;
-use crate::TelemetryConfig;
+use crate::{
+    channel::{InMemoryChannel, TelemetryChannel},
+    context::TelemetryContext,
+    contracts::Envelope,
+    telemetry::{
+        AvailabilityTelemetry, EventTelemetry, MetricTelemetry, RemoteDependencyTelemetry, RequestTelemetry,
+        SeverityLevel, Telemetry, TraceTelemetry,
+    },
+    TelemetryConfig,
+};
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
 pub struct TelemetryClient<C> {
@@ -306,6 +311,7 @@ mod tests {
     use matches::assert_matches;
 
     use super::*;
+    use crate::telemetry::{ContextTags, Properties};
 
     #[test]
     fn it_enabled_by_default() {

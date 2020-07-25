@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::BTreeMap,
+    ops::{Deref, DerefMut},
+};
 
 /// Contains all measurements for telemetry to submit.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Measurements(BTreeMap<String, f64>);
 
 impl From<Measurements> for BTreeMap<String, f64> {

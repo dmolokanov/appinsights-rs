@@ -4,13 +4,14 @@ use crossbeam_channel::{select, Receiver};
 use log::{debug, error, trace};
 use sm::{sm, Event};
 
-use crate::contracts::Envelope;
-use crate::timeout;
-use crate::transmitter::{Response, Transmitter};
-
-use crate::channel::command::Command;
-use crate::channel::retry::Retry;
-use crate::channel::state::worker::{Variant::*, *};
+use crate::{
+    channel::command::Command,
+    channel::retry::Retry,
+    channel::state::worker::{Variant::*, *},
+    contracts::Envelope,
+    timeout,
+    transmitter::{Response, Transmitter},
+};
 
 sm! {
     worker {

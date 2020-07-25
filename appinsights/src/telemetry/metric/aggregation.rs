@@ -1,9 +1,11 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 
-use crate::context::TelemetryContext;
-use crate::contracts::*;
-use crate::telemetry::{ContextTags, Properties, Stats, Telemetry};
-use crate::time;
+use crate::{
+    context::TelemetryContext,
+    contracts::{Base, Data, DataPoint, DataPointType, Envelope, MetricData},
+    telemetry::{ContextTags, Properties, Stats, Telemetry},
+    time,
+};
 
 /// Aggregated metric telemetry item that represents an aggregation of data points over time.
 /// There values can be calculated by the caller or with [add_data](struct.Stats.html#method.add_data)
@@ -26,6 +28,7 @@ use crate::time;
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct AggregateMetricTelemetry {
     /// Metric name.
     name: String,

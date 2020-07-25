@@ -11,17 +11,19 @@ mod request;
 mod tags;
 mod trace;
 
-pub use availability::*;
-pub use event::*;
-pub use exception::*;
-pub use measurements::*;
-pub use metric::*;
-pub use page_view::*;
-pub use properties::*;
-pub use remote_dependency::*;
-pub use request::*;
-pub use tags::*;
-pub use trace::*;
+pub use availability::AvailabilityTelemetry;
+pub use event::EventTelemetry;
+pub use measurements::Measurements;
+pub use metric::{AggregateMetricTelemetry, MetricTelemetry, Stats};
+pub use page_view::PageViewTelemetry;
+pub use properties::Properties;
+pub use remote_dependency::RemoteDependencyTelemetry;
+pub use request::RequestTelemetry;
+pub use tags::{
+    ApplicationTags, CloudTags, ContextTags, DeviceTags, InternalTags, LocationTags, OperationTags, SessionTags,
+    UserTags,
+};
+pub use trace::{SeverityLevel, TraceTelemetry};
 
 use chrono::{DateTime, Utc};
 
