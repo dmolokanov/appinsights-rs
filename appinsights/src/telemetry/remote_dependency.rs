@@ -2,10 +2,12 @@ use std::time::Duration as StdDuration;
 
 use chrono::{DateTime, SecondsFormat, Utc};
 
-use crate::context::TelemetryContext;
-use crate::contracts::*;
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::time::{self, Duration};
+use crate::{
+    context::TelemetryContext,
+    contracts::{Base, Data, Envelope, RemoteDependencyData},
+    telemetry::{ContextTags, Measurements, Properties, Telemetry},
+    time::{self, Duration},
+};
 
 /// Represents interactions of the monitored component with a remote component/service like SQL or an HTTP endpoint.
 ///
@@ -33,6 +35,7 @@ use crate::time::{self, Duration};
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct RemoteDependencyTelemetry {
     /// Identifier of a dependency call instance.
     /// It is used for correlation with the request telemetry item corresponding to this dependency call.

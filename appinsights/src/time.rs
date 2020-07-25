@@ -1,8 +1,10 @@
 pub use imp::*;
 
-use std::fmt::{Display, Formatter};
-use std::ops::Deref;
-use std::time::Duration as StdDuration;
+use std::{
+    fmt::{Display, Formatter},
+    ops::Deref,
+    time::Duration as StdDuration,
+};
 
 #[cfg(not(test))]
 mod imp {
@@ -39,6 +41,7 @@ mod imp {
 }
 
 /// Provides dotnet duration aware formatting rules.
+#[derive(Debug)]
 pub struct Duration(StdDuration);
 
 impl From<StdDuration> for Duration {

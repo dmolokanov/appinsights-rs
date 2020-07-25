@@ -1,14 +1,15 @@
-use std::str::FromStr;
-use std::time::Duration as StdDuration;
+use std::{str::FromStr, time::Duration as StdDuration};
 
 use chrono::{DateTime, SecondsFormat, Utc};
 use http::{Method, StatusCode, Uri};
 
-use crate::context::TelemetryContext;
-use crate::contracts::*;
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::time::{self, Duration};
-use crate::uuid;
+use crate::{
+    context::TelemetryContext,
+    contracts::{Base, Data, Envelope, RequestData},
+    telemetry::{ContextTags, Measurements, Properties, Telemetry},
+    time::{self, Duration},
+    uuid,
+};
 
 /// Represents completion of an external request to the application and contains a summary of that
 /// request execution and results. This struct is focused on HTTP requests.
@@ -37,6 +38,7 @@ use crate::uuid;
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct RequestTelemetry {
     /// Identifier of a request call instance.
     /// It is used for correlation between request and other telemetry items.
@@ -239,7 +241,11 @@ mod tests {
             name: "Microsoft.ApplicationInsights.Request".into(),
             time: "2019-01-02T03:04:05.800Z".into(),
             i_key: Some("instrumentation".into()),
-            tags: Some(BTreeMap::default()),
+            tags: Some({
+                let mut tags = BTreeMap::default();
+                tags.insert("ai.operation.name".into(), "GET https://example.com/main.html".into());
+                tags
+            }),
             data: Some(Base::Data(Data::RequestData(RequestData {
                 id: "specified-id".into(),
                 name: Some("GET https://example.com/main.html".into()),

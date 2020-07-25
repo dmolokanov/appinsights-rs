@@ -1,9 +1,11 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 
-use crate::context::TelemetryContext;
-use crate::contracts::*;
-use crate::telemetry::{ContextTags, Properties, Telemetry};
-use crate::time;
+use crate::{
+    context::TelemetryContext,
+    contracts::{Base, Data, DataPoint, DataPointType, Envelope, MetricData},
+    telemetry::{ContextTags, Properties, Telemetry},
+    time,
+};
 
 /// Metric telemetry item that represents a single data point.
 ///
@@ -23,6 +25,7 @@ use crate::time;
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct MetricTelemetry {
     /// Metric name.
     name: String,

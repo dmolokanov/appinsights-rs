@@ -1,5 +1,7 @@
-use crate::telemetry::{ContextTags, Properties};
-use crate::TelemetryConfig;
+use crate::{
+    telemetry::{ContextTags, Properties},
+    TelemetryConfig,
+};
 
 /// Encapsulates contextual data common to all telemetry submitted through a telemetry client.
 /// # Examples
@@ -18,7 +20,7 @@ use crate::TelemetryConfig;
 /// assert_eq!(context.properties().get("Resource Group"), Some(&"my-rg".to_string()));
 /// assert_eq!(context.tags().get("account_id"), Some(&"123-345-777".to_string()));
 /// ```
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct TelemetryContext {
     /// An instrumentation key.
     pub(crate) i_key: String,

@@ -1,19 +1,24 @@
-use std::sync::atomic::{AtomicUsize, Ordering};
-use std::sync::{Arc, Mutex};
-use std::time::Duration;
+use std::{
+    sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc, Mutex,
+    },
+    time::Duration,
+};
 
 use chrono::{DateTime, Utc};
 use crossbeam_channel::{bounded, unbounded, Receiver, RecvTimeoutError};
 use futures::stream::StreamExt;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::{Body, Request, Response, Server, StatusCode};
+use hyper::{
+    service::{make_service_fn, service_fn},
+    Body, Request, Response, Server, StatusCode,
+};
 use lazy_static::lazy_static;
 use matches::assert_matches;
 use serde_json::json;
 use tokio::sync::oneshot;
 
-use crate::channel::InMemoryChannel;
-use crate::{timeout, TelemetryClient, TelemetryConfig};
+use crate::{channel::InMemoryChannel, timeout, TelemetryClient, TelemetryConfig};
 
 lazy_static! {
     /// A global lock since most tests need to run in serial.

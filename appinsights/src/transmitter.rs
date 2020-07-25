@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
-use http::header::RETRY_AFTER;
-use http::StatusCode;
+use http::{header::RETRY_AFTER, StatusCode};
 use log::debug;
 use reqwest::blocking::Client;
 
-use crate::contracts::{Envelope, Transmission, TransmissionItem};
-use crate::Result;
+use crate::{
+    contracts::{Envelope, Transmission, TransmissionItem},
+    Result,
+};
 
 #[derive(Debug, PartialEq)]
 pub enum Response {
@@ -145,7 +146,6 @@ mod tests {
     use test_case::test_case;
 
     use super::*;
-    use crate::contracts::*;
 
     #[test_case(items(), StatusCode::OK, None, Some(all_accepted()), Response::Success; "success")]
     #[test_case(items(), StatusCode::PARTIAL_CONTENT, None, Some(partial_some_retries()), Response::Retry(retry_items()); "partial. resend some items")]

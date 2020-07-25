@@ -1,9 +1,11 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 
-use crate::context::TelemetryContext;
-use crate::contracts::*;
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::time;
+use crate::{
+    context::TelemetryContext,
+    contracts::{Base, Data, Envelope, EventData},
+    telemetry::{ContextTags, Measurements, Properties, Telemetry},
+    time,
+};
 
 /// Represents structured event records.
 ///
@@ -24,6 +26,7 @@ use crate::time;
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct EventTelemetry {
     /// Event name.
     name: String,

@@ -1,8 +1,10 @@
-use std::collections::BTreeMap;
-use std::ops::{Deref, DerefMut};
+use std::{
+    collections::BTreeMap,
+    ops::{Deref, DerefMut},
+};
 
 /// Contains all properties for telemetry to submit.
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Properties(BTreeMap<String, String>);
 
 impl Properties {

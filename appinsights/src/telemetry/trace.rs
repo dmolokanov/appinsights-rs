@@ -1,9 +1,11 @@
 use chrono::{DateTime, SecondsFormat, Utc};
 
-use crate::context::TelemetryContext;
-use crate::contracts::{SeverityLevel as ContractsSeverityLevel, *};
-use crate::telemetry::{ContextTags, Measurements, Properties, Telemetry};
-use crate::time;
+use crate::{
+    context::TelemetryContext,
+    contracts::{SeverityLevel as ContractsSeverityLevel, *},
+    telemetry::{ContextTags, Measurements, Properties, Telemetry},
+    time,
+};
 
 /// Represents printf-like trace statements that can be text searched. A trace telemetry items have
 /// a message and an associated [`SeverityLevel`](enum.SeverityLevel.html).
@@ -25,6 +27,7 @@ use crate::time;
 /// // submit telemetry item to server
 /// client.track(telemetry);
 /// ```
+#[derive(Debug)]
 pub struct TraceTelemetry {
     /// A trace message.
     message: String,
@@ -116,6 +119,7 @@ impl From<(TelemetryContext, TraceTelemetry)> for Envelope {
 }
 
 /// Defines the level of severity for the event.
+#[derive(Debug)]
 pub enum SeverityLevel {
     /// Verbose severity level.
     Verbose,
@@ -149,9 +153,14 @@ impl From<SeverityLevel> for ContractsSeverityLevel {
 mod tests {
     use std::collections::BTreeMap;
 
-    use chrono::TimeZone;
+    use chrono::{TimeZone, Utc};
 
-    use super::*;
+    use super::{SeverityLevel, TraceTelemetry};
+    use crate::{
+        contracts::{Base, Data, Envelope, MessageData},
+        telemetry::{ContextTags, Properties, Telemetry},
+        time, TelemetryContext,
+    };
 
     #[test]
     fn it_overrides_properties_from_context() {

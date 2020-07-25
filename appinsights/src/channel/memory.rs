@@ -1,15 +1,14 @@
-use std::thread;
-use std::thread::JoinHandle;
+use std::thread::{self, JoinHandle};
 
 use crossbeam_channel::{unbounded, Sender};
 use log::{debug, trace, warn};
 
-use crate::channel::command::Command;
-use crate::channel::state::Worker;
-use crate::channel::TelemetryChannel;
-use crate::contracts::Envelope;
-use crate::transmitter::Transmitter;
-use crate::TelemetryConfig;
+use crate::{
+    channel::{command::Command, state::Worker, TelemetryChannel},
+    contracts::Envelope,
+    transmitter::Transmitter,
+    TelemetryConfig,
+};
 
 /// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
