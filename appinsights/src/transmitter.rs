@@ -32,9 +32,8 @@ impl Transmitter {
         }
     }
 
-    // TODO get rid of to_vec() calls
     /// Sends a telemetry items to the server.
-    pub fn send(&self, items: &mut Vec<Envelope>) -> Result<Response> {
+    pub fn send(&self, mut items: Vec<Envelope>) -> Result<Response> {
         let payload = serde_json::to_string(&items)?;
 
         let response = self.client.post(&self.url).body(payload).send()?;
@@ -53,24 +52,22 @@ impl Transmitter {
                     debug!("{}", log_prefix);
                     Response::Success
                 } else {
-                    let retry_items = retry_items(items, content);
-                    if retry_items.is_empty() {
+                    retain_retry_items(&mut items, content);
+                    if items.is_empty() {
                         debug!("{}. Nothing to re-send", log_prefix);
                         Response::NoRetry
                     } else {
-                        debug!("{}. Retry sending {} items", log_prefix, retry_items.len());
-                        Response::Retry(retry_items)
+                        debug!("{}. Retry sending {} items", log_prefix, items.len());
+                        Response::Retry(items)
                     }
                 }
             }
             StatusCode::TOO_MANY_REQUESTS | StatusCode::REQUEST_TIMEOUT => {
                 let retry_after = response.headers().get(RETRY_AFTER).cloned();
 
-                let items = if let Ok(content) = response.json::<Transmission>() {
-                    retry_items(items, content)
-                } else {
-                    items.to_vec()
-                };
+                if let Ok(content) = response.json::<Transmission>() {
+                    retain_retry_items(&mut items, content);
+                }
 
                 if let Some(retry_after) = retry_after {
                     let retry_after = retry_after.to_str()?;
@@ -92,13 +89,13 @@ impl Transmitter {
             }
             StatusCode::INTERNAL_SERVER_ERROR => {
                 if let Ok(content) = response.json::<Transmission>() {
-                    let retry_items = retry_items(items, content);
-                    if retry_items.is_empty() {
+                    retain_retry_items(&mut items, content);
+                    if items.is_empty() {
                         debug!("Service error. Nothing to re-send");
                         Response::NoRetry
                     } else {
-                        debug!("Service error. Retry sending {} items", retry_items.len());
-                        Response::Retry(retry_items)
+                        debug!("Service error. Retry sending {} items", items.len());
+                        Response::Retry(items)
                     }
                 } else {
                     debug!("Service error. Retry sending {} items", items.len());
@@ -116,15 +113,13 @@ impl Transmitter {
 }
 
 /// Filters out those telemetry items that cannot be re-sent.
-fn retry_items(items: &mut Vec<Envelope>, content: Transmission) -> Vec<Envelope> {
+fn retain_retry_items(items: &mut Vec<Envelope>, content: Transmission) {
     let mut retry_items = Vec::default();
-    for error in &content.errors {
-        if can_retry_item(error) {
-            retry_items.push(items.remove(error.index - retry_items.len()));
-        }
+    for error in content.errors.iter().filter(|error| can_retry_item(error)) {
+        retry_items.push(items.remove(error.index - retry_items.len()));
     }
 
-    retry_items
+    *items = retry_items;
 }
 
 /// Determines that a telemetry item can be re-send corresponding to this submission status
@@ -163,7 +158,7 @@ mod tests {
     #[test_case(items(), StatusCode::REQUEST_TIMEOUT, None, Some(partial_some_retries()), Response::Retry(retry_items()); "timeout. resend some items")]
     #[test_case(items(), StatusCode::INTERNAL_SERVER_ERROR, None, Some(partial_some_retries()), Response::Retry(retry_items()); "server error. resend some items")]
     fn it_sends_telemetry_and_handles_server_response(
-        mut items: Vec<Envelope>,
+        items: Vec<Envelope>,
         status_code: StatusCode,
         retry_after: Option<&str>,
         body: Option<Value>,
@@ -181,7 +176,7 @@ mod tests {
 
         let transmitter = Transmitter::new(&format!("{}/track", url));
 
-        let response = transmitter.send(&mut items).unwrap();
+        let response = transmitter.send(items).unwrap();
 
         assert_eq!(response, expected)
     }

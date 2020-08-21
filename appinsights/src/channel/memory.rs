@@ -20,8 +20,8 @@ pub struct InMemoryChannel {
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &TelemetryConfig) -> Self {
-        let (event_sender, event_receiver) = unbounded::<Envelope>();
-        let (command_sender, command_receiver) = unbounded::<Command>();
+        let (event_sender, event_receiver) = unbounded();
+        let (command_sender, command_receiver) = unbounded();
 
         let worker = Worker::new(
             Transmitter::new(config.endpoint()),
