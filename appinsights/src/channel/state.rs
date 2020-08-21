@@ -1,4 +1,4 @@
-use std::time::Duration;
+use std::{mem, time::Duration};
 
 use crossbeam_channel::{select, Receiver};
 use log::{debug, error, trace};
@@ -170,11 +170,8 @@ impl Worker {
             m.transition(ItemsSentAndContinue).as_enum()
         } else {
             // attempt to send items
-            match self.transmitter.send(items) {
-                Ok(Response::Success) => {
-                    items.clear();
-                    m.transition(ItemsSentAndContinue).as_enum()
-                }
+            match self.transmitter.send(mem::take(items)) {
+                Ok(Response::Success) => m.transition(ItemsSentAndContinue).as_enum(),
                 Ok(Response::Retry(retry_items)) => {
                     *items = retry_items;
                     m.transition(RetryRequested).as_enum()
@@ -184,10 +181,7 @@ impl Worker {
                     // TODO implement throttling instead
                     m.transition(RetryRequested).as_enum()
                 }
-                Ok(Response::NoRetry) => {
-                    items.clear();
-                    m.transition(ItemsSentAndContinue).as_enum()
-                }
+                Ok(Response::NoRetry) => m.transition(ItemsSentAndContinue).as_enum(),
                 Err(err) => {
                     debug!("Error occurred during sending telemetry items: {}", err);
                     m.transition(RetryRequested).as_enum()
