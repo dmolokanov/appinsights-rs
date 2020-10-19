@@ -38,5 +38,5 @@ mockito = { version = "0.27.0", default-features = false }
 lazy_static = "1.4"
 matches = "0.1"
 hyper = { version = "0.13.8" }
-tokio = { version = "0.2.22", default-features = false }
+tokio = { version = "0.3.0", default-features = false }
 futures = { version = "0.3.6", default-features = false }
