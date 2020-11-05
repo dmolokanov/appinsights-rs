@@ -34,7 +34,7 @@ hostname = "0.3"
 [dev-dependencies]
 test-case = "1.0"
 env_logger = "0.8"
-mockito = { version = "0.27.0", default-features = false }
+mockito = { version = "0.28.0", default-features = false }
 lazy_static = "1.4"
 matches = "0.1"
 hyper = { version = "0.13.9" }
