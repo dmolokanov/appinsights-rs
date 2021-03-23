@@ -146,12 +146,27 @@ impl RemoteDependencyTelemetry {
     pub fn set_id(&mut self, id: impl Into<String>) {
         self.id = Some(id.into());
     }
+
+    /// Sets the result code of a dependency call.
+    pub fn set_result_code(&mut self, result_code: impl Into<String>) {
+        self.result_code = Some(result_code.into())
+    }
+
+    /// Command initiated by this dependency call.
+    pub fn set_data(&mut self, data: impl Into<String>) {
+        self.data = Some(data.into())
+    }
 }
 
 impl Telemetry for RemoteDependencyTelemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
+    }
+
+    /// Update the event timestamp after the item was created.
+    fn set_timestamp(&mut self, timestamp: impl Into<DateTime<Utc>>) {
+        self.timestamp = timestamp.into()
     }
 
     /// Returns custom properties to submit with the telemetry item.

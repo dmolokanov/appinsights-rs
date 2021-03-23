@@ -32,6 +32,8 @@ pub trait Telemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc>;
 
+    /// Sets timestamp
+    fn set_timestamp(&mut self, timestamp: impl Into<DateTime<Utc>>);
     /// Returns custom properties to submit with the telemetry item.
     fn properties(&self) -> &Properties;
 
