@@ -94,12 +94,27 @@ impl AvailabilityTelemetry {
     pub fn measurements_mut(&mut self) -> &mut Measurements {
         &mut self.measurements
     }
+
+    /// Sets the run_location field on the availability telemetry item
+    pub fn set_run_location(&mut self, location: impl Into<String>) {
+        self.run_location = Some(location.into());
+    }
+
+    /// Sets the run_location field on the availability telemetry item
+    pub fn set_message(&mut self, message: impl Into<String>) {
+        self.message = Some(message.into());
+    }
 }
 
 impl Telemetry for AvailabilityTelemetry {
     /// Returns the time when this telemetry was measured.
     fn timestamp(&self) -> DateTime<Utc> {
         self.timestamp
+    }
+
+    /// Update the event timestamp after the item was created.
+    fn set_timestamp(&mut self, timestamp: impl Into<DateTime<Utc>>) {
+        self.timestamp = timestamp.into()
     }
 
     /// Returns custom properties to submit with the telemetry item.

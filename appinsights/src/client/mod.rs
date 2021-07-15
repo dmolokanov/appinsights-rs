@@ -376,6 +376,10 @@ mod tests {
             unimplemented!()
         }
 
+        fn set_timestamp(&mut self, _: impl Into<DateTime<Utc>>) {
+            unimplemented!()
+        }
+
         fn properties(&self) -> &Properties {
             unimplemented!()
         }

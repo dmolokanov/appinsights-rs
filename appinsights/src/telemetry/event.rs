@@ -73,6 +73,11 @@ impl Telemetry for EventTelemetry {
         self.timestamp
     }
 
+    /// Update the event timestamp after the item was created.
+    fn set_timestamp(&mut self, timestamp: impl Into<DateTime<Utc>>) {
+        self.timestamp = timestamp.into()
+    }
+
     /// Returns custom properties to submit with the telemetry item.
     fn properties(&self) -> &Properties {
         &self.properties
