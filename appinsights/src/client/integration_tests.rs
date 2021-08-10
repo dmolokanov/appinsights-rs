@@ -458,7 +458,7 @@ impl Builder {
         });
 
         std::thread::spawn(move || {
-            let mut rt = tokio::runtime::Runtime::new().expect("runtime");
+            let rt = tokio::runtime::Runtime::new().expect("runtime");
             rt.block_on(async move {
                 let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(make_service);
 

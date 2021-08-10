@@ -80,11 +80,9 @@ impl Stats {
             }
             self.count = count;
             self.value = value;
-
-            variance_sum
-        } else {
-            variance_sum
         }
+
+        variance_sum
     }
 }
 

@@ -41,10 +41,10 @@ pub trait Visitor {
             if let UserType::Struct(declaration) = &**declaration {
                 self.visit_struct(declaration);
             } else {
-                panic!(format!("Unsupported struct base type: {:?}", declaration))
+                panic!("Unsupported struct base type: {:?}", declaration)
             }
         } else {
-            panic!(format!("Unsupported struct base type: {:?}", declaration))
+            panic!("Unsupported struct base type: {:?}", declaration)
         }
     }
 

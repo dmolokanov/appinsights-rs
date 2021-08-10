@@ -316,7 +316,7 @@ mod tests {
     #[test]
     fn it_enabled_by_default() {
         let client = TelemetryClient::new("key".into());
-        assert_eq!(client.is_enabled(), true)
+        assert!(client.is_enabled())
     }
 
     #[test]
@@ -325,7 +325,7 @@ mod tests {
 
         client.enabled(false);
 
-        assert_eq!(client.is_enabled(), false)
+        assert!(!client.is_enabled())
     }
 
     #[test]
