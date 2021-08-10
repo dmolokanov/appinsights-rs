@@ -8,8 +8,8 @@ use std::{
 
 use chrono::{DateTime, Utc};
 use crossbeam_channel::{bounded, unbounded, Receiver, RecvTimeoutError};
-use futures::stream::StreamExt;
 use hyper::{
+    body::Buf,
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server, StatusCode,
 };
@@ -430,16 +430,11 @@ impl Builder {
                     let responses = responses.clone();
 
                     async move {
-                        let body = req
-                            .into_body()
-                            .fold(Vec::new(), |mut acc, chunk| async move {
-                                if let Ok(chunk) = chunk {
-                                    acc.extend_from_slice(chunk.as_ref());
-                                }
-                                acc
-                            })
-                            .await;
-                        let content = String::from_utf8(body).unwrap();
+                        let body = hyper::body::aggregate(req).await?;
+                        use std::io::Read;
+
+                        let mut content = String::default();
+                        body.reader().read_to_string(&mut content).unwrap();
                         request_sender.send(content).unwrap();
 
                         let count = counter.fetch_add(1, Ordering::AcqRel);
