@@ -1,0 +1,13 @@
+version: 2
+updates:
+- package-ecosystem: cargo
+  directory: "/"
+  schedule:
+    interval: daily
+  open-pull-requests-limit: 10
+  labels:
+  - automerge
+  ignore:
+  - dependency-name: reqwest
+    versions:
+    - 0.11.1
