@@ -26,19 +26,26 @@ lazy_static! {
 
 macro_rules! manual_timeout_test {
     (async fn $name: ident() $body: block) => {
-        #[tokio::test]
-        async fn $name() {
+        #[test]
+        fn $name() {
             let guard = SERIAL_TEST_MUTEX.lock().unwrap();
-            timeout::init();
+            
 
-            // Catch any panics to not poison the lock.
-            if let Err(err) = std::panic::catch_unwind(|| $body) {
-                drop(guard);
+            let rt = tokio::runtime::Runtime::new().expect("runtime");
+            rt.block_on(async {
+                timeout::init().await;
+                
+                // Catch any panics to not poison the lock.
+                if let Err(err) = std::panic::catch_unwind(|| $body) {
+                    drop(guard);
 
-                std::panic::resume_unwind(err);
-            }
+                    std::panic::resume_unwind(err);
+                }
 
-            timeout::reset();
+                timeout::reset().await;
+            });
+
+            
         }
     };
 }

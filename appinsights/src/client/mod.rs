@@ -358,6 +358,12 @@ mod tests {
         assert_matches!(tags.device().os_version(), Some(_))
     }
 
+    #[tokio::test]
+    async fn it_does_not_fail_with_tokio() {
+        let client = TelemetryClient::new("instrumentation".into());
+        assert!(client.is_enabled())
+    }
+
     fn create_client() -> TelemetryClient<TestChannel> {
         let config = TelemetryConfig::new("instrumentation".into());
         TelemetryClient {
@@ -421,5 +427,5 @@ mod tests {
     }
 }
 
-#[cfg(test)]
-mod integration_tests;
+// #[cfg(test)]
+// mod integration_tests;

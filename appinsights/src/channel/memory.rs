@@ -1,8 +1,6 @@
+use futures_channel::mpsc::UnboundedSender;
 use log::{debug, trace, warn};
-use tokio::{
-    sync::mpsc::{self, UnboundedSender},
-    task::JoinHandle,
-};
+use tokio::task::JoinHandle;
 
 use crate::{
     channel::{command::Command, state::Worker, TelemetryChannel},
@@ -21,8 +19,8 @@ pub struct InMemoryChannel {
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &TelemetryConfig) -> Self {
-        let (event_sender, event_receiver) = mpsc::unbounded_channel();
-        let (command_sender, command_receiver) = mpsc::unbounded_channel();
+        let (event_sender, event_receiver) = futures_channel::mpsc::unbounded();
+        let (command_sender, command_receiver) = futures_channel::mpsc::unbounded();
 
         let worker = Worker::new(
             Transmitter::new(config.endpoint()),
@@ -31,6 +29,7 @@ impl InMemoryChannel {
             config.interval(),
         );
 
+        // TODO enter to the current runtime or create a new runtime on dedicated thread
         let thread = tokio::spawn(worker.run());
 
         Self {
@@ -55,7 +54,7 @@ impl InMemoryChannel {
 
     fn send_command(sender: &UnboundedSender<Command>, command: Command) {
         debug!("Sending {} command to channel", command);
-        if let Err(err) = sender.send(command.clone()) {
+        if let Err(err) = sender.unbounded_send(command.clone()) {
             warn!("Unable to send {} command to channel: {}", command, err);
         }
     }
@@ -70,7 +69,7 @@ impl InMemoryChannel {
 impl TelemetryChannel for InMemoryChannel {
     fn send(&self, envelop: Envelope) {
         trace!("Sending telemetry to channel");
-        if let Err(err) = self.event_sender.send(envelop) {
+        if let Err(err) = self.event_sender.unbounded_send(envelop) {
             warn!("Unable to send telemetry to channel: {}", err);
         }
     }

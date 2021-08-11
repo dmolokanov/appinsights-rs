@@ -7,8 +7,8 @@ use std::{
 use appinsights::{telemetry::SeverityLevel, TelemetryClient};
 use hyper::{Method, Uri};
 
-#[test]
-fn it_tracks_all_telemetry_items() {
+#[tokio::test]
+async fn it_tracks_all_telemetry_items() {
     let entries = Arc::new(RwLock::new(Vec::new()));
     logger::builder(entries.clone()).output(true).init();
 

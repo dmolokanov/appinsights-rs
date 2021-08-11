@@ -27,6 +27,8 @@ dependencies = [
  "chrono",
  "env_logger",
  "futures",
+ "futures-channel",
+ "futures-util",
  "hostname",
  "http",
  "hyper",
@@ -314,11 +316,9 @@ checksum = "67eb846bfd58e44a8481a00049e82c43e0ccb5d61f8dc071057cb19249dd4d78"
 dependencies = [
  "autocfg",
  "futures-core",
- "futures-io",
  "futures-macro",
  "futures-sink",
  "futures-task",
- "memchr",
  "pin-project-lite",
  "pin-utils",
  "proc-macro-hack",
@@ -658,16 +658,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c62be47e61d1842b9170f0fdeec8eba98e60e90e5446449a0545e5152acd7096"
 dependencies = [
  "autocfg",
-]
-
-[[package]]
-name = "num_cpus"
-version = "1.12.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "46203554f085ff89c235cd12f7075f3233af9b11ed7c9e16dfe2560d03313ce6"
-dependencies = [
- "hermit-abi",
- "libc",
 ]
 
 [[package]]
@@ -1319,7 +1309,6 @@ dependencies = [
  "libc",
  "memchr",
  "mio",
- "num_cpus",
  "pin-project-lite",
  "tokio-macros",
  "winapi",
