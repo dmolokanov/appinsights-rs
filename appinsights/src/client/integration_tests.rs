@@ -7,7 +7,6 @@ use std::{
 };
 
 use chrono::{DateTime, Utc};
-use crossbeam_channel::{bounded, unbounded, Receiver, RecvTimeoutError};
 use hyper::{
     body::Buf,
     service::{make_service_fn, service_fn},
@@ -26,9 +25,9 @@ lazy_static! {
 }
 
 macro_rules! manual_timeout_test {
-    (fn $name: ident() $body: block) => {
-        #[test]
-        fn $name() {
+    (async fn $name: ident() $body: block) => {
+        #[tokio::test]
+        async fn $name() {
             let guard = SERIAL_TEST_MUTEX.lock().unwrap();
             timeout::init();
 
@@ -45,13 +44,13 @@ macro_rules! manual_timeout_test {
 }
 
 manual_timeout_test! {
-    fn it_sends_one_telemetry_item() {
+    async fn it_sends_one_telemetry_item() {
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
         client.track_event("--event--");
 
-        timeout::expire();
+        timeout::expire().await;
 
         // expect one requests available so far
         let receiver = server.requests();
@@ -60,7 +59,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_does_not_resend_submitted_telemetry_items() {
+    async fn it_does_not_resend_submitted_telemetry_items() {
         let server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -70,11 +69,11 @@ manual_timeout_test! {
         let receiver = server.requests();
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
         assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
 
         // verify no items is sent after next interval expired
-        timeout::expire();
+        timeout::expire().await;
         assert_matches!(
             receiver.recv_timeout(Duration::from_millis(500)),
             Err(RecvTimeoutError::Timeout)
@@ -83,7 +82,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_sends_telemetry_items_in_several_batches() {
+    async fn it_sends_telemetry_items_in_several_batches() {
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -94,7 +93,7 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // send next 5 items and then interval expired
         for i in 10..15 {
@@ -102,7 +101,7 @@ manual_timeout_test! {
         }
 
         // "wait" until next interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // verify that all items were send
         let requests = server.wait_for_requests(2);
@@ -118,7 +117,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_flushes_all_pending_telemetry_items() {
+    async fn it_flushes_all_pending_telemetry_items() {
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -149,7 +148,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_does_not_send_any_pending_telemetry_items_when_drop_client() {
+    async fn it_does_not_send_any_pending_telemetry_items_when_drop_client() {
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -173,7 +172,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_tries_to_send_pending_telemetry_items_when_close_channel_requested() {
+    async fn it_tries_to_send_pending_telemetry_items_when_close_channel_requested() {
         let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
@@ -205,7 +204,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_retries_when_previous_submission_failed() {
+    async fn it_retries_when_previous_submission_failed() {
         let server = server()
             .response(StatusCode::INTERNAL_SERVER_ERROR, json!({}), None)
             .response(
@@ -228,10 +227,10 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // "wait" until retry logic handled
-        timeout::expire();
+        timeout::expire().await;
 
         // verify there are 2 identical requests
         let requests = server.wait_for_requests(2);
@@ -241,7 +240,7 @@ manual_timeout_test! {
 }
 
 manual_timeout_test! {
-    fn it_retries_when_partial_content() {
+    async fn it_retries_when_partial_content() {
         let server = server()
             .response(
                 StatusCode::PARTIAL_CONTENT,
@@ -289,10 +288,10 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // "wait" until retry logic handled
-        timeout::expire();
+        timeout::expire().await;
 
         // verify it sends a first request with all items
         let requests = server.wait_for_requests(1);

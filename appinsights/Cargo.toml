@@ -26,8 +26,8 @@ http = "0.2"
 uuid = { version = "0.8", features = ["v4"], default-features = false }
 reqwest = { version = "0.11", features = ["blocking", "json"], default-features = false }
 log = "0.4"
-crossbeam-channel = "0.5"
 sm = "0.9"
+tokio = { version = "1.9", features = ["sync", "macros"], default-features = false }
 paste = "1.0"
 hostname = "0.3"
 

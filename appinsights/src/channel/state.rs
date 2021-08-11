@@ -1,8 +1,8 @@
 use std::{mem, time::Duration};
 
-use crossbeam_channel::{select, Receiver};
 use log::{debug, error, trace};
 use sm::{sm, Event};
+use tokio::sync::mpsc::UnboundedReceiver;
 
 use crate::{
     channel::command::Command,
@@ -57,16 +57,16 @@ sm! {
 
 pub struct Worker {
     transmitter: Transmitter,
-    event_receiver: Receiver<Envelope>,
-    command_receiver: Receiver<Command>,
+    event_receiver: UnboundedReceiver<Envelope>,
+    command_receiver: UnboundedReceiver<Command>,
     interval: Duration,
 }
 
 impl Worker {
     pub fn new(
         transmitter: Transmitter,
-        event_receiver: Receiver<Envelope>,
-        command_receiver: Receiver<Command>,
+        event_receiver: UnboundedReceiver<Envelope>,
+        command_receiver: UnboundedReceiver<Command>,
         interval: Duration,
     ) -> Self {
         Self {
@@ -77,7 +77,7 @@ impl Worker {
         }
     }
 
-    pub fn run(&self) {
+    pub async fn run(mut self) {
         let mut state = Machine::new(Receiving).as_enum();
 
         let mut items: Vec<Envelope> = Default::default();
@@ -85,13 +85,13 @@ impl Worker {
 
         loop {
             state = match state {
-                InitialReceiving(m) => self.handle_receiving(m, &mut items),
-                ReceivingByItemsSentAndContinue(m) => self.handle_receiving(m, &mut items),
-                ReceivingByRetryExhausted(m) => self.handle_receiving(m, &mut items),
-                SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
-                SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry),
-                SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry),
-                WaitingByRetryRequested(m) => self.handle_waiting(m, &mut retry),
+                InitialReceiving(m) => self.handle_receiving(m, &mut items).await,
+                ReceivingByItemsSentAndContinue(m) => self.handle_receiving(m, &mut items).await,
+                ReceivingByRetryExhausted(m) => self.handle_receiving(m, &mut items).await,
+                SendingByTimeoutExpired(m) => self.handle_sending_with_retry(m, &mut items, &mut retry).await,
+                SendingByFlushRequested(m) => self.handle_sending_with_retry(m, &mut items, &mut retry).await,
+                SendingByCloseRequested(m) => self.handle_sending_once_and_terminate(m, &mut items, &mut retry).await,
+                WaitingByRetryRequested(m) => self.handle_waiting(m, &mut retry).await,
                 StoppedByItemsSentAndStop(_) => break,
                 StoppedByCloseRequested(_) => break,
                 StoppedByTerminateRequested(_) => break,
@@ -99,17 +99,17 @@ impl Worker {
         }
     }
 
-    fn handle_receiving<E: Event>(&self, m: Machine<Receiving, E>, items: &mut Vec<Envelope>) -> Variant {
+    async fn handle_receiving<E: Event>(&mut self, m: Machine<Receiving, E>, items: &mut Vec<Envelope>) -> Variant {
         debug!("Receiving messages triggered by {:?}", m.trigger());
 
         let timeout = timeout::after(self.interval);
         items.clear();
 
         loop {
-            select! {
-                recv(self.command_receiver) -> command => {
+            tokio::select! {
+                command = self.command_receiver.recv() => {
                     match command {
-                        Ok(command) => {
+                        Some(command) => {
                             trace!("Command received: {}", command);
                             match command {
                                 Command::Flush => return m.transition(FlushRequested).as_enum(),
@@ -117,13 +117,13 @@ impl Worker {
                                 Command::Close => return m.transition(CloseRequested).as_enum(),
                             }
                         },
-                        Err(err) => {
-                            error!("commands channel closed: {}", err);
+                        None => {
+                            error!("commands channel closed");
                             return m.transition(TerminateRequested).as_enum()
                         },
                     }
                 },
-                recv(timeout) -> _ => {
+                _ = timeout => {
                     debug!("Timeout expired");
                     return m.transition(TimeoutExpired).as_enum()
                 },
@@ -131,7 +131,7 @@ impl Worker {
         }
     }
 
-    fn handle_sending_with_retry<E: Event>(
+    async fn handle_sending_with_retry<E: Event>(
         &self,
         m: Machine<Sending, E>,
         items: &mut Vec<Envelope>,
@@ -141,7 +141,7 @@ impl Worker {
         self.handle_sending(m, items)
     }
 
-    fn handle_sending_once_and_terminate<E: Event>(
+    async fn handle_sending_once_and_terminate<E: Event>(
         &self,
         m: Machine<Sending, E>,
         items: &mut Vec<Envelope>,
@@ -153,10 +153,9 @@ impl Worker {
         cloned.transition(TerminateRequested).as_enum()
     }
 
-    fn handle_sending<E: Event>(&self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
+    async fn handle_sending<E: Event>(&mut self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
         // read items from a channel
-        let pending_items = self.event_receiver.try_iter();
-        items.extend(pending_items);
+        let pending_items = self.event_receiver.items.extend(pending_items);
 
         debug!(
             "Sending {} telemetry items triggered by {:?}",
@@ -190,7 +189,7 @@ impl Worker {
         }
     }
 
-    fn handle_waiting<E: Event>(&self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {
+    async fn handle_waiting<E: Event>(&mut self, m: Machine<Waiting, E>, retry: &mut Retry) -> Variant {
         if let Some(timeout) = retry.next() {
             debug!(
                 "Waiting for retry timeout {:?} or stop command triggered by {:?}",
@@ -199,24 +198,28 @@ impl Worker {
             );
             // sleep until next sending attempt
             let timeout = timeout::after(timeout);
+            tokio::pin!(timeout);
 
             // wait for either retry timeout expired or stop command received
             loop {
-                select! {
-                    recv(self.command_receiver) -> command => {
+                // let command_recv = ;
+                // tokio::pin!(command_recv);
+
+                tokio::select! {
+                    command = self.command_receiver.recv() => {
                         match command {
-                            Ok(command) => match command {
+                            Some(command) => match command {
                                 Command::Flush => continue,
                                 Command::Terminate => return m.transition(TerminateRequested).as_enum(),
                                 Command::Close => return m.transition(CloseRequested).as_enum(),
                             },
-                            Err(err) => {
-                                error!("commands channel closed: {}", err);
+                            None => {
+                                error!("commands channel closed");
                                 return m.transition(TerminateRequested).as_enum()
                             }
                         }
                     },
-                    recv(timeout) -> _ => {
+                    _ = timeout => {
                         debug!("Retry timeout expired");
                         return m.transition(TimeoutExpired).as_enum()
                     },
