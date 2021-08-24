@@ -52,7 +52,7 @@ impl Field {
 
     pub fn optional(&self) -> Option<&Type> {
         if let Some(type_) = self.field_type.nullable() {
-            Some(Field::unwrap_option(&type_))
+            Some(Field::unwrap_option(type_))
         } else if self.field_modifier == FieldModifier::Optional {
             Some(Field::unwrap_option(&self.field_type))
         } else {

@@ -11,7 +11,7 @@ pub struct StructGenerator {
 
 impl StructGenerator {
     pub fn new(name: &str) -> Self {
-        let mut declaration = codegen::Struct::new(&name);
+        let mut declaration = codegen::Struct::new(name);
         declaration
             .derive("Debug")
             .derive("Clone")
