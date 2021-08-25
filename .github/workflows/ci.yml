@@ -9,8 +9,7 @@ on:
     - master
 
 jobs:
-  build:
-
+  check:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,13 +20,8 @@ jobs:
       uses: actions-rs/toolchain@v1
       with:
         toolchain: stable
-        override: true
-
-    - name: environment check
-      run: |
-        rustc --version
-        cargo fmt --version
-        cargo clippy --version
+        profile: minimal
+        components: rustfmt, clippy
 
     - name: clippy
       uses: actions-rs/cargo@v1
@@ -40,6 +34,19 @@ jobs:
       with:
         command: check
         args: --all --bins --examples
+
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: checkout branch
+      uses: actions/checkout@master
+
+    - name: install stable rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        profile: minimal
 
     - name: tests
       uses: actions-rs/cargo@v1
