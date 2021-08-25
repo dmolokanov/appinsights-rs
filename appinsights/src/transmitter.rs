@@ -103,7 +103,11 @@ impl Transmitter {
                 }
             }
             _ => {
-                debug!("Unknown status: {}. Nothing to re-send", response.status());
+                debug!(
+                    "Unknown status: {}. {}. Nothing to re-send",
+                    response.status(),
+                    response.text().unwrap_or_default()
+                );
                 Response::NoRetry
             }
         };
