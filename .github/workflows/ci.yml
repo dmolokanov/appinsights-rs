@@ -45,7 +45,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all
+        args: --all -- --exact --nocapture
       env:
         APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.APPINSIGHTS_INSTRUMENTATIONKEY }} 
 

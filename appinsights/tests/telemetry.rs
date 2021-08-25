@@ -10,7 +10,7 @@ use hyper::{Method, Uri};
 #[test]
 fn it_tracks_all_telemetry_items() {
     let entries = Arc::new(RwLock::new(Vec::new()));
-    logger::init(entries.clone());
+    logger::builder(entries.clone()).output(true).init();
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
     let ai = TelemetryClient::new(i_key);
