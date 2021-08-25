@@ -7,7 +7,7 @@ pub struct EnumGenerator {
 
 impl EnumGenerator {
     pub fn new(name: &str) -> Self {
-        let mut declaration = codegen::Enum::new(&name);
+        let mut declaration = codegen::Enum::new(name);
         declaration
             .derive("Debug")
             .derive("Clone")

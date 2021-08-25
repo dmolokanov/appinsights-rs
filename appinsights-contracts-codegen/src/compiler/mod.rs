@@ -18,7 +18,7 @@ pub fn compile_all(input_dir: PathBuf, output_dir: PathBuf) -> Result<()> {
         .filter_map(|entry| entry.ok().map(|entry| entry.path()))
         .map(|path| Module::try_from((path, output_dir.clone())).expect("unable to read module path"))
         .collect();
-    modules.sort_by(|a, b| a.file_name().cmp(&b.file_name()));
+    modules.sort_by(|a, b| a.file_name().cmp(b.file_name()));
 
     compile_files(modules.iter())?;
     compile_package(modules.iter(), &output_dir.join("mod.rs"))?;
@@ -40,7 +40,7 @@ fn compile_files<'a>(modules: impl Iterator<Item = &'a Module>) -> Result<()> {
 
 fn compile(module: &Module) -> Result<()> {
     let parser = Parser::default();
-    let schema = parser.parse(&module.source_path())?;
+    let schema = parser.parse(module.source_path())?;
 
     let mut generator = SchemaGenerator::new();
     generator.visit_schema(&schema);

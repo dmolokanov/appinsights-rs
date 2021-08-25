@@ -27,7 +27,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all --tests --bins --examples
+        args: --all --tests --bins --examples -- -A clippy::enum_variant_names
 
     - name: check
       uses: actions-rs/cargo@v1
