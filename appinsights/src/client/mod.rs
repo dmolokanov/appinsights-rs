@@ -49,7 +49,7 @@ where
     /// ```rust, no_run
     /// # use appinsights::TelemetryClient;
     /// let client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// assert!(client.is_enabled(), true);
+    /// assert!(client.is_enabled());
     /// ```
     pub fn is_enabled(&self) -> bool {
         self.enabled
@@ -62,7 +62,7 @@ where
     /// ```rust
     /// # use appinsights::TelemetryClient;
     /// let mut client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// assert_eq!(client.is_enabled(), true);
+    /// assert!(client.is_enabled());
     ///
     /// client.enabled(false);
     /// assert_eq!(client.is_enabled(), false);
