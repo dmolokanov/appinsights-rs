@@ -38,7 +38,7 @@ async fn it_tracks_all_telemetry_items() {
         true,
     );
 
-    ai.close_channel();
+    ai.close_channel().await;
 
     logger::wait_until(&entries, "Successfully sent 6 items", Duration::from_secs(10)).await;
 }

@@ -259,9 +259,8 @@ where
     /// // unable to sent any telemetry after client closes its channel
     /// // client.track_event("app is stopped".to_string());
     /// ```
-    pub fn close_channel(self) {
-        let mut channel = self.channel;
-        channel.close()
+    pub async fn close_channel(self) {
+        self.channel.close().await;
     }
 
     /// Forces all pending telemetry items to be submitted. The current thread will not be blocked.
@@ -311,7 +310,10 @@ mod tests {
     use matches::assert_matches;
 
     use super::*;
-    use crate::telemetry::{ContextTags, Properties};
+    use crate::{
+        channel::CloseFuture,
+        telemetry::{ContextTags, Properties},
+    };
 
     #[test]
     fn it_enabled_by_default() {
@@ -421,7 +423,7 @@ mod tests {
             unimplemented!()
         }
 
-        fn close(&mut self) {
+        fn close(self) -> CloseFuture {
             unimplemented!()
         }
     }

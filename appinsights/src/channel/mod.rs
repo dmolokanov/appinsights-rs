@@ -1,9 +1,13 @@
 mod command;
+
 mod memory;
+pub use memory::InMemoryChannel;
+
 mod retry;
+
 mod state;
 
-pub use memory::InMemoryChannel;
+use std::{future::Future, pin::Pin};
 
 use crate::contracts::Envelope;
 
@@ -19,5 +23,7 @@ pub trait TelemetryChannel {
     /// Flushes and tears down the submission flow and closes internal channels.
     /// It blocks current thread until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
-    fn close(&mut self);
+    fn close(self) -> CloseFuture;
 }
+
+pub type CloseFuture = Pin<Box<dyn Future<Output = ()>>>;

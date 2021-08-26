@@ -174,7 +174,6 @@ manual_timeout_test! {
             receiver.recv_timeout(Duration::from_millis(500)),
             Err(RecvTimeoutError::Timeout)
         );
-
     }
 }
 

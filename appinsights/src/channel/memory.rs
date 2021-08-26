@@ -6,7 +6,7 @@ use log::{debug, trace, warn};
 use tokio::task::JoinHandle;
 
 use crate::{
-    channel::{command::Command, state::Worker, TelemetryChannel},
+    channel::{command::Command, state::Worker, CloseFuture, TelemetryChannel},
     contracts::Envelope,
     transmitter::Transmitter,
     TelemetryConfig,
@@ -42,23 +42,16 @@ impl InMemoryChannel {
         }
     }
 
-    fn shutdown(&mut self, command: Command) {
+    async fn shutdown(mut self, command: Command) {
+        // send shutdown command
         if let Some(sender) = self.command_sender.take() {
-            Self::send_command(&sender, command);
+            send_command(&sender, command);
         }
 
-        // TODO address this await
-
-        // if let Some(thread) = self.join.take() {
-        //     debug!("Shutting down worker");
-        //     thread.await.unwrap();
-        // }
-    }
-
-    fn send_command(sender: &UnboundedSender<Command>, command: Command) {
-        debug!("Sending {} command to channel", command);
-        if let Err(err) = sender.unbounded_send(command.clone()) {
-            warn!("Unable to send {} command to channel: {}", command, err);
+        // wait until worker is finished
+        if let Some(thread) = self.join.take() {
+            debug!("Shutting down worker");
+            thread.await.unwrap();
         }
     }
 }
@@ -77,11 +70,18 @@ impl TelemetryChannel for InMemoryChannel {
 
     fn flush(&self) {
         if let Some(sender) = &self.command_sender {
-            Self::send_command(sender, Command::Flush);
+            send_command(sender, Command::Flush);
         }
     }
 
-    fn close(&mut self) {
-        self.shutdown(Command::Close);
+    fn close(self) -> CloseFuture {
+        Box::pin(self.shutdown(Command::Close))
+    }
+}
+
+fn send_command(sender: &UnboundedSender<Command>, command: Command) {
+    debug!("Sending {} command to channel", command);
+    if let Err(err) = sender.unbounded_send(command.clone()) {
+        warn!("Unable to send {} command to channel: {}", command, err);
     }
 }
