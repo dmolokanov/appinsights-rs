@@ -40,7 +40,7 @@ async fn it_tracks_all_telemetry_items() {
 
     ai.close_channel();
 
-    logger::wait_until(&entries, "Successfully sent 6 items", Duration::from_secs(10));
+    logger::wait_until(&entries, "Successfully sent 6 items", Duration::from_secs(10)).await;
 }
 
 pub mod logger {
@@ -52,7 +52,7 @@ pub mod logger {
     use chrono::Utc;
     use log::{Level, LevelFilter, Log, Metadata, Record, SetLoggerError};
 
-    pub fn wait_until(entries: &Arc<RwLock<Vec<String>>>, msg: &str, panic_after: Duration) {
+    pub async fn wait_until(entries: &Arc<RwLock<Vec<String>>>, msg: &str, panic_after: Duration) {
         let panic_after = Utc::now() + chrono::Duration::from_std(panic_after).unwrap();
         loop {
             let entries = entries.read().unwrap();
@@ -63,7 +63,7 @@ pub mod logger {
             if Utc::now() > panic_after {
                 panic!("Test took too long to finish");
             }
-            std::thread::sleep(Duration::from_millis(100))
+            tokio::time::sleep(Duration::from_millis(100)).await
         }
     }
 
