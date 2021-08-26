@@ -59,6 +59,7 @@ pub mod logger {
             if entries.iter().any(|entry| entry.contains(msg)) {
                 break;
             }
+            drop(entries);
 
             if Utc::now() > panic_after {
                 panic!("Test took too long to finish");

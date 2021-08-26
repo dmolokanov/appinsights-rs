@@ -39,12 +39,6 @@ mod imp {
     /// Creates a copy of a receiver that delivers a current time stamp in order to emulate
     /// timeout expiration for tests.
     pub async fn after(duration: Duration) -> Instant {
-        // CHANNEL
-        //     .read()
-        //     .expect("lock")
-        //     .as_ref()
-        //     .map_or_else(|| crossbeam_channel::after(duration), |(_, receiver)| receiver.clone())
-
         if let Some((_, receiver)) = &mut *CHANNEL.write().await {
             receiver.recv().await.expect("instant")
         } else {

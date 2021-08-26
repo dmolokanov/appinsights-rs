@@ -1,5 +1,6 @@
-use std::{mem, time::Duration};
+use std::{mem, sync::Arc, time::Duration};
 
+use crossbeam_queue::SegQueue;
 use futures_channel::mpsc::UnboundedReceiver;
 use futures_util::{Future, Stream, StreamExt};
 use log::{debug, error, trace};
@@ -58,7 +59,7 @@ sm! {
 
 pub struct Worker {
     transmitter: Transmitter,
-    event_receiver: UnboundedReceiver<Envelope>,
+    items: Arc<SegQueue<Envelope>>,
     command_receiver: UnboundedReceiver<Command>,
     interval: Duration,
 }
@@ -66,13 +67,13 @@ pub struct Worker {
 impl Worker {
     pub fn new(
         transmitter: Transmitter,
-        event_receiver: UnboundedReceiver<Envelope>,
+        items: Arc<SegQueue<Envelope>>,
         command_receiver: UnboundedReceiver<Command>,
         interval: Duration,
     ) -> Self {
         Self {
             transmitter,
-            event_receiver,
+            items,
             command_receiver,
             interval,
         }
@@ -156,7 +157,7 @@ impl Worker {
 
     async fn handle_sending<E: Event>(&mut self, m: Machine<Sending, E>, items: &mut Vec<Envelope>) -> Variant {
         // read pending items from a channel
-        while let Ok(Some(item)) = self.event_receiver.try_next() {
+        while let Some(item) = self.items.pop() {
             items.push(item);
         }
 

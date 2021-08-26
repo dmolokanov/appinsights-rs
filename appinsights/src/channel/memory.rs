@@ -1,3 +1,6 @@
+use std::sync::Arc;
+
+use crossbeam_queue::SegQueue;
 use futures_channel::mpsc::UnboundedSender;
 use log::{debug, trace, warn};
 use tokio::task::JoinHandle;
@@ -11,7 +14,7 @@ use crate::{
 
 /// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
-    event_sender: UnboundedSender<Envelope>,
+    items: Arc<SegQueue<Envelope>>,
     command_sender: Option<UnboundedSender<Command>>,
     join: Option<JoinHandle<()>>,
 }
@@ -19,12 +22,12 @@ pub struct InMemoryChannel {
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &TelemetryConfig) -> Self {
-        let (event_sender, event_receiver) = futures_channel::mpsc::unbounded();
-        let (command_sender, command_receiver) = futures_channel::mpsc::unbounded();
+        let items = Arc::new(SegQueue::new());
 
+        let (command_sender, command_receiver) = futures_channel::mpsc::unbounded();
         let worker = Worker::new(
             Transmitter::new(config.endpoint()),
-            event_receiver,
+            items.clone(),
             command_receiver,
             config.interval(),
         );
@@ -33,7 +36,7 @@ impl InMemoryChannel {
         let thread = tokio::spawn(worker.run());
 
         Self {
-            event_sender,
+            items,
             command_sender: Some(command_sender),
             join: Some(thread),
         }
@@ -69,9 +72,7 @@ impl InMemoryChannel {
 impl TelemetryChannel for InMemoryChannel {
     fn send(&self, envelop: Envelope) {
         trace!("Sending telemetry to channel");
-        if let Err(err) = self.event_sender.unbounded_send(envelop) {
-            warn!("Unable to send telemetry to channel: {}", err);
-        }
+        self.items.push(envelop);
     }
 
     fn flush(&self) {
