@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
+use async_trait::async_trait;
 use crossbeam_queue::SegQueue;
 use futures_channel::mpsc::UnboundedSender;
 use log::{debug, trace, warn};
 use tokio::task::JoinHandle;
 
 use crate::{
-    channel::{command::Command, state::Worker, CloseFuture, TelemetryChannel},
+    channel::{command::Command, state::Worker, TelemetryChannel},
     contracts::Envelope,
     transmitter::Transmitter,
     TelemetryConfig,
@@ -56,12 +57,7 @@ impl InMemoryChannel {
     }
 }
 
-// impl Drop for InMemoryChannel {
-//     fn drop(&mut self) {
-//         self.shutdown(Command::Terminate);
-//     }
-// }
-
+#[async_trait]
 impl TelemetryChannel for InMemoryChannel {
     fn send(&self, envelop: Envelope) {
         trace!("Sending telemetry to channel");
@@ -74,8 +70,12 @@ impl TelemetryChannel for InMemoryChannel {
         }
     }
 
-    fn close(self) -> CloseFuture {
-        Box::pin(self.shutdown(Command::Close))
+    async fn close(self) {
+        self.shutdown(Command::Close).await
+    }
+
+    async fn terminate(self) {
+        self.shutdown(Command::Terminate).await;
     }
 }
 

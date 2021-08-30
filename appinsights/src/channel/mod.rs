@@ -7,12 +7,13 @@ mod retry;
 
 mod state;
 
-use std::{future::Future, pin::Pin};
+use async_trait::async_trait;
 
 use crate::contracts::Envelope;
 
 /// An implementation of [TelemetryChannel](trait.TelemetryChannel.html) is responsible for queueing
 /// and periodically submitting telemetry events.
+#[async_trait]
 pub trait TelemetryChannel {
     /// Queues a single telemetry item.
     fn send(&self, envelop: Envelope);
@@ -23,7 +24,12 @@ pub trait TelemetryChannel {
     /// Flushes and tears down the submission flow and closes internal channels.
     /// It blocks current thread until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
-    fn close(self) -> CloseFuture;
-}
+    async fn close(self);
 
-pub type CloseFuture = Pin<Box<dyn Future<Output = ()>>>;
+    /// Flushes and tears down the submission flow and closes internal channels.
+    /// It blocks current thread until all pending telemetry items have been submitted and it is safe to
+    /// shutdown without losing telemetry.
+    /// Tears down the submission flow and closes internal channels. Any telemetry waiting to be sent is discarded.
+    /// This is a more abrupt version of [close](#method.close).
+    async fn terminate(self);
+}

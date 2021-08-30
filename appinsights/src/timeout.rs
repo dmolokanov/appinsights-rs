@@ -7,44 +7,41 @@ mod imp {
     use tokio::time::{self, Instant};
 
     /// Creates a receiver that reliably delivers only one message when given interval expires.
-    pub async fn after(duration: Duration) -> Instant {
+    pub async fn sleep(duration: Duration) {
         let timeout = Instant::now() + duration;
         time::sleep_until(timeout).await;
-        timeout
     }
 }
 
 #[cfg(test)]
 mod imp {
-    use std::time::Duration;
+    use std::{sync::Arc, time::Duration};
 
     use lazy_static::lazy_static;
-    use tokio::{
-        sync::mpsc::{self, Receiver, Sender},
-        sync::RwLock,
-        time::Instant,
-    };
+    use parking_lot::Mutex;
+    use tokio::{sync::Notify, time::Instant};
 
     lazy_static! {
-        static ref CHANNEL: RwLock<Option<(Sender<Instant>, Receiver<Instant>)>> = RwLock::new(None);
+        static ref CHANNEL: Mutex<Option<Arc<Notify>>> = Mutex::new(None);
     }
 
     /// Initializes a channel which emulates timeout expiration event. External code should run
     /// [`expire`](#method.expire) method in order to emulate timeout expiration.
     pub async fn init() {
-        let mut channel = CHANNEL.write().await;
-        *channel = Some(mpsc::channel(1));
+        let mut channel = CHANNEL.lock();
+        *channel = Some(Arc::new(Notify::new()));
     }
 
     /// Creates a copy of a receiver that delivers a current time stamp in order to emulate
     /// timeout expiration for tests.
-    pub async fn after(duration: Duration) -> Instant {
-        if let Some((_, receiver)) = &mut *CHANNEL.write().await {
-            receiver.recv().await.expect("instant")
+    pub async fn sleep(duration: Duration) {
+        let maybe_notify = CHANNEL.lock().clone();
+
+        if let Some(notify) = maybe_notify {
+            notify.notified().await;
         } else {
             let timeout = Instant::now() + duration;
             tokio::time::sleep_until(timeout).await;
-            timeout
         }
     }
 
@@ -52,15 +49,15 @@ mod imp {
     /// It sends a current time stamp to receiver in order to trigger an action if a channel was
     /// initialized in advance. Does nothing otherwise.
     pub async fn expire() {
-        if let Some((sender, _)) = &*CHANNEL.read().await {
-            sender.send(Instant::now()).await.unwrap();
+        if let Some(notify) = CHANNEL.lock().clone() {
+            notify.notify_one();
         }
     }
 
     /// Resets a channel that emulates timeout expiration event with default
-    /// crossbeam_channel::bounded() instead.
+    /// timer base timeout expiration instead.
     pub async fn reset() {
-        let mut channel = CHANNEL.write().await;
+        let mut channel = CHANNEL.lock();
         *channel = None;
     }
 }

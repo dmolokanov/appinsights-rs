@@ -104,7 +104,7 @@ impl Worker {
     async fn handle_receiving<E: Event>(&mut self, m: Machine<Receiving, E>, items: &mut Vec<Envelope>) -> Variant {
         debug!("Receiving messages triggered by {:?}", m.trigger());
 
-        let timeout = timeout::after(self.interval);
+        let timeout = timeout::sleep(self.interval);
         items.clear();
 
         loop {
@@ -201,7 +201,7 @@ impl Worker {
                 m.state()
             );
             // sleep until next sending attempt
-            let timeout = timeout::after(timeout);
+            let timeout = timeout::sleep(timeout);
 
             // wait for either retry timeout expired or stop command received
             tokio::select! {

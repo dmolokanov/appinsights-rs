@@ -14,6 +14,9 @@ categories = [
     "development-tools::profiling"
 ]
 
+[lib]
+doctest = false
+
 [features]
 default = ["reqwest/default-tls"]
 rustls = ["reqwest/rustls-tls"]
@@ -27,12 +30,13 @@ uuid = { version = "0.8", features = ["v4"], default-features = false }
 reqwest = { version = "0.11", features = ["json"], default-features = false }
 log = "0.4"
 sm = "0.9"
-tokio = { version = "1.9", features = ["sync", "macros", "rt"], default-features = false }
+tokio = { version = "1", features = ["macros", "rt"], default-features = false }
 paste = "1.0"
 hostname = "0.3"
-futures-util = { version = "0.3.16", features = [], default-features = false }
-futures-channel = "0.3.16"
-crossbeam-queue = "0.3.2"
+futures-util = { version = "0.3.16", default-features = false }
+futures-channel = "0.3"
+crossbeam-queue = "0.3"
+async-trait = "0.1.51"
 
 [dev-dependencies]
 test-case = "1.2"
@@ -41,5 +45,6 @@ mockito = { version = "0.30", default-features = false }
 lazy_static = "1.4"
 matches = "0.1"
 hyper = { version = "0.14", features = ["server"], default-features = false }
-tokio = { version = "1.10", features = ["macros"], default-features = false }
-futures = { version = "0.3", default-features = false }
+tokio = { version = "1.10", features = ["macros", "rt-multi-thread"], default-features = false }
+parking_lot = "0.11.2"
+

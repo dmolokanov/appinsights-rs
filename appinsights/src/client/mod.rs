@@ -236,33 +236,6 @@ where
         }
     }
 
-    /// Flushes and tears down the submission flow and closes internal channels.
-    /// It block current thread until all pending telemetry items have been submitted and it is safe to
-    /// shutdown without losing telemetry.
-    /// This method consumes the value of client so it makes impossible to use a client with close
-    /// channel.
-    ///
-    /// # Examples
-    ///
-    /// ```rust, no_run
-    /// # use appinsights::TelemetryClient;
-    /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
-    /// // send heartbeats while application is running
-    /// let running = true;
-    /// while running {
-    ///     client.track_event("app is running");
-    /// }
-    ///
-    /// // wait until pending telemetry is sent at most once and tear down submission flow
-    /// client.close_channel();
-    ///
-    /// // unable to sent any telemetry after client closes its channel
-    /// // client.track_event("app is stopped".to_string());
-    /// ```
-    pub async fn close_channel(self) {
-        self.channel.close().await;
-    }
-
     /// Forces all pending telemetry items to be submitted. The current thread will not be blocked.
     ///
     /// # Examples
@@ -290,6 +263,62 @@ where
     pub fn flush_channel(&self) {
         self.channel.flush();
     }
+
+    /// Flushes and tears down the submission flow and closes internal channels.
+    /// It block current thread until all pending telemetry items have been submitted and it is safe to
+    /// shutdown without losing telemetry.
+    /// This method consumes the value of client so it makes impossible to use a client with close
+    /// channel.
+    ///
+    /// # Examples
+    ///
+    /// ```rust, no_run
+    /// # use appinsights::TelemetryClient;
+    /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// // send heartbeats while application is running
+    /// let running = true;
+    /// while running {
+    ///     client.track_event("app is running");
+    /// }
+    ///
+    /// // wait until pending telemetry is sent at most once and tear down submission flow
+    /// client.close_channel().await;
+    ///
+    /// // unable to sent any telemetry after client closes its channel
+    /// // client.track_event("app is stopped".to_string());
+    /// ```
+    pub async fn close_channel(self) {
+        self.channel.close().await;
+    }
+
+    /// Tears down the submission flow and closes internal channels.
+    /// Any telemetry waiting to be sent is discarded. This is a more abrupt version of [`close_channel`](#method.close_channel).
+    /// This method consumes the value of client so it makes impossible to use a client with close
+    /// channel.
+    ///
+    /// This method should be used in cases when the client should be stopped. It is a separate function until
+    /// `async_drop` is implemented in rust.
+    ///
+    /// # Examples
+    ///
+    /// ```rust, no_run
+    /// # use appinsights::TelemetryClient;
+    /// # let client = TelemetryClient::new("<instrumentation key>".to_string());
+    /// // send heartbeats while application is running
+    /// let running = true;
+    /// while running {
+    ///     client.track_event("app is running");
+    /// }
+    ///
+    /// // wait until pending telemetry is sent at most once and tear down submission flow
+    /// client.terminate().await;
+    ///
+    /// // unable to sent any telemetry after client closes its channel
+    /// // client.track_event("app is stopped".to_string());
+    /// ```
+    pub async fn terminate(self) {
+        self.channel.terminate().await;
+    }
 }
 
 impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient<InMemoryChannel> {
@@ -306,23 +335,21 @@ impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient<InMemoryChann
 mod tests {
     use std::cell::RefCell;
 
+    use async_trait::async_trait;
     use chrono::{DateTime, Utc};
     use matches::assert_matches;
 
     use super::*;
-    use crate::{
-        channel::CloseFuture,
-        telemetry::{ContextTags, Properties},
-    };
+    use crate::telemetry::{ContextTags, Properties};
 
-    #[test]
-    fn it_enabled_by_default() {
+    #[tokio::test]
+    async fn it_enabled_by_default() {
         let client = TelemetryClient::new("key".into());
         assert!(client.is_enabled())
     }
 
-    #[test]
-    fn it_disables_telemetry() {
+    #[tokio::test]
+    async fn it_disables_telemetry() {
         let mut client = TelemetryClient::new("key".into());
 
         client.enabled(false);
@@ -330,8 +357,8 @@ mod tests {
         assert!(!client.is_enabled())
     }
 
-    #[test]
-    fn it_submits_telemetry() {
+    #[tokio::test]
+    async fn it_submits_telemetry() {
         let client = create_client();
 
         client.track(TestTelemetry {});
@@ -340,8 +367,8 @@ mod tests {
         assert_eq!(events.len(), 1)
     }
 
-    #[test]
-    fn it_swallows_telemetry_when_disabled() {
+    #[tokio::test]
+    async fn it_swallows_telemetry_when_disabled() {
         let mut client = create_client();
         client.enabled(false);
 
@@ -351,8 +378,8 @@ mod tests {
         assert!(events.is_empty())
     }
 
-    #[test]
-    fn it_creates_client_with_default_tags() {
+    #[tokio::test]
+    async fn it_creates_client_with_default_tags() {
         let client = TelemetryClient::new("instrumentation".into());
 
         let tags = client.context().tags();
@@ -414,6 +441,7 @@ mod tests {
         events: RefCell<Vec<Envelope>>,
     }
 
+    #[async_trait]
     impl TelemetryChannel for TestChannel {
         fn send(&self, envelop: Envelope) {
             self.events.borrow_mut().push(envelop);
@@ -423,11 +451,15 @@ mod tests {
             unimplemented!()
         }
 
-        fn close(self) -> CloseFuture {
+        async fn close(self) {
+            unimplemented!()
+        }
+
+        async fn terminate(self) {
             unimplemented!()
         }
     }
 }
 
-// #[cfg(test)]
-// mod integration_tests;
+#[cfg(test)]
+mod integration_tests;
