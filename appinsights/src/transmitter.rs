@@ -139,8 +139,11 @@ fn can_retry_item(item: &TransmissionItem) -> bool {
 #[cfg(test)]
 mod tests {
     use chrono::TimeZone;
-    use http::StatusCode;
-    use mockito::mock;
+    use http::{Request, StatusCode};
+    use hyper::{
+        service::{make_service_fn, service_fn},
+        Body, Server,
+    };
     use serde_json::{json, Value};
     use test_case::test_case;
 
@@ -161,28 +164,54 @@ mod tests {
     #[test_case(items(), StatusCode::UNAUTHORIZED, None, None, Response::NoRetry; "unauthorized. no retry")]
     #[test_case(items(), StatusCode::REQUEST_TIMEOUT, None, Some(partial_some_retries()), Response::Retry(retry_items()); "timeout. resend some items")]
     #[test_case(items(), StatusCode::INTERNAL_SERVER_ERROR, None, Some(partial_some_retries()), Response::Retry(retry_items()); "server error. resend some items")]
-    async fn it_sends_telemetry_and_handles_server_response(
+    fn it_sends_telemetry_and_handles_server_response(
         items: Vec<Envelope>,
         status_code: StatusCode,
-        retry_after: Option<&str>,
+        retry_after: Option<&'static str>,
         body: Option<Value>,
         expected: Response,
     ) {
-        let mut _server = mock("POST", "/track").with_status(status_code.as_u16() as usize);
-        if let Some(retry_after) = retry_after {
-            _server = _server.with_header("Retry-After", retry_after);
-        }
-        if let Some(body) = body {
-            _server = _server.with_body(body.to_string());
-        }
-        _server = _server.create();
-        let url = mockito::server_url();
+        let rt = tokio::runtime::Runtime::new().expect("runtime");
+        rt.block_on(async {
+            let url = create_server(status_code, retry_after, body);
 
-        let transmitter = Transmitter::new(&format!("{}/track", url));
+            let transmitter = Transmitter::new(&format!("{}/track", url));
 
-        let response = transmitter.send(items).await.unwrap();
+            let response = transmitter.send(items).await.unwrap();
 
-        assert_eq!(response, expected)
+            assert_eq!(response, expected);
+        });
+    }
+
+    fn create_server(status_code: StatusCode, retry_after: Option<&'static str>, body: Option<Value>) -> String {
+        let make_service = make_service_fn(move |_| {
+            let retry_after = retry_after.map(ToString::to_string);
+            let body = body.clone();
+            async move {
+                Ok::<_, hyper::Error>(service_fn(move |_: Request<Body>| {
+                    let retry_after = retry_after.clone();
+                    let body = body.clone();
+                    async move {
+                        let mut builder = hyper::Response::builder().status(status_code);
+
+                        if let Some(retry_after) = retry_after {
+                            builder = builder.header("Retry-After", retry_after);
+                        }
+
+                        let body = body.map(move |body| Body::from(body.to_string())).unwrap_or_default();
+
+                        builder.body(body)
+                    }
+                }))
+            }
+        });
+
+        let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(make_service);
+        let url = format!("http://{}", server.local_addr());
+
+        tokio::spawn(server);
+
+        url
     }
 
     fn partial_no_retries() -> Value {
