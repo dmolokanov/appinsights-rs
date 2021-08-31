@@ -236,7 +236,7 @@ where
         }
     }
 
-    /// Forces all pending telemetry items to be submitted. The current thread will not be blocked.
+    /// Forces all pending telemetry items to be submitted. The current task will not be blocked.
     ///
     /// # Examples
     ///
@@ -265,7 +265,7 @@ where
     }
 
     /// Flushes and tears down the submission flow and closes internal channels.
-    /// It block current thread until all pending telemetry items have been submitted and it is safe to
+    /// It blocks the current task until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
     /// This method consumes the value of client so it makes impossible to use a client with close
     /// channel.

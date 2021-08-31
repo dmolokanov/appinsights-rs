@@ -33,13 +33,12 @@ impl InMemoryChannel {
             config.interval(),
         );
 
-        // TODO enter to the current runtime or create a new runtime on dedicated thread
-        let thread = tokio::spawn(worker.run());
+        let handle = tokio::spawn(worker.run());
 
         Self {
             items,
             command_sender: Some(command_sender),
-            join: Some(thread),
+            join: Some(handle),
         }
     }
 
@@ -50,9 +49,9 @@ impl InMemoryChannel {
         }
 
         // wait until worker is finished
-        if let Some(thread) = self.join.take() {
+        if let Some(handle) = self.join.take() {
             debug!("Shutting down worker");
-            thread.await.unwrap();
+            handle.await.unwrap();
         }
     }
 }
