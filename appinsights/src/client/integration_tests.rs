@@ -21,7 +21,7 @@ use tokio::sync::{
     oneshot,
 };
 
-use crate::{channel::InMemoryChannel, timeout, TelemetryClient, TelemetryConfig};
+use crate::{timeout, TelemetryClient, TelemetryConfig};
 
 lazy_static! {
     /// A global lock since most tests need to run in serial.
@@ -371,7 +371,7 @@ manual_timeout_test! {
 
 // TODO Check case when all retries exhausted. Pending items should not be lost
 
-fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
+fn create_client(endpoint: &str) -> TelemetryClient {
     let config = TelemetryConfig::builder()
         .i_key("instrumentation key")
         .endpoint(endpoint)
