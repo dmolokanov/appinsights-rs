@@ -4,7 +4,8 @@ use std::time::Duration;
 use appinsights::TelemetryClient;
 use log::LevelFilter;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     env_logger::builder().filter_level(LevelFilter::Debug).init();
 
     let i_key = env::var("APPINSIGHTS_INSTRUMENTATIONKEY").expect("Set APPINSIGHTS_INSTRUMENTATIONKEY first");
@@ -20,5 +21,5 @@ fn main() {
         }
     }
 
-    ai.close_channel();
+    ai.close_channel().await;
 }

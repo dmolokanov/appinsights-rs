@@ -1,13 +1,12 @@
 use std::{
     sync::{
         atomic::{AtomicUsize, Ordering},
-        Arc, Mutex,
+        Arc,
     },
     time::Duration,
 };
 
 use chrono::{DateTime, Utc};
-use crossbeam_channel::{bounded, unbounded, Receiver, RecvTimeoutError};
 use hyper::{
     body::Buf,
     service::{make_service_fn, service_fn},
@@ -15,8 +14,12 @@ use hyper::{
 };
 use lazy_static::lazy_static;
 use matches::assert_matches;
+use parking_lot::Mutex;
 use serde_json::json;
-use tokio::sync::oneshot;
+use tokio::sync::{
+    mpsc::{self, Receiver},
+    oneshot,
+};
 
 use crate::{channel::InMemoryChannel, timeout, TelemetryClient, TelemetryConfig};
 
@@ -26,65 +29,68 @@ lazy_static! {
 }
 
 macro_rules! manual_timeout_test {
-    (fn $name: ident() $body: block) => {
+    (async fn $name: ident() $body: block) => {
         #[test]
         fn $name() {
-            let guard = SERIAL_TEST_MUTEX.lock().unwrap();
-            timeout::init();
+            let _guard = SERIAL_TEST_MUTEX.lock();
 
-            // Catch any panics to not poison the lock.
-            if let Err(err) = std::panic::catch_unwind(|| $body) {
-                drop(guard);
+            let rt = tokio::runtime::Runtime::new().expect("runtime");
+            rt.block_on(async {
+                timeout::init().await;
 
-                std::panic::resume_unwind(err);
-            }
+                $body;
 
-            timeout::reset();
+                timeout::reset().await;
+            });
         }
     };
 }
 
 manual_timeout_test! {
-    fn it_sends_one_telemetry_item() {
-        let server = server().status(StatusCode::OK).create();
+    async fn it_sends_one_telemetry_item() {
+        let mut server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
         client.track_event("--event--");
 
-        timeout::expire();
+        timeout::expire().await;
 
         // expect one requests available so far
-        let receiver = server.requests();
-        assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
+        assert_matches!(server.next_request_timeout().await, Ok(_));
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_does_not_resend_submitted_telemetry_items() {
-        let server = server().status(StatusCode::OK).create();
+    async fn it_does_not_resend_submitted_telemetry_items() {
+        let mut server = server().status(StatusCode::OK).create();
 
         let client = create_client(server.url());
         client.track_event("--event--");
 
         // verify 1 items is sent after first interval expired
-        let receiver = server.requests();
 
         // "wait" until interval expired
-        timeout::expire();
-        assert_matches!(receiver.recv_timeout(Duration::from_millis(500)), Ok(_));
+        timeout::expire().await;
+        assert_matches!(server.next_request_timeout().await, Ok(_));
 
         // verify no items is sent after next interval expired
-        timeout::expire();
+        timeout::expire().await;
         assert_matches!(
-            receiver.recv_timeout(Duration::from_millis(500)),
+            server.next_request_timeout().await,
             Err(RecvTimeoutError::Timeout)
         );
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_sends_telemetry_items_in_several_batches() {
-        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+    async fn it_sends_telemetry_items_in_several_batches() {
+        let mut server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
 
@@ -94,7 +100,7 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // send next 5 items and then interval expired
         for i in 10..15 {
@@ -102,10 +108,10 @@ manual_timeout_test! {
         }
 
         // "wait" until next interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // verify that all items were send
-        let requests = server.wait_for_requests(2);
+        let requests = server.wait_for_requests(2).await;
         let content = requests.into_iter().fold(String::new(), |mut content, body| {
             content.push_str(&body);
             content
@@ -114,12 +120,15 @@ manual_timeout_test! {
             .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 15);
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_flushes_all_pending_telemetry_items() {
-        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+    async fn it_flushes_all_pending_telemetry_items() {
+        let mut server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
 
@@ -133,7 +142,7 @@ manual_timeout_test! {
 
         // NOTE no timeout expired
         // assert that 1 request has been sent
-        let requests = server.wait_for_requests(1);
+        let requests = server.wait_for_requests(1).await;
         assert_eq!(requests.len(), 1);
 
         // verify request contains all items we submitted to the client
@@ -145,12 +154,15 @@ manual_timeout_test! {
             .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 15);
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_does_not_send_any_pending_telemetry_items_when_drop_client() {
-        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+    async fn it_does_not_send_any_pending_telemetry_items_when_drop_client() {
+        let mut server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
 
@@ -163,18 +175,19 @@ manual_timeout_test! {
         drop(client);
 
         // verify that nothing has been sent to the server
-        let receiver = server.requests();
         assert_matches!(
-            receiver.recv_timeout(Duration::from_millis(500)),
+            server.next_request_timeout().await,
             Err(RecvTimeoutError::Timeout)
         );
 
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_tries_to_send_pending_telemetry_items_when_close_channel_requested() {
-        let server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+    async fn it_tries_to_send_pending_telemetry_items_when_close_channel_requested() {
+        let mut server = server().status(StatusCode::OK).status(StatusCode::OK).create();
 
         let client = create_client(server.url());
 
@@ -185,11 +198,11 @@ manual_timeout_test! {
 
         // close internal channel means that client will make an attempt to send telemetry items once
         // and then tear down submission flow
-        client.close_channel();
+        client.close_channel().await;
 
         // NOTE no timeout expired
         // verify that 1 request has been sent
-        let requests = server.wait_for_requests(1);
+        let requests = server.wait_for_requests(1).await;
         assert_eq!(requests.len(), 1);
 
         // verify request contains all items we submitted to the client
@@ -201,12 +214,39 @@ manual_timeout_test! {
             .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 15);
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_retries_when_previous_submission_failed() {
-        let server = server()
+    async fn it_does_not_try_to_send_pending_telemetry_items_when_client_terminated() {
+        let mut server = server().status(StatusCode::OK).status(StatusCode::OK).create();
+
+        let client = create_client(server.url());
+
+        // send 15 items and then interval expired
+        for i in 0..15 {
+            client.track_event(format!("--event {}--", i));
+        }
+
+        // terminate client
+        client.terminate().await;
+
+        // NOTE no timeout expired
+        // verify that no request has been sent
+        let requests = server.wait_for_requests(1).await;
+        assert!(requests.is_empty());
+
+        // terminate server
+        server.terminate().await;
+    }
+}
+
+manual_timeout_test! {
+    async fn it_retries_when_previous_submission_failed() {
+        let mut server = server()
             .response(StatusCode::INTERNAL_SERVER_ERROR, json!({}), None)
             .response(
                 StatusCode::OK,
@@ -228,21 +268,24 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // "wait" until retry logic handled
-        timeout::expire();
+        timeout::expire().await;
 
         // verify there are 2 identical requests
-        let requests = server.wait_for_requests(2);
+        let requests = server.wait_for_requests(2).await;
         assert_eq!(requests.len(), 2);
         assert_eq!(requests[0], requests[1]);
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
 manual_timeout_test! {
-    fn it_retries_when_partial_content() {
-        let server = server()
+    async fn it_retries_when_partial_content() {
+        let mut server = server()
             .response(
                 StatusCode::PARTIAL_CONTENT,
                 json!(
@@ -289,13 +332,13 @@ manual_timeout_test! {
         }
 
         // "wait" until interval expired
-        timeout::expire();
+        timeout::expire().await;
 
         // "wait" until retry logic handled
-        timeout::expire();
+        timeout::expire().await;
 
         // verify it sends a first request with all items
-        let requests = server.wait_for_requests(1);
+        let requests = server.wait_for_requests(1).await;
         assert_eq!(requests.len(), 1);
 
         let content = requests.into_iter().fold(String::new(), |mut content, body| {
@@ -308,7 +351,7 @@ manual_timeout_test! {
         assert_eq!(items_count, 15);
 
         // verify it re-send only errors that previously were invalid
-        let requests = server.wait_for_requests(1);
+        let requests = server.wait_for_requests(1).await;
         assert_eq!(requests.len(), 1);
 
         let content = requests.into_iter().fold(String::new(), |mut content, body| {
@@ -320,6 +363,9 @@ manual_timeout_test! {
             .filter(|i| content.contains(&format!("--event {}--", i)))
             .count();
         assert_eq!(items_count, 3);
+
+        // terminate server
+        server.terminate().await;
     }
 }
 
@@ -335,18 +381,14 @@ fn create_client(endpoint: &str) -> TelemetryClient<InMemoryChannel> {
     TelemetryClient::from_config(config)
 }
 
-struct Builder {
-    responses: Vec<Response<String>>,
-}
-
 fn server() -> Builder {
     Builder { responses: Vec::new() }
 }
 
 struct HyperTestServer {
     url: String,
-    requests: Receiver<String>,
-    shutdown: Option<oneshot::Sender<()>>,
+    request_recv: Receiver<String>,
+    shutdown_send: Option<oneshot::Sender<()>>,
 }
 
 impl HyperTestServer {
@@ -354,15 +396,19 @@ impl HyperTestServer {
         &self.url
     }
 
-    fn requests(&self) -> Receiver<String> {
-        self.requests.clone()
+    async fn next_request_timeout(&mut self) -> Result<String, RecvTimeoutError> {
+        match tokio::time::timeout(Duration::from_millis(100), self.request_recv.recv()).await {
+            Ok(Some(x)) => Ok(x),
+            Ok(None) => Err(RecvTimeoutError::Closed),
+            Err(_) => Err(RecvTimeoutError::Timeout),
+        }
     }
 
-    fn wait_for_requests(&self, count: usize) -> Vec<String> {
+    async fn wait_for_requests(&mut self, count: usize) -> Vec<String> {
         let mut requests = Vec::new();
 
         for _ in 0..count {
-            match self.requests.recv_timeout(Duration::from_millis(1000)) {
+            match self.next_request_timeout().await {
                 Result::Ok(request) => requests.push(request),
                 Result::Err(err) => {
                     log::error!("{:?}", err);
@@ -372,14 +418,22 @@ impl HyperTestServer {
 
         requests
     }
-}
 
-impl Drop for HyperTestServer {
-    fn drop(&mut self) {
-        if let Some(shutdown) = self.shutdown.take() {
+    async fn terminate(mut self) {
+        if let Some(shutdown) = self.shutdown_send.take() {
             shutdown.send(()).unwrap();
         }
     }
+}
+
+#[derive(Debug)]
+enum RecvTimeoutError {
+    Closed,
+    Timeout,
+}
+
+struct Builder {
+    responses: Vec<Response<String>>,
 }
 
 impl Builder {
@@ -411,21 +465,20 @@ impl Builder {
     }
 
     fn create(self) -> HyperTestServer {
-        let (shutdown_sender, shutdown_receiver) = oneshot::channel::<()>();
-        let (url_sender, url_receiver) = bounded::<String>(1);
-        let (request_sender, request_receiver) = unbounded::<String>();
+        let (shutdown_send, shutdown_recv) = oneshot::channel();
+        let (request_sender, request_receiver) = mpsc::channel(100);
 
         let responses = Arc::new(self.responses);
         let counter = Arc::new(AtomicUsize::new(0));
 
         let make_service = make_service_fn(move |_| {
-            let request_sender = request_sender.clone();
+            let request_send = request_sender.clone();
             let counter = counter.clone();
             let responses = responses.clone();
 
             async move {
                 Ok::<_, hyper::Error>(service_fn(move |req: Request<Body>| {
-                    let request_sender = request_sender.clone();
+                    let request_send = request_send.clone();
                     let counter = counter.clone();
                     let responses = responses.clone();
 
@@ -435,7 +488,7 @@ impl Builder {
 
                         let mut content = String::default();
                         body.reader().read_to_string(&mut content).unwrap();
-                        request_sender.send(content).unwrap();
+                        request_send.send(content).await.expect("send request");
 
                         let count = counter.fetch_add(1, Ordering::AcqRel);
 
@@ -457,30 +510,24 @@ impl Builder {
             }
         });
 
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().expect("runtime");
-            rt.block_on(async move {
-                let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(make_service);
+        let server = Server::bind(&([0, 0, 0, 0], 0).into()).serve(make_service);
 
-                let url = format!("http://{}", server.local_addr());
-                url_sender.send(url).unwrap();
+        let url = format!("http://{}", server.local_addr());
 
-                let graceful = server.with_graceful_shutdown(async {
-                    shutdown_receiver.await.ok();
-                });
-
-                if let Err(e) = graceful.await {
-                    log::error!("server error: {}", e);
-                }
-            });
+        let graceful = server.with_graceful_shutdown(async {
+            shutdown_recv.await.ok();
         });
 
-        let url = url_receiver.recv().expect("url");
+        tokio::spawn(async move {
+            if let Err(e) = graceful.await {
+                log::error!("server error: {}", e);
+            }
+        });
 
         HyperTestServer {
             url,
-            requests: request_receiver,
-            shutdown: Some(shutdown_sender),
+            request_recv: request_receiver,
+            shutdown_send: Some(shutdown_send),
         }
     }
 }

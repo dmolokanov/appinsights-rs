@@ -1,7 +1,10 @@
-use std::thread::{self, JoinHandle};
+use std::sync::Arc;
 
-use crossbeam_channel::{unbounded, Sender};
+use async_trait::async_trait;
+use crossbeam_queue::SegQueue;
+use futures_channel::mpsc::UnboundedSender;
 use log::{debug, trace, warn};
+use tokio::task::JoinHandle;
 
 use crate::{
     channel::{command::Command, state::Worker, TelemetryChannel},
@@ -12,75 +15,72 @@ use crate::{
 
 /// A telemetry channel that stores events exclusively in memory.
 pub struct InMemoryChannel {
-    event_sender: Sender<Envelope>,
-    command_sender: Option<Sender<Command>>,
-    thread: Option<JoinHandle<()>>,
+    items: Arc<SegQueue<Envelope>>,
+    command_sender: Option<UnboundedSender<Command>>,
+    join: Option<JoinHandle<()>>,
 }
 
 impl InMemoryChannel {
     /// Creates a new instance of in-memory channel and starts a submission routine.
     pub fn new(config: &TelemetryConfig) -> Self {
-        let (event_sender, event_receiver) = unbounded();
-        let (command_sender, command_receiver) = unbounded();
+        let items = Arc::new(SegQueue::new());
 
+        let (command_sender, command_receiver) = futures_channel::mpsc::unbounded();
         let worker = Worker::new(
             Transmitter::new(config.endpoint()),
-            event_receiver,
+            items.clone(),
             command_receiver,
             config.interval(),
         );
 
-        let thread = thread::spawn(move || {
-            worker.run();
-        });
+        let handle = tokio::spawn(worker.run());
 
         Self {
-            event_sender,
+            items,
             command_sender: Some(command_sender),
-            thread: Some(thread),
+            join: Some(handle),
         }
     }
 
-    fn shutdown(&mut self, command: Command) {
+    async fn shutdown(mut self, command: Command) {
+        // send shutdown command
         if let Some(sender) = self.command_sender.take() {
-            Self::send_command(&sender, command);
+            send_command(&sender, command);
         }
 
-        if let Some(thread) = self.thread.take() {
+        // wait until worker is finished
+        if let Some(handle) = self.join.take() {
             debug!("Shutting down worker");
-            thread.join().unwrap();
-        }
-    }
-
-    fn send_command(sender: &Sender<Command>, command: Command) {
-        debug!("Sending {} command to channel", command);
-        if let Err(err) = sender.send(command.clone()) {
-            warn!("Unable to send {} command to channel: {}", command, err);
+            handle.await.unwrap();
         }
     }
 }
 
-impl Drop for InMemoryChannel {
-    fn drop(&mut self) {
-        self.shutdown(Command::Terminate);
-    }
-}
-
+#[async_trait]
 impl TelemetryChannel for InMemoryChannel {
     fn send(&self, envelop: Envelope) {
         trace!("Sending telemetry to channel");
-        if let Err(err) = self.event_sender.send(envelop) {
-            warn!("Unable to send telemetry to channel: {}", err);
-        }
+        self.items.push(envelop);
     }
 
     fn flush(&self) {
         if let Some(sender) = &self.command_sender {
-            Self::send_command(sender, Command::Flush);
+            send_command(sender, Command::Flush);
         }
     }
 
-    fn close(&mut self) {
-        self.shutdown(Command::Close);
+    async fn close(self) {
+        self.shutdown(Command::Close).await
+    }
+
+    async fn terminate(self) {
+        self.shutdown(Command::Terminate).await;
+    }
+}
+
+fn send_command(sender: &UnboundedSender<Command>, command: Command) {
+    debug!("Sending {} command to channel", command);
+    if let Err(err) = sender.unbounded_send(command.clone()) {
+        warn!("Unable to send {} command to channel: {}", command, err);
     }
 }

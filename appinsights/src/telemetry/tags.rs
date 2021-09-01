@@ -206,7 +206,7 @@ tags!(
     internal,
     /// Tag helper type that provides access to context fields grouped under 'internal'.
     InternalTags {
-        /// SDK version. See https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SDK-AUTHORING.md#sdk-version-specification for information.
+        /// SDK version. See `https://github.com/Microsoft/ApplicationInsights-Home/blob/master/SDK-AUTHORING.md#sdk-version-specification` for information.
         sdk_version: "ai.internal.sdkVersion",
         /// Agent version. Used to indicate the version of StatusMonitor installed on the computer if it is used for data collection.
         agent_version: "ai.internal.agentVersion",

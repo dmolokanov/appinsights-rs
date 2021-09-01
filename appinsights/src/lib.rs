@@ -62,6 +62,9 @@
 //!
 //! // send trace telemetry to the Application Insights server
 //! client.track_trace("A database error occurred", SeverityLevel::Warning);
+//!
+//! // stop the client
+//! client.close_channel().await
 //! ```
 //!
 //! ## Telemetry submission
@@ -118,6 +121,9 @@
 //!
 //! // send telemetry to the Application Insights server
 //! client.track(telemetry);
+//!
+//! // stop the client
+//! client.close_channel().awai
 //! ```
 //!
 //! ## Common properties
@@ -142,19 +148,18 @@
 //!
 //! ## Shutdown
 //!
-//! The telemetry item submission happens asynchronously. The internal channel starts a new worker
-//! thread that used to accept and send telemetry to the server. While telemetry is not sent the
+//! The telemetry item submission happens asynchronously. The internal channel spawns a new worker
+//! task that accepts and sends telemetry to the server in the background. While telemetry is not sent the
 //! worker stores it in memory, so when application crashes the data will be lost. Luckily SDK
 //! provides several convenient methods to deal with this issue.
 //! * [`flush_channel`](struct.TelemetryClient.html#method.flush_channel) will trigger telemetry submission
 //! as soon as possible. It returns immediately and telemetry is no guaranteed to be sent.
 //! * [`close_channel`](struct.TelemetryClient.html#method.close_channel) will cause the channel to
-//! stop accepting any new telemetry items, submit all pending ones, block current thread and
+//! stop accepting any new telemetry items, submit all pending ones, block current task and
 //! wait until data will be sent at most once. If telemetry submission fails, it will not retry.
 //! This method consumes the value of client so it makes impossible to use a client with close channel.
-//! * Once [`TelemetryClient`](struct.TelemetryClient.html) is out of scope `drop` method for channel
-//! will be called. It will trigger termination of submission flow, all pending items discarded,
-//! block current thread until all resources freed. It is __default__ "exit" mode for client.
+//! * [`terminate`](struct.TelemetryClient.html#method.terminate) will trigger termination of submission flow, all pending items discarded and
+//! current task will be blocked until all resources freed.
 #![deny(unused_extern_crates)]
 #![deny(missing_docs)]
 

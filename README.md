@@ -61,6 +61,9 @@ fn main() {
 
     // send trace telemetry to the Application Insights server
     client.track_trace("A database error occurred", SeverityLevel::Warning);
+
+    // stop the client
+    client.close_channel().await;
 }
 ```
 
