@@ -42,7 +42,7 @@ impl InMemoryChannel {
         }
     }
 
-    async fn shutdown(mut self, command: Command) {
+    async fn shutdown(&mut self, command: Command) {
         // send shutdown command
         if let Some(sender) = self.command_sender.take() {
             send_command(&sender, command);
@@ -69,11 +69,11 @@ impl TelemetryChannel for InMemoryChannel {
         }
     }
 
-    async fn close(self) {
+    async fn close(&mut self) {
         self.shutdown(Command::Close).await
     }
 
-    async fn terminate(self) {
+    async fn terminate(&mut self) {
         self.shutdown(Command::Terminate).await;
     }
 }

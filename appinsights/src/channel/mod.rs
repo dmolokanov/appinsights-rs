@@ -24,12 +24,12 @@ pub trait TelemetryChannel {
     /// Flushes and tears down the submission flow and closes internal channels.
     /// It blocks the current task until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
-    async fn close(self);
+    async fn close(&mut self);
 
     /// Flushes and tears down the submission flow and closes internal channels.
     /// It blocks the current task until all pending telemetry items have been submitted and it is safe to
     /// shutdown without losing telemetry.
     /// Tears down the submission flow and closes internal channels. Any telemetry waiting to be sent is discarded.
     /// This is a more abrupt version of [close](#method.close).
-    async fn terminate(self);
+    async fn terminate(&mut self);
 }
