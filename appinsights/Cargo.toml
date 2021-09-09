@@ -1,6 +1,6 @@
 [package]
 name = "appinsights"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["dmolokanov <dmolokanov@users.noreply.github.com>"]
 edition = "2018"
 description = "Application Insights SDK for Rust"
@@ -13,6 +13,10 @@ categories = [
     "development-tools::debugging",
     "development-tools::profiling"
 ]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
 
 [lib]
 doctest = false
