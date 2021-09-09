@@ -71,7 +71,7 @@ jobs:
         components: rustfmt
 
     - name: fmt
-      run: cargo fmt --workspace --all-features -- --check
+      run: cargo fmt --all -- --check
 
 #    - name: docs
 #      run: cargo doc
