@@ -330,7 +330,7 @@ impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient {
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use std::sync::Arc;
 
     use async_trait::async_trait;
@@ -394,10 +394,10 @@ mod tests {
 
     fn create_client(events: Arc<SegQueue<Envelope>>) -> TelemetryClient {
         let config = TelemetryConfig::new("instrumentation".into());
-        TelemetryClient::create(&config, TestChannel { events })
+        TelemetryClient::create(&config, TestChannel::new(events))
     }
 
-    struct TestTelemetry {}
+    pub(crate) struct TestTelemetry {}
 
     impl Telemetry for TestTelemetry {
         fn timestamp(&self) -> DateTime<Utc> {
@@ -422,7 +422,7 @@ mod tests {
     }
 
     #[derive(Clone)]
-    struct TestData;
+    pub(crate) struct TestData;
 
     impl From<(TelemetryContext, TestTelemetry)> for Envelope {
         fn from((_, _): (TelemetryContext, TestTelemetry)) -> Self {
@@ -430,8 +430,14 @@ mod tests {
         }
     }
 
-    struct TestChannel {
+    pub(crate) struct TestChannel {
         events: Arc<SegQueue<Envelope>>,
+    }
+
+    impl TestChannel {
+        pub(crate) fn new(events: Arc<SegQueue<Envelope>>) -> Self {
+            Self { events }
+        }
     }
 
     #[async_trait]
@@ -448,9 +454,7 @@ mod tests {
             unimplemented!()
         }
 
-        async fn terminate(&mut self) {
-            unimplemented!()
-        }
+        async fn terminate(&mut self) {}
     }
 }
 

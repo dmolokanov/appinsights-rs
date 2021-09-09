@@ -2,6 +2,10 @@
 //! The Application Insights for Rust provides an SDK to instrument your application with telemetry
 //! and monitor it using Azure Portal features.
 //!
+//! **Breaking change** By default the crate works in async mode which relies on Tokio runtime.
+//! However there is also a [`blocking`](blocking) which intended to preserve
+//! backward compatibility whenever needed.
+//!
 //! The following Application Insights telemetry items are supported:
 //! * [Availability telemetry](telemetry/struct.AvailabilityTelemetry.html)
 //! * [Event telemetry](telemetry/struct.EventTelemetry.html)
@@ -37,6 +41,9 @@
 //!
 //! // send event telemetry to the Application Insights server
 //! client.track_event("Application started");
+//!
+//! // stop the client
+//! client.close_channel().await
 //! ```
 //!
 //! If you need more control over the client's behavior, you can create a new instance of
@@ -163,22 +170,27 @@
 #![deny(unused_extern_crates)]
 #![deny(missing_docs)]
 
+#[cfg(feature = "blocking")]
+pub mod blocking;
+
 mod channel;
+
 mod client;
+pub use client::TelemetryClient;
+
 mod config;
+#[doc(inline)]
+pub use config::TelemetryConfig;
+
 mod context;
+pub use context::TelemetryContext;
+
 mod contracts;
 pub mod telemetry;
 mod time;
 mod timeout;
 mod transmitter;
 mod uuid;
-
-pub use channel::InMemoryChannel;
-pub use client::TelemetryClient;
-#[doc(inline)]
-pub use config::TelemetryConfig;
-pub use context::TelemetryContext;
 
 use std::error::Error;
 

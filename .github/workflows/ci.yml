@@ -27,13 +27,13 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: clippy
-        args: --all --tests --bins --examples -- -A clippy::enum_variant_names
+        args: --workspace --all-features --tests --bins --examples -- -A clippy::enum_variant_names
 
     - name: check
       uses: actions-rs/cargo@v1
       with:
         command: check
-        args: --all --bins --examples
+        args: --workspace --all-features --bins --examples
 
   test:
     runs-on: ubuntu-latest
@@ -52,7 +52,7 @@ jobs:
       uses: actions-rs/cargo@v1
       with:
         command: test
-        args: --all -- --exact --nocapture
+        args: --workspace --all-features -- --exact --nocapture
       env:
         APPINSIGHTS_INSTRUMENTATIONKEY: ${{ secrets.APPINSIGHTS_INSTRUMENTATIONKEY }} 
 

@@ -6,11 +6,11 @@ use std::{
     time::Duration,
 };
 
-use appinsights::{telemetry::SeverityLevel, TelemetryClient};
+use appinsights::{blocking::TelemetryClient, telemetry::SeverityLevel};
 use hyper::{Method, Uri};
 
-#[tokio::test]
-async fn it_tracks_all_telemetry_items() {
+#[test]
+fn it_tracks_all_telemetry_items() {
     let entries = Arc::new(RwLock::new(Vec::new()));
     logger::builder(entries.clone()).output(true).init();
 
@@ -40,7 +40,7 @@ async fn it_tracks_all_telemetry_items() {
         true,
     );
 
-    ai.close_channel().await;
+    ai.close_channel();
 
-    logger::wait_until(&entries, "Successfully sent 6 items", Duration::from_secs(10)).await;
+    logger::wait_until_blocking(&entries, "Successfully sent 6 items", Duration::from_secs(10));
 }
