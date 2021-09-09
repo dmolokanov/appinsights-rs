@@ -1,6 +1,6 @@
 [package]
 name = "appinsights"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["dmolokanov <dmolokanov@users.noreply.github.com>"]
 edition = "2018"
 description = "Application Insights SDK for Rust"
@@ -31,7 +31,7 @@ uuid = { version = "0.8", features = ["v4"], default-features = false }
 reqwest = { version = "0.11", features = ["json"], default-features = false }
 log = "0.4"
 sm = "0.9"
-tokio = { version = "1", features = ["macros", "rt"], default-features = false }
+tokio = { version = "1", features = ["rt"], default-features = false }
 paste = "1.0"
 hostname = "0.3"
 futures-util = { version = "0.3", default-features = false }

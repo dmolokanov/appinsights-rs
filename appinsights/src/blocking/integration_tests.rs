@@ -369,7 +369,7 @@ impl HyperTestServer {
     }
 
     fn next_request_timeout(&self) -> Result<String, RecvTimeoutError> {
-        self.request_recv.recv_timeout(Duration::from_millis(100))
+        self.request_recv.recv_timeout(Duration::from_millis(500))
     }
 
     fn wait_for_requests(&self, count: usize) -> Vec<String> {
