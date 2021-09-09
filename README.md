@@ -19,7 +19,7 @@ or just add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-appinisghts = "0.1"
+appinisghts = "0.2"
 ```
 
 ## Usage
@@ -31,12 +31,16 @@ This client will be used to send all telemetry data to Application Insights. Thi
 ```rust
 use appinsights::TelemetryClient;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // configure telemetry client with default settings
     let client = TelemetryClient::new("<instrumentation key>".to_string());
     
     // send event telemetry to the Application Insights server
     client.track_event("application started");
+
+    // stop the client
+    client.close_channel().await;
 }
 ```
 If you need more control over the client's behavior, you can create a new instance of `TelemetryConfig` and initialize a `TelemetryClient` with it.
@@ -46,7 +50,8 @@ use std::time::Duration;
 use appinsights::{TelemetryClient, TelemetryConfig};
 use appinsights::telemetry::SeverityLevel;
 
-fn main() {
+#[tokio::main]
+async fn main() {
     // configure telemetry config with custom settings
     let config = TelemetryConfig::builder()
         // provide an instrumentation key for a client
