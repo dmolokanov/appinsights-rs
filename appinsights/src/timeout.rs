@@ -27,7 +27,7 @@ mod imp {
 
     /// Initializes a channel which emulates timeout expiration event. External code should run
     /// [`expire`](#method.expire) method in order to emulate timeout expiration.
-    pub async fn init() {
+    pub fn init() {
         let mut channel = CHANNEL.lock();
         *channel = Some(Arc::new(Notify::new()));
     }
@@ -48,15 +48,16 @@ mod imp {
     /// Emulates timeout expiration event.
     /// It sends a current time stamp to receiver in order to trigger an action if a channel was
     /// initialized in advance. Does nothing otherwise.
-    pub async fn expire() {
+    pub fn expire() {
         if let Some(notify) = CHANNEL.lock().clone() {
+            log::error!("notify_one");
             notify.notify_one();
         }
     }
 
     /// Resets a channel that emulates timeout expiration event with default
     /// timer base timeout expiration instead.
-    pub async fn reset() {
+    pub fn reset() {
         let mut channel = CHANNEL.lock();
         *channel = None;
     }
