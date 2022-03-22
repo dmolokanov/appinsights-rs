@@ -44,7 +44,7 @@ crossbeam-queue = "0.3"
 async-trait = "0.1.51"
 
 [dev-dependencies]
-test-case = "1.2"
+test-case = "2.0"
 env_logger = "0.9"
 lazy_static = "1.4"
 matches = "0.1"
