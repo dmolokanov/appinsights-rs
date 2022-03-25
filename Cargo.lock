@@ -1264,15 +1264,15 @@ dependencies = [
 
 [[package]]
 name = "test-case"
-version = "1.2.0"
+version = "2.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b114ece25254e97bf48dd4bfc2a12bad0647adacfe4cae1247a9ca6ad302cec"
+checksum = "6344589a99d3971d6fa4e8314dbcbeca2df6273a6b642e46906971779159af1f"
 dependencies = [
  "cfg-if 1.0.0",
+ "proc-macro-error",
  "proc-macro2 1.0.24",
  "quote 1.0.9",
  "syn 1.0.67",
- "version_check",
 ]
 
 [[package]]
