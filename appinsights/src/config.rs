@@ -20,7 +20,7 @@ use std::time::Duration;
 ///     .interval(Duration::from_secs(5))
 ///     .build();
 /// ```
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct TelemetryConfig {
     /// Instrumentation key for the client.
     i_key: String,
