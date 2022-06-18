@@ -14,6 +14,7 @@ use crate::{
 };
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
+#[derrive(Send, Sync)]
 pub struct TelemetryClient {
     enabled: bool,
     context: TelemetryContext,
