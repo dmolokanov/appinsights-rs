@@ -14,12 +14,15 @@ use crate::{
 };
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
-#[derrive(Send, Sync)]
+
 pub struct TelemetryClient {
     enabled: bool,
     context: TelemetryContext,
     channel: Box<dyn TelemetryChannel>,
 }
+
+unsafe impl Send for TelemetryClient {}
+unsafe impl Sync for TelemetryClient {}
 
 impl TelemetryClient {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
