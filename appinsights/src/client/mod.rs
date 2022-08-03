@@ -14,32 +14,34 @@ use crate::{
 };
 
 /// Application Insights telemetry client provides an interface to track telemetry items.
-pub struct TelemetryClient {
+pub struct TelemetryClient<C> {
     enabled: bool,
     context: TelemetryContext,
-    channel: Box<dyn TelemetryChannel>,
+    channel: C,
 }
 
-impl TelemetryClient {
+impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client that submits telemetry with specified instrumentation key.
     pub fn new(i_key: String) -> Self {
         Self::from_config(TelemetryConfig::new(i_key))
     }
+}
 
+impl TelemetryClient<InMemoryChannel> {
     /// Creates a new telemetry client configured with specified configuration.
     pub fn from_config(config: TelemetryConfig) -> Self {
-        Self::create(&config, InMemoryChannel::new(&config))
-    }
-
-    /// Creates a new telemetry client with custom telemetry channel.
-    pub(crate) fn create<C: TelemetryChannel + 'static>(config: &TelemetryConfig, channel: C) -> Self {
         Self {
             enabled: true,
-            context: TelemetryContext::from_config(config),
-            channel: Box::new(channel),
+            context: TelemetryContext::from_config(&config),
+            channel: InMemoryChannel::new(&config),
         }
     }
+}
 
+impl<C> TelemetryClient<C>
+where
+    C: TelemetryChannel,
+{
     /// Determines whether this client is enabled and will accept telemetry.
     ///
     /// # Examples
@@ -285,7 +287,7 @@ impl TelemetryClient {
     /// // unable to sent any telemetry after client closes its channel
     /// // client.track_event("app is stopped".to_string());
     /// ```
-    pub async fn close_channel(mut self) {
+    pub async fn close_channel(self) {
         self.channel.close().await;
     }
 
@@ -314,28 +316,27 @@ impl TelemetryClient {
     /// // unable to sent any telemetry after client closes its channel
     /// // client.track_event("app is stopped".to_string());
     /// ```
-    pub async fn terminate(mut self) {
+    pub async fn terminate(self) {
         self.channel.terminate().await;
     }
 }
 
-impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient {
+impl From<(TelemetryConfig, TelemetryContext)> for TelemetryClient<InMemoryChannel> {
     fn from((config, context): (TelemetryConfig, TelemetryContext)) -> Self {
         Self {
             enabled: true,
             context,
-            channel: Box::new(InMemoryChannel::new(&config)),
+            channel: InMemoryChannel::new(&config),
         }
     }
 }
 
 #[cfg(test)]
-pub(crate) mod tests {
-    use std::sync::Arc;
+mod tests {
+    use std::cell::RefCell;
 
     use async_trait::async_trait;
     use chrono::{DateTime, Utc};
-    use crossbeam_queue::SegQueue;
     use matches::assert_matches;
 
     use super::*;
@@ -358,22 +359,22 @@ pub(crate) mod tests {
 
     #[tokio::test]
     async fn it_submits_telemetry() {
-        let events = Arc::new(SegQueue::default());
-        let client = create_client(events.clone());
+        let client = create_client();
 
         client.track(TestTelemetry {});
 
+        let events = client.channel.events.borrow();
         assert_eq!(events.len(), 1)
     }
 
     #[tokio::test]
     async fn it_swallows_telemetry_when_disabled() {
-        let events = Arc::new(SegQueue::default());
-        let mut client = create_client(events.clone());
+        let mut client = create_client();
         client.enabled(false);
 
         client.track(TestTelemetry {});
 
+        let events = client.channel.events.borrow();
         assert!(events.is_empty())
     }
 
@@ -392,9 +393,15 @@ pub(crate) mod tests {
         assert!(client.is_enabled())
     }
 
-    fn create_client(events: Arc<SegQueue<Envelope>>) -> TelemetryClient {
+    fn create_client() -> TelemetryClient<TestChannel> {
         let config = TelemetryConfig::new("instrumentation".into());
-        TelemetryClient::create(&config, TestChannel::new(events))
+        TelemetryClient {
+            enabled: true,
+            context: TelemetryContext::from_config(&config),
+            channel: TestChannel {
+                events: RefCell::new(Vec::new()),
+            },
+        }
     }
 
     pub(crate) struct TestTelemetry {}
@@ -430,31 +437,27 @@ pub(crate) mod tests {
         }
     }
 
-    pub(crate) struct TestChannel {
-        events: Arc<SegQueue<Envelope>>,
-    }
-
-    impl TestChannel {
-        pub(crate) fn new(events: Arc<SegQueue<Envelope>>) -> Self {
-            Self { events }
-        }
+    struct TestChannel {
+        events: RefCell<Vec<Envelope>>,
     }
 
     #[async_trait]
     impl TelemetryChannel for TestChannel {
         fn send(&self, envelop: Envelope) {
-            self.events.push(envelop);
+            self.events.borrow_mut().push(envelop);
         }
 
         fn flush(&self) {
             unimplemented!()
         }
 
-        async fn close(&mut self) {
+        async fn close(self) {
             unimplemented!()
         }
 
-        async fn terminate(&mut self) {}
+        async fn terminate(self) {
+            unimplemented!()
+        }
     }
 }
 
