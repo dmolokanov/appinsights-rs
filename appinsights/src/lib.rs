@@ -174,6 +174,7 @@
 pub mod blocking;
 
 mod channel;
+pub use channel::InMemoryChannel;
 
 mod client;
 pub use client::TelemetryClient;
