@@ -119,7 +119,9 @@ impl Transmitter {
 /// Filters out those telemetry items that cannot be re-sent.
 fn retain_retry_items(items: &mut Vec<Envelope>, content: Transmission) {
     let mut retry_items = Vec::default();
-    for error in content.errors.iter().filter(|error| can_retry_item(error)) {
+    let mut errors = content.errors.iter().filter(|error| can_retry_item(error)).collect::<Vec<_>>();
+    errors.sort_by_key(|error| error.index); // Fix panic 'removal index (is 0) should be < len (is 0)'
+    for error in errors {
         retry_items.push(items.remove(error.index - retry_items.len()));
     }
 
