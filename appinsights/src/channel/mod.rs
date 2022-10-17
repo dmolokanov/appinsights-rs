@@ -14,7 +14,7 @@ use crate::contracts::Envelope;
 /// An implementation of [TelemetryChannel](trait.TelemetryChannel.html) is responsible for queueing
 /// and periodically submitting telemetry events.
 #[async_trait]
-pub trait TelemetryChannel {
+pub trait TelemetryChannel: Send + Sync {
     /// Queues a single telemetry item.
     fn send(&self, envelop: Envelope);
 
