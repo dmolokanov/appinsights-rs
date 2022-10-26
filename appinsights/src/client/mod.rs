@@ -17,7 +17,7 @@ use crate::{
 pub struct TelemetryClient {
     enabled: bool,
     context: TelemetryContext,
-    channel: Box<dyn TelemetryChannel>,
+    channel: Box<dyn TelemetryChannel + Send>,
 }
 
 impl TelemetryClient {
