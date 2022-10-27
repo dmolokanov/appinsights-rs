@@ -133,7 +133,7 @@ impl From<(TelemetryContext, AvailabilityTelemetry)> for Envelope {
             data: Some(Base::Data(Data::AvailabilityData(AvailabilityData {
                 id: telemetry
                     .id
-                    .map(|id| id.to_hyphenated().to_string())
+                    .map(|id| id.as_hyphenated().to_string())
                     .unwrap_or_default(),
                 name: telemetry.name,
                 duration: telemetry.duration.to_string(),
