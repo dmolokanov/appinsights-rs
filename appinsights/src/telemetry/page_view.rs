@@ -128,7 +128,7 @@ impl From<(TelemetryContext, PageViewTelemetry)> for Envelope {
                 referrer_uri: None,
                 id: telemetry
                     .id
-                    .map(|id| id.to_hyphenated().to_string())
+                    .map(|id| id.as_hyphenated().to_string())
                     .unwrap_or_default(),
                 properties: Some(Properties::combine(context.properties, telemetry.properties).into()),
                 measurements: Some(telemetry.measurements.into()),
