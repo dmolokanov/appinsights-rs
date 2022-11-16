@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use crossbeam_queue::SegQueue;
 use futures_channel::mpsc::UnboundedSender;
-use log::{debug, trace, warn};
+use log::{debug, trace, warn, error};
 use tokio::task::JoinHandle;
 
 use crate::{
@@ -51,7 +51,10 @@ impl InMemoryChannel {
         // wait until worker is finished
         if let Some(handle) = self.join.take() {
             debug!("Shutting down worker");
-            handle.await.unwrap();
+            match handle.await {
+                Ok(r) => r,
+                Err(err) => error!("Shutting down worker failed with error: {}", err)
+            }
         }
     }
 }
