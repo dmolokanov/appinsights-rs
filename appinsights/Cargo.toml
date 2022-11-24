@@ -45,7 +45,7 @@ async-trait = "0.1.51"
 
 [dev-dependencies]
 test-case = "2.2"
-env_logger = "0.9"
+env_logger = "0.10"
 lazy_static = "1.4"
 matches = "0.1"
 hyper = { version = "0.14", features = ["server"], default-features = false }
