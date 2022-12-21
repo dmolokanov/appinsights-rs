@@ -1,7 +1,8 @@
+use std::time::Duration;
 use chrono::{DateTime, Utc};
 use http::{header::RETRY_AFTER, StatusCode};
 use log::debug;
-use reqwest::Client;
+use reqwest::{Client, ClientBuilder};
 
 use crate::{
     contracts::{Envelope, Transmission, TransmissionItem},
@@ -24,11 +25,14 @@ pub struct Transmitter {
 
 impl Transmitter {
     /// Creates a new instance of telemetry items sender.
-    pub fn new(url: &str) -> Self {
-        let client = Client::new();
+    pub fn new(url: &str, request_timeout: Option<Duration>) -> Self {
+        let mut client_builder = ClientBuilder::new();
+        if let Some(request_timeout) = request_timeout {
+            client_builder = client_builder.timeout(request_timeout);
+        }
         Self {
             url: url.into(),
-            client,
+            client: client_builder.build().unwrap_or(Client::new()),
         }
     }
 
