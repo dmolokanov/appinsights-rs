@@ -27,7 +27,7 @@ impl InMemoryChannel {
 
         let (command_sender, command_receiver) = futures_channel::mpsc::unbounded();
         let worker = Worker::new(
-            Transmitter::new(config.endpoint()),
+            Transmitter::new(config.endpoint(), config.request_timeout()),
             items.clone(),
             command_receiver,
             config.interval(),

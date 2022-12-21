@@ -30,6 +30,9 @@ pub struct TelemetryConfig {
 
     /// Maximum time to wait until send a batch of telemetry.
     interval: Duration,
+
+    /// Maximum time from connecting to response body has been received.
+    request_timeout: Option<Duration>,
 }
 
 impl TelemetryConfig {
@@ -57,6 +60,11 @@ impl TelemetryConfig {
     pub fn interval(&self) -> Duration {
         self.interval
     }
+
+    /// Returns maximum time from connecting to response body has been received.
+    pub fn request_timeout(&self) -> Option<Duration> {
+        self.request_timeout
+    }
 }
 
 /// Constructs a new instance of a [`TelemetryConfig`](struct.TelemetryConfig.html) with required
@@ -74,6 +82,7 @@ impl DefaultTelemetryConfigBuilder {
             i_key: i_key.into(),
             endpoint: "https://dc.services.visualstudio.com/v2/track".into(),
             interval: Duration::from_secs(2),
+            request_timeout: None,
         }
     }
 }
@@ -83,6 +92,7 @@ pub struct TelemetryConfigBuilder {
     i_key: String,
     endpoint: String,
     interval: Duration,
+    request_timeout: Option<Duration>,
 }
 
 impl TelemetryConfigBuilder {
@@ -110,12 +120,19 @@ impl TelemetryConfigBuilder {
         self
     }
 
+    /// Initializes a builder with a maximum time from connecting to response body has been received.
+    pub fn request_timeout(mut self, request_timeout: Option<Duration>) -> Self {
+        self.request_timeout = request_timeout;
+        self
+    }
+
     /// Constructs a new instance of a [`TelemetryConfig`](struct.TelemetryConfig.html) with custom settings.
     pub fn build(self) -> TelemetryConfig {
         TelemetryConfig {
             i_key: self.i_key,
             endpoint: self.endpoint,
             interval: self.interval,
+            request_timeout: self.request_timeout,
         }
     }
 }
