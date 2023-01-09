@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use http::{header::RETRY_AFTER, StatusCode};
-use log::debug;
+use log::{debug, trace};
 use reqwest::Client;
 
 use crate::{
@@ -119,8 +119,15 @@ impl Transmitter {
 /// Filters out those telemetry items that cannot be re-sent.
 fn retain_retry_items(items: &mut Vec<Envelope>, content: Transmission) {
     let mut retry_items = Vec::default();
-    for error in content.errors.iter().filter(|error| can_retry_item(error)) {
-        retry_items.push(items.remove(error.index - retry_items.len()));
+    let mut errors = content.errors.iter().filter(|error| can_retry_item(error)).collect::<Vec<_>>();
+    errors.sort_by_key(|error| error.index); // Fix panic 'removal index (is 0) should be < len (is 0)'
+    for error in errors {
+        let remove_index = error.index - retry_items.len();
+        if remove_index < items.len() {
+            retry_items.push(items.remove(remove_index));
+        } else {
+            trace!("Skipping add retry item since error.index: {}, items.len: {}", error.index, items.len())
+        }
     }
 
     *items = retry_items;

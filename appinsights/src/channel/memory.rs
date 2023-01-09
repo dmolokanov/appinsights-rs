@@ -3,7 +3,7 @@ use std::sync::Arc;
 use async_trait::async_trait;
 use crossbeam_queue::SegQueue;
 use futures_channel::mpsc::UnboundedSender;
-use log::{debug, trace, warn};
+use log::{debug, trace, warn, error};
 use tokio::task::JoinHandle;
 
 use crate::{
@@ -42,7 +42,7 @@ impl InMemoryChannel {
         }
     }
 
-    async fn shutdown(&mut self, command: Command) {
+    async fn shutdown(mut self, command: Command) {
         // send shutdown command
         if let Some(sender) = self.command_sender.take() {
             send_command(&sender, command);
@@ -51,7 +51,10 @@ impl InMemoryChannel {
         // wait until worker is finished
         if let Some(handle) = self.join.take() {
             debug!("Shutting down worker");
-            handle.await.unwrap();
+            match handle.await {
+                Ok(r) => r,
+                Err(err) => error!("Shutting down worker failed with error: {}", err)
+            }
         }
     }
 }
@@ -69,11 +72,11 @@ impl TelemetryChannel for InMemoryChannel {
         }
     }
 
-    async fn close(&mut self) {
+    async fn close(self) {
         self.shutdown(Command::Close).await
     }
 
-    async fn terminate(&mut self) {
+    async fn terminate(self) {
         self.shutdown(Command::Terminate).await;
     }
 }
