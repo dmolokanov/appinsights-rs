@@ -41,7 +41,7 @@ hostname = "0.3"
 futures-util = { version = "0.3", default-features = false }
 futures-channel = "0.3"
 crossbeam-queue = "0.3"
-async-trait = "0.1.51"
+async-trait = "0.1.61"
 
 [dev-dependencies]
 test-case = "2.2"
