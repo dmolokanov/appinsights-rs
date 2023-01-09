@@ -195,7 +195,7 @@ impl From<(TelemetryContext, RequestTelemetry)> for Envelope {
             i_key: Some(context.i_key),
             tags: Some(ContextTags::combine(context.tags, telemetry.tags).into()),
             data: Some(Base::Data(Data::RequestData(RequestData {
-                id: telemetry.id.unwrap_or_else(|| uuid::new().to_hyphenated().to_string()),
+                id: telemetry.id.unwrap_or_else(|| uuid::new().as_hyphenated().to_string()),
                 name: Some(telemetry.name),
                 duration: telemetry.duration.to_string(),
                 response_code: telemetry.response_code,

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use heck::SnakeCase;
+use heck::ToSnakeCase;
 
 use crate::ast::{Attribute, Type};
 
