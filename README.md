@@ -19,7 +19,7 @@ or just add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-appinisghts = "0.2"
+appinsights = "0.2"
 ```
 
 ## Usage
